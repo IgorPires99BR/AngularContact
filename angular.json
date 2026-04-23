@@ -83,10 +83,14 @@
             ],
             "styles": [
               "src/styles.css"
-            ]
+            ],
+            "karmaConfig": "karma.conf.js"
           }
         }
       }
     }
+  },
+  "cli": {
+    "analytics": false
   }
 }
