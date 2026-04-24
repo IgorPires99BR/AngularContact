@@ -1,0 +1,89 @@
+<div class="app-shell" [class.drawer-open]="drawerOpen()">
+
+  <!-- Backdrop mobile -->
+  <div class="backdrop" (click)="closeDrawer()" aria-hidden="true"></div>
+
+  <!-- ════════════ SIDEBAR ════════════ -->
+  <aside class="sidebar" [attr.aria-hidden]="!drawerOpen() && undefined">
+    <div class="sb-brand">
+      <div class="sb-logo">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 5C9.925 5 5 9.925 5 16C5 18.1 5.575 20.075 6.575 21.75L5.1 27L10.35 25.525C12.025 26.525 14 27.1 16.1 27.1C22.175 27.1 27.1 22.175 27.1 16.1C27.1 10.025 22.075 5 16 5Z" fill="#3D6EE8" fill-opacity="0.3"/>
+          <path d="M22 19.1C21.8 18.85 20.875 17.975 20.3 17.75C19.725 17.525 19.375 17.575 19.1 17.925C18.675 18.45 18.25 18.975 17.95 19.3C17.775 19.475 17.55 19.5 17.3 19.375C16.7 19.075 15.5 18.425 14.475 17.4C13.6 16.525 13.025 15.5 12.875 15.225C12.725 14.975 12.85 14.8 12.975 14.65C13.2 14.375 13.55 13.95 13.725 13.7C13.9 13.45 13.875 13.175 13.8 12.975C13.6 12.45 12.975 10.85 12.7 10.2C12.425 9.55 12.125 9.65 11.9 9.65C11.5 9.625 11.175 9.625 10.85 9.975C10.3 10.575 9.55 11.5 9.55 12.9C9.55 14.3 10.55 15.65 10.7 15.85C10.85 16.05 13.025 19.6 16.425 21.15C17.4 21.575 18.15 21.825 18.75 21.975C19.7 22.275 20.575 22.225 21.25 22.125C22.025 21.975 23.425 21.1 23.675 20.175C23.9 19.25 23.9 18.475 23.8 18.325C23.75 18.15 23.35 19.35 22 19.1Z" fill="white"/>
+        </svg>
+      </div>
+      <div class="sb-wordmark">
+        <span class="sb-name-main">Contact Solution</span>
+        <span class="sb-name-sub">Admin</span>
+      </div>
+      <button class="sb-close" (click)="closeDrawer()" aria-label="Fechar menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <nav class="sb-nav">
+      <div class="sb-section" *ngFor="let section of menu">
+        <div class="sb-group-label">{{ section.label }}</div>
+        <a class="sb-item"
+           *ngFor="let item of section.items"
+           [routerLink]="item.route"
+           routerLinkActive="active">
+          <span class="sb-item-icon" [innerHTML]="item.icon"></span>
+          <span class="sb-label">{{ item.label }}</span>
+          <span class="sb-badge"
+                *ngIf="item.badge"
+                [class.warn]="item.badgeType === 'warn'"
+                [class.danger]="item.badgeType === 'danger'">
+            {{ item.badge }}
+          </span>
+        </a>
+      </div>
+    </nav>
+
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="sb-avatar">{{ user.initials }}</div>
+        <div class="sb-user-info">
+          <div class="sb-user-name">{{ user.name }}</div>
+          <div class="sb-user-role">{{ user.role }}</div>
+        </div>
+        <button class="sb-exit" (click)="logout()" title="Sair" aria-label="Sair">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ════════════ MAIN ════════════ -->
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" (click)="toggleDrawer()" aria-label="Abrir menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+
+      <div class="tb-left">
+        <div class="tb-title">{{ topTitle() }}</div>
+        <div class="tb-crumb">{{ crumb() }}</div>
+      </div>
+
+      <div class="tb-right">
+        <div class="api-pill">
+          <div class="api-dot"></div>
+          <span class="api-label">API Online</span>
+        </div>
+        <a class="btn btn-ghost btn-sm hide-sm" routerLink="/disparador">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
+          <span class="btn-label-long">Novo Disparo</span>
+        </a>
+        <a class="btn btn-primary btn-sm" routerLink="/chats">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <span class="btn-label-long">Chats</span>
+        </a>
+      </div>
+    </header>
+
+    <section class="content fade-up">
+      <router-outlet />
+    </section>
+  </div>
+</div>

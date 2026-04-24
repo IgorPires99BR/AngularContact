@@ -1,0 +1,99 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">Dashboard</h1>
+    <div class="ph-sub">Visão geral em tempo real</div>
+  </div>
+  <button class="btn btn-ghost btn-sm" (click)="refresh()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+    <span class="btn-label-long">Atualizar</span>
+  </button>
+</div>
+
+<!-- KPIs ROW 1 -->
+<div class="g4 mb-14">
+  <div class="kpi" *ngFor="let kpi of kpisMain">
+    <div class="kpi-icon">{{ kpi.icon }}</div>
+    <div class="kpi-label">{{ kpi.label }}</div>
+    <div class="kpi-value">{{ kpi.value }}</div>
+    <span class="delta" [ngClass]="'delta-' + kpi.deltaType">{{ kpi.delta }}</span>
+  </div>
+</div>
+
+<!-- KPIs ROW 2 — Números -->
+<div class="g3 mb-22">
+  <div class="kpi" *ngFor="let kpi of kpisStatus" [ngClass]="kpi.tone">
+    <div class="kpi-icon">{{ kpi.icon }}</div>
+    <div class="kpi-label">{{ kpi.label }}</div>
+    <div class="kpi-value" [ngClass]="kpi.tone">{{ kpi.value }}</div>
+    <span class="delta" [ngClass]="'delta-' + kpi.deltaType">{{ kpi.delta }}</span>
+  </div>
+</div>
+
+<!-- DASH MAIN -->
+<div class="dash-grid">
+  <!-- CHATS -->
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">💬 Chats Ativos</div>
+        <div class="card-sub">Conversas em andamento agora</div>
+      </div>
+      <a class="btn btn-primary btn-sm" routerLink="/chats">Ver todos →</a>
+    </div>
+    <div class="flow-list">
+      <div class="flow-bar" *ngFor="let chat of recentChats">
+        <div class="chat-avatar-sm" [style.background]="chat.color">{{ chat.initials }}</div>
+        <div class="flow-info">
+          <div class="flow-title">{{ chat.name }}</div>
+          <div class="flow-sub">{{ chat.last }}</div>
+        </div>
+        <span class="badge" [ngClass]="'badge-' + chat.statusType">{{ chat.status }}</span>
+        <span class="flow-time">{{ chat.time }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-side">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">📤 Disparos Recentes</div>
+          <div class="card-sub">Últimas campanhas</div>
+        </div>
+        <a class="btn btn-ghost btn-sm" routerLink="/disparador">+ Novo</a>
+      </div>
+      <div class="flow-list">
+        <div class="flow-bar" *ngFor="let d of recentDisparos">
+          <span class="flow-dot" [ngClass]="d.dot"></span>
+          <div class="flow-info">
+            <div class="flow-title">{{ d.name }}</div>
+            <div class="flow-sub">{{ d.sent }} / {{ d.total }} enviadas</div>
+          </div>
+          <span class="badge" [ngClass]="'badge-' + d.statusType">{{ d.status }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">🔄 Flows</div>
+          <div class="card-sub">Automações ativas</div>
+        </div>
+        <a class="btn btn-ghost btn-sm" routerLink="/flows">Gerenciar</a>
+      </div>
+      <div class="flow-list">
+        <div class="flow-bar" *ngFor="let f of activeFlows">
+          <span class="flow-dot" [ngClass]="f.on ? 'on' : 'off'"></span>
+          <div class="flow-info">
+            <div class="flow-title">{{ f.name }}</div>
+            <div class="flow-sub">{{ f.triggers }} disparos hoje</div>
+          </div>
+          <span class="badge" [ngClass]="f.on ? 'badge-green' : 'badge-muted'">
+            {{ f.on ? 'Ativo' : 'Pausado' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

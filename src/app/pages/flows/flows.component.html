@@ -1,0 +1,176 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">Flows de Conversa</h1>
+    <div class="ph-sub">Automações multi-step com coleta de dados</div>
+  </div>
+  <button class="btn btn-primary btn-sm" (click)="newFlow()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <span class="btn-label-long">Novo Flow</span>
+  </button>
+</div>
+
+<div class="tabs">
+  <button class="tab" [class.active]="tab() === 'builder'" (click)="tab.set('builder')">🔨 Criação</button>
+  <button class="tab" [class.active]="tab() === 'monitor'" (click)="tab.set('monitor')">📊 Monitor</button>
+  <button class="tab" [class.active]="tab() === 'saved'"   (click)="tab.set('saved')">💾 Salvos</button>
+</div>
+
+<!-- TAB: BUILDER -->
+<div *ngIf="tab() === 'builder'" class="flows-layout">
+  <!-- list -->
+  <div class="flow-list-card">
+    <div class="flow-list-head">
+      <div class="card-title" style="font-size: .85rem">Flows Salvos</div>
+      <button class="btn btn-ghost btn-xs" (click)="newFlow()">+ Novo</button>
+    </div>
+    <div>
+      <div class="flow-list-item"
+           *ngFor="let f of flows()"
+           [class.active]="f.id === selectedId()"
+           (click)="select(f.id)">
+        <span class="fli-dot"
+              [style.background]="f.status === 'ativo' ? 'var(--green)' : f.status === 'teste' ? 'var(--warn)' : 'var(--muted2)'"></span>
+        <div class="fli-info">
+          <div class="fli-name">{{ f.name }}</div>
+          <div class="fli-meta">{{ f.steps.length }} steps · {{ f.clients }} clientes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- builder -->
+  <div class="flow-builder">
+    <div class="flow-build-head">
+      <div>
+        <div class="card-title">{{ selected().name || 'Novo Flow' }}</div>
+        <div class="card-sub">Configure as etapas da conversa</div>
+      </div>
+      <div class="builder-actions">
+        <select class="status-select"
+                [ngModel]="selected().status"
+                (ngModelChange)="updateFlowField('status', $event)">
+          <option value="ativo">● Ativo</option>
+          <option value="inativo">○ Inativo</option>
+          <option value="teste">⚠ Teste</option>
+        </select>
+        <button class="btn btn-success btn-sm">💾 <span class="btn-label-long">Salvar</span></button>
+        <button class="btn btn-ghost btn-sm" (click)="addStep()">+ <span class="btn-label-long">Step</span></button>
+      </div>
+    </div>
+
+    <div class="flow-build-body">
+      <div class="fg mb-16">
+        <label>Nome do Flow</label>
+        <input type="text" placeholder="ex: Qualificação de Lead"
+               [ngModel]="selected().name"
+               (ngModelChange)="updateFlowField('name', $event)">
+      </div>
+      <div class="fg" style="margin-bottom: 18px">
+        <label>Gatilho (palavra-chave)</label>
+        <input type="text" placeholder="oi, olá, início, quero saber mais..."
+               [ngModel]="selected().trigger"
+               (ngModelChange)="updateFlowField('trigger', $event)">
+      </div>
+
+      <div class="steps-container">
+        <ng-container *ngFor="let step of selected().steps; let i = index; let last = last">
+          <div class="step-card">
+            <div class="step-num">{{ i + 1 }}</div>
+            <div class="step-head">
+              <select class="step-type-select"
+                      [ngModel]="step.type"
+                      (ngModelChange)="updateStep(step.id, { type: $event })">
+                <option *ngFor="let t of stepTypes" [value]="t.value">{{ t.label }}</option>
+              </select>
+              <div class="step-actions">
+                <button class="btn btn-ghost btn-xs" (click)="removeStep(step.id)" title="Remover">🗑</button>
+              </div>
+            </div>
+            <div class="step-fg">
+              <label>Mensagem / Pergunta</label>
+              <textarea rows="2"
+                        [ngModel]="step.message"
+                        (ngModelChange)="updateStep(step.id, { message: $event })"
+                        placeholder="O que o bot diz neste step..."></textarea>
+            </div>
+            <div class="step-fg" *ngIf="step.type === 'input'">
+              <label>Variável de saída</label>
+              <input type="text" placeholder="ex: nome, email, telefone"
+                     [ngModel]="step.variable"
+                     (ngModelChange)="updateStep(step.id, { variable: $event })">
+            </div>
+          </div>
+          <div class="step-connector" *ngIf="!last">
+            <div class="step-connector-line"></div>
+            <div class="step-connector-dot"></div>
+            <div class="step-connector-line"></div>
+          </div>
+        </ng-container>
+      </div>
+
+      <button class="btn btn-outline btn-sm btn-block" style="margin-top: 14px" (click)="addStep()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Adicionar Step
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: MONITOR -->
+<div *ngIf="tab() === 'monitor'" class="g2">
+  <div class="card">
+    <div class="card-head"><div><div class="card-title">📊 Clientes por Step</div><div class="card-sub">Onde cada cliente está no flow</div></div></div>
+    <div class="card-body">
+      <div class="fg">
+        <select>
+          <option *ngFor="let f of flows()">{{ f.name }}</option>
+        </select>
+      </div>
+      <div class="step-stat" *ngFor="let s of selected().steps; let i = index">
+        <div class="step-stat-num">{{ i + 1 }}</div>
+        <div class="step-stat-info">
+          <div class="step-stat-name">{{ stepLabel(s.type) }}</div>
+          <div class="step-stat-bar">
+            <div class="step-stat-bar-fill" [style.width.%]="100 - i * 18"></div>
+          </div>
+        </div>
+        <div class="step-stat-count">{{ Math.max(0, 87 - i * 15) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><div class="card-title">👥 Clientes no Flow</div><div class="card-sub">Histórico e step atual</div></div></div>
+    <div class="card-body">
+      <div style="color: var(--muted); font-size: .83rem; text-align: center; padding: 24px">
+        Selecione um flow para ver os clientes
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: SAVED -->
+<div *ngIf="tab() === 'saved'" class="card">
+  <div class="card-head"><div><div class="card-title">💾 Flows Salvos</div><div class="card-sub">Gerencie e ative seus flows</div></div></div>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr><th>Nome</th><th>Gatilho</th><th>Steps</th><th>Status</th><th>Clientes</th><th>Ações</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let f of flows()">
+          <td><strong>{{ f.name }}</strong></td>
+          <td class="mono">{{ f.trigger || '—' }}</td>
+          <td>{{ f.steps.length }}</td>
+          <td><span class="badge" [ngClass]="statusBadge(f.status)">{{ statusLabel(f.status) }}</span></td>
+          <td>{{ f.clients }}</td>
+          <td>
+            <div class="btn-grp">
+              <button class="btn btn-ghost btn-xs" (click)="select(f.id); tab.set('builder')">Editar</button>
+              <button class="btn btn-danger btn-xs">Excluir</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

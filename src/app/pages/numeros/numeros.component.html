@@ -1,0 +1,88 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">Números</h1>
+    <div class="ph-sub">Gerencie os números WhatsApp da plataforma</div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon green">📱</div>
+    <div>
+      <div class="stat-label">Ativos</div>
+      <div class="stat-value green">{{ ativos() }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon warn">⏳</div>
+    <div>
+      <div class="stat-label">Pendentes</div>
+      <div class="stat-value warn">{{ pendentes() }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon danger">🚫</div>
+    <div>
+      <div class="stat-label">Bloqueados</div>
+      <div class="stat-value danger">{{ bloqueados() }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="g2">
+  <!-- FORM -->
+  <div class="card">
+    <div class="card-head"><div><div class="card-title">📱 Cadastrar Número</div><div class="card-sub">POST /api/numero/incluir</div></div></div>
+    <div class="card-body">
+      <div class="fg"><label>Número (DDI)</label>
+        <input type="text" placeholder="5511999887766" [ngModel]="form().numero" (ngModelChange)="update('numero', $event)">
+      </div>
+      <div class="fg"><label>Descrição</label>
+        <input type="text" placeholder="WhatsApp Vendas" [ngModel]="form().descricao" (ngModelChange)="update('descricao', $event)">
+      </div>
+      <div class="fg"><label>Phone Number ID (Meta)</label>
+        <input type="text" placeholder="ID Meta" [ngModel]="form().pid" (ngModelChange)="update('pid', $event)">
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Usuário ID</label>
+          <input type="text" placeholder="ID" [ngModel]="form().uid" (ngModelChange)="update('uid', $event)">
+        </div>
+        <div class="fg"><label>Status</label>
+          <select [ngModel]="form().status" (ngModelChange)="update('status', $event)">
+            <option value="ativo">Ativo</option>
+            <option value="pendente">Pendente</option>
+            <option value="bloqueado">Bloqueado</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" (click)="incluir()">✅ <span class="btn-label-long">Incluir Número</span><span class="hide-md">Incluir</span></button>
+      <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
+    </div>
+  </div>
+
+  <!-- LIST -->
+  <div class="card">
+    <div class="card-head">
+      <div><div class="card-title">Números Cadastrados</div><div class="card-sub">{{ numeros().length }} registros</div></div>
+      <button class="btn btn-ghost btn-sm">🔄</button>
+    </div>
+    <div class="num-search">
+      <input type="text" placeholder="Filtrar por usuário ID..." [ngModel]="searchUid()" (ngModelChange)="searchUid.set($event)">
+      <button class="btn btn-primary btn-sm">Buscar</button>
+    </div>
+    <div class="crud-list">
+      <div class="crud-item" *ngFor="let n of numeros()">
+        <div class="num-icon" [ngClass]="n.status">📱</div>
+        <div class="crud-info">
+          <div class="crud-name">{{ n.descricao }}</div>
+          <div class="crud-meta">{{ n.numero }} · PID: {{ n.pid }}</div>
+        </div>
+        <span class="badge" [ngClass]="badgeClass(n.status)">{{ n.status }}</span>
+        <div class="crud-actions">
+          <button class="btn btn-danger btn-xs" (click)="excluir(n.id)">🗑</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

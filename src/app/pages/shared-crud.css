@@ -1,0 +1,94 @@
+/* ============================================================
+   Estilos compartilhados pelos CRUDs
+   (Empresas, Contatos, Números, Usuários)
+   ============================================================ */
+.crud-list { display: flex; flex-direction: column; }
+.crud-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  transition: background .15s;
+}
+.crud-item:last-child { border-bottom: none; }
+.crud-item:hover { background: rgba(255, 255, 255, .02); }
+
+.crud-avatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .76rem; font-weight: 800; color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+}
+
+.crud-info { flex: 1; min-width: 0; }
+.crud-name {
+  font-weight: 600; color: var(--text);
+  font-size: .85rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.crud-meta {
+  font-size: .72rem; color: var(--muted);
+  margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: 'Courier New', monospace;
+}
+
+.crud-actions {
+  display: flex; gap: 6px;
+  flex-shrink: 0;
+}
+
+.crud-empty {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: .85rem;
+}
+
+/* Stats blocks (números, usuários) */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex; align-items: center; gap: 14px;
+  transition: border-color .15s;
+}
+.stat-card:hover { border-color: var(--border2); }
+.stat-icon {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+.stat-icon.green  { background: var(--green-light); }
+.stat-icon.warn   { background: var(--warn-light); }
+.stat-icon.danger { background: var(--danger-light); }
+.stat-icon.blue   { background: var(--blue-light); }
+.stat-label {
+  font-size: .7rem; color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.stat-value {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: 1.65rem; line-height: 1; margin-top: 4px;
+}
+.stat-value.green  { color: var(--green); }
+.stat-value.warn   { color: var(--warn); }
+.stat-value.danger { color: var(--danger); }
+.stat-value.blue   { color: var(--blue3); }
+
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .crud-item { padding: 10px 14px; }
+  .crud-meta { font-size: .68rem; }
+}

@@ -48,7 +48,7 @@ export class LoginComponent {
         const data = await res.json();
         localStorage.setItem('cs_token', data.token || '');
         localStorage.setItem('cs_user', JSON.stringify({ nome: data.nome || this.email, id: data.usuarioId }));
-        this.router.navigate(['app/dashboard']);
+        this.router.navigate(['/dashboard']);
       } else {
         this.errorMsg = 'E-mail ou senha incorretos.';
       }
@@ -56,7 +56,7 @@ export class LoginComponent {
       // DEV MODE: bypass when API offline
       localStorage.setItem('cs_token', 'dev_token');
       localStorage.setItem('cs_user', JSON.stringify({ nome: 'Igor Pires', id: '1' }));
-      this.router.navigate(['/app/dashboard']);
+      this.router.navigate(['/login']);
     } finally {
       this.loading = false;
     }

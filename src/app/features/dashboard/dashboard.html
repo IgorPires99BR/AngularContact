@@ -1,84 +1,55 @@
-<div class="dashboard-wrapper">
-  <aside class="glass-sidebar">
-    <div class="brand-glow">
-      <div class="logo-circle">CS</div>
-      <span>Contact<b>Solution</b></span>
-    </div>
-
-    <nav class="nav-links">
-      <a routerLink="/dashboard" class="nav-item active">
-        <span class="glow-dot"></span>
-        <i class="icon">dashboard</i> Dashboard
-      </a>
-      <a routerLink="/contatos" class="nav-item">
-        <i class="icon">person</i> Contatos
-      </a>
-      <a routerLink="/empresas" class="nav-item">
-        <i class="icon">business</i> Empresas
-      </a>
-      <a routerLink="/config" class="nav-item">
-        <i class="icon">settings</i> API Config
-      </a>
-    </nav>
-
-    <div class="user-status-card">
-      <div class="avatar-online"></div>
-      <div class="user-info">
-        <p class="name">Admin Developer</p>
-        <p class="status">Online</p>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo">
+        <svg viewBox="0 0 32 32" fill="none" width="28" height="28">
+          <path d="M16 5C9.9 5 5 9.9 5 16c0 2.1.6 4.1 1.6 5.8L5.1 27l5.3-1.5C12 26.5 14 27.1 16.1 27.1c6.1 0 11-4.9 11-11C27.1 10 22.1 5 16 5z" fill="var(--primary)" fill-opacity="0.9" />
+        </svg>
       </div>
+      <span class="brand-name">Contact <span style="color: var(--primary)">Solution</span></span>
     </div>
+
+    <nav class="sb-nav">
+      <a href="#" class="nav-item active"><i class="ph-house"></i> Dashboard</a>
+      <a href="#" class="nav-item"><i class="ph-users"></i> Instâncias</a>
+      <a href="#" class="nav-item"><i class="ph-chat-circle"></i> Disparador</a>
+    </nav>
   </aside>
 
-  <main class="main-content">
-    <header class="glass-header">
-      <div class="search-bar">
-        <input type="text" placeholder="Buscar disparos ou contatos...">
-      </div>
-      <div class="actions">
-        <button class="btn-glow">Novo Disparo +</button>
+  <main class="main">
+    <header class="top-bar">
+      <h2 class="page-title">Visão Geral</h2>
+      <div class="user-badge">
+        <div class="avatar">JS</div>
       </div>
     </header>
 
-    <section class="metrics-grid">
-      <div class="glass-card glow-blue">
-        <span class="label">Taxa de Conversão</span>
-        <h2 class="value">24.8%</h2>
-        <div class="trend up">+4.2%</div>
+    <div class="content">
+      <div class="grid-stats">
+        <div class="card stat-card">
+          <div class="card-head">
+            <div class="card-title">Envios Ativos</div>
+            <div class="card-sub">Total de leads processados</div>
+          </div>
+          <div class="card-body">
+            <span class="stat-value">12.480</span>
+            <span class="badge s">+12% hoje</span>
+          </div>
+        </div>
       </div>
-      <div class="glass-card glow-purple">
-        <span class="label">Mensagens Enviadas</span>
-        <h2 class="value">12,405</h2>
-        <div class="trend up">+15%</div>
-      </div>
-      <div class="glass-card glow-green">
-        <span class="label">Créditos API</span>
-        <h2 class="value">R$ 450,00</h2>
-        <div class="trend">Saldo ativo</div>
-      </div>
-    </section>
 
-    <section class="api-terminal-section">
-      <div class="terminal-card">
-        <div class="terminal-header">
-          <div class="dots"><span></span><span></span><span></span></div>
-          <span class="title">API Endpoints - Documentação Interna</span>
+      <div class="card mt24">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Configurar Webhook</div>
+            <div class="card-sub">POST /api/v1/callback</div>
+          </div>
         </div>
-        <div class="terminal-body" ngNonBindable>
-          <div class="endpoint-line">
-            <span class="method get">GET</span>
-            <span class="path">/api/contato/obter-por-usuario/<b>255BECF9-4249-4F2C-B3E7-BD79C05E8D37</b></span>
-          </div>
-          <div class="endpoint-line">
-            <span class="method post">POST</span>
-            <span class="path">/api/disparo/enviar-mensagem</span>
-          </div>
-          <div class="endpoint-line">
-            <span class="method get">GET</span>
-            <span class="path">/api/usuario/perfil/<b>255BECF9-4249-4F2C-B3E7-BD79C05E8D37</b></span>
-          </div>
+        <div class="card-body">
+          <input class="fg-input" placeholder="https://sua-url.com/webhook">
+          <button class="btn btn-primary mt12">Salvar Configuração</button>
         </div>
       </div>
-    </section>
+    </div>
   </main>
 </div>

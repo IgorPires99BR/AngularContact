@@ -1,0 +1,66 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">Empresas</h1>
+    <div class="ph-sub">POST /api/v2/empresa/incluir · GET /api/v2/empresa/obter</div>
+  </div>
+</div>
+
+<div class="g2">
+  <!-- FORM -->
+  <div class="card">
+    <div class="card-head"><div><div class="card-title">🏢 Cadastrar Empresa</div></div></div>
+    <div class="card-body">
+      <div class="fg">
+        <label>Razão Social</label>
+        <input type="text" placeholder="Empresa XYZ LTDA"
+               [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>CNPJ</label>
+          <input type="text" placeholder="00.000.000/0001-00"
+                 [ngModel]="form().cnpj" (ngModelChange)="update('cnpj', $event)">
+        </div>
+        <div class="fg">
+          <label>E-mail</label>
+          <input type="email" placeholder="contato@empresa.com"
+                 [ngModel]="form().email" (ngModelChange)="update('email', $event)">
+        </div>
+      </div>
+      <div class="fg">
+        <label>Telefone</label>
+        <input type="text" placeholder="+55 11 9 9999-8888"
+               [ngModel]="form().tel" (ngModelChange)="update('tel', $event)">
+      </div>
+      <div class="btn-grp">
+        <button class="btn btn-primary" (click)="incluir()">✅ <span class="btn-label-long">Incluir</span></button>
+        <button class="btn btn-outline">🔄 <span class="btn-label-long">Listar</span></button>
+      </div>
+      <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
+    </div>
+  </div>
+
+  <!-- LIST -->
+  <div class="card">
+    <div class="card-head">
+      <div><div class="card-title">Empresas Cadastradas</div><div class="card-sub">{{ empresas().length }} registros</div></div>
+      <button class="btn btn-ghost btn-sm">🔄</button>
+    </div>
+    <div class="crud-list">
+      <div class="crud-item" *ngFor="let e of empresas()">
+        <div class="crud-avatar" style="background: linear-gradient(135deg, #3D6EE8, #4B7BFF)">
+          {{ e.nome.substring(0, 2).toUpperCase() }}
+        </div>
+        <div class="crud-info">
+          <div class="crud-name">{{ e.nome }}</div>
+          <div class="crud-meta">{{ e.cnpj }} · {{ e.email }}</div>
+        </div>
+        <div class="crud-actions">
+          <button class="btn btn-ghost btn-xs">Editar</button>
+          <button class="btn btn-danger btn-xs" (click)="excluir(e.id)">🗑</button>
+        </div>
+      </div>
+      <div class="crud-empty" *ngIf="empresas().length === 0">Nenhuma empresa cadastrada</div>
+    </div>
+  </div>
+</div>

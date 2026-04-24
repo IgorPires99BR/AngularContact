@@ -1,0 +1,84 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">Usuários</h1>
+    <div class="ph-sub">POST /api/usuario/incluir · GET /api/usuario/obter-por-id/{{ '{' }}id{{ '}' }}</div>
+  </div>
+</div>
+
+<div class="g2">
+  <!-- FORM -->
+  <div class="card">
+    <div class="card-head"><div><div class="card-title">👤 Novo Usuário</div></div></div>
+    <div class="card-body">
+      <div class="fg"><label>Nome Completo</label>
+        <input type="text" placeholder="João Silva" [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>E-mail</label>
+          <input type="email" placeholder="joao@empresa.com" [ngModel]="form().email" (ngModelChange)="update('email', $event)">
+        </div>
+        <div class="fg"><label>Senha</label>
+          <input type="password" placeholder="••••••••" [ngModel]="form().senha" (ngModelChange)="update('senha', $event)">
+        </div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Empresa ID</label>
+          <input type="text" placeholder="ID" [ngModel]="form().eid" (ngModelChange)="update('eid', $event)">
+        </div>
+        <div class="fg"><label>Perfil</label>
+          <select [ngModel]="form().perfil" (ngModelChange)="update('perfil', $event)">
+            <option value="admin">Admin</option>
+            <option value="operador">Operador</option>
+            <option value="viewer">Viewer</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" (click)="incluir()">✅ <span class="btn-label-long">Criar Usuário</span><span class="hide-md">Criar</span></button>
+      <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
+    </div>
+  </div>
+
+  <!-- BUSCAR + LISTA -->
+  <div class="card">
+    <div class="card-head"><div><div class="card-title">Buscar por ID</div><div class="card-sub">GET /api/usuario/obter-por-id/{{ '{' }}id{{ '}' }}</div></div></div>
+    <div class="card-body">
+      <div class="fg-row mb-14">
+        <div class="fg"><label>Usuário ID</label>
+          <input type="text" placeholder="ID do usuário" [ngModel]="searchId()" (ngModelChange)="searchId.set($event)">
+        </div>
+        <div class="align-end"><button class="btn btn-primary" (click)="buscar()">🔍 <span class="btn-label-long">Buscar</span></button></div>
+      </div>
+      <div class="payload-display" style="min-height: 60px">{{ searchResult() }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- LISTA COMPLETA -->
+<div class="card mb-14" style="margin-top: 16px">
+  <div class="card-head">
+    <div><div class="card-title">👥 Usuários Cadastrados</div><div class="card-sub">{{ usuarios().length }} registros</div></div>
+  </div>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Empresa</th><th>Perfil</th><th>Criado</th><th>Ações</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let u of usuarios()">
+          <td class="mono">#{{ u.id }}</td>
+          <td><strong>{{ u.nome }}</strong></td>
+          <td class="mono">{{ u.email }}</td>
+          <td class="mono">{{ u.eid }}</td>
+          <td><span class="badge" [ngClass]="perfilBadge(u.perfil)">{{ u.perfil }}</span></td>
+          <td>{{ u.criadoEm }}</td>
+          <td>
+            <div class="btn-grp">
+              <button class="btn btn-ghost btn-xs">Editar</button>
+              <button class="btn btn-danger btn-xs" (click)="excluir(u.id)">🗑</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
