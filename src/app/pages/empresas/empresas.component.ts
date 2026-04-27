@@ -1,27 +1,49 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core'; // Adicionado OnInit
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 interface Empresa {
-  id: number; nome: string; cnpj: string; email: string; tel: string; criadoEm: string;
+  id: string; // Mudado para string, pois a API retorna um GUID
+  nome: string;
+  cnpj: string;
+  email: string;
+  telefone: string; // Padronizado com o Swagger
+  dataCriacao: string; // Padronizado com o Swagger
 }
 
 @Component({
   selector: 'app-empresas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HttpClientModule],
   templateUrl: './empresas.component.html',
   styleUrls: ['../shared-crud.css'],
 })
-export class EmpresasComponent {
+export class EmpresasComponent implements OnInit {
+  private http = inject(HttpClient);
+  private readonly BASE_URL = 'https://localhost:7118/api/v2/empresa';
+
   form = signal({ nome: '', cnpj: '', email: '', tel: '' });
   response = signal('');
 
-  empresas = signal<Empresa[]>([
-    { id: 1, nome: 'Tech Solutions LTDA',  cnpj: '12.345.678/0001-90', email: 'contato@tech.com',     tel: '+55 11 9 8888-7777', criadoEm: '12/04/2025' },
-    { id: 2, nome: 'Marketing Plus ME',    cnpj: '98.765.432/0001-10', email: 'hello@mktplus.com',    tel: '+55 21 9 7777-6666', criadoEm: '15/04/2025' },
-    { id: 3, nome: 'Consultoria Premium',  cnpj: '55.444.333/0001-22', email: 'info@premium.com.br',  tel: '+55 31 9 6666-5555', criadoEm: '18/04/2025' },
-  ]);
+  // Inicializa o sinal com uma lista vazia
+  empresas = signal<Empresa[]>([]);
+
+  ngOnInit() {
+    this.obterEmpresas();
+  }
+
+  obterEmpresas() {
+    this.http.get<Empresa[]>(`${this.BASE_URL}/obter`).subscribe({
+      next: (dados) => {
+        this.empresas.set(dados);
+      },
+      error: (err) => {
+        console.error('Erro ao buscar empresas:', err);
+        this.response.set('❌ Erro ao carregar a lista de empresas.');
+      }
+    });
+  }
 
   update(field: string, value: string) {
     this.form.set({ ...this.form(), [field]: value });
@@ -29,14 +51,35 @@ export class EmpresasComponent {
 
   incluir() {
     const f = this.form();
-    if (!f.nome) { this.response.set('❌ Razão Social obrigatória'); return; }
-    const id = Math.max(0, ...this.empresas().map(e => e.id)) + 1;
-    this.empresas.set([...this.empresas(), { id, ...f, criadoEm: new Date().toLocaleDateString('pt-BR') }]);
-    this.response.set(`✅ Empresa cadastrada\n${JSON.stringify({ id, ...f }, null, 2)}`);
-    this.form.set({ nome: '', cnpj: '', email: '', tel: '' });
+    if (!f.nome || !f.cnpj) {
+      this.response.set('❌ Nome e CNPJ são obrigatórios');
+      return;
+    }
+
+    const payload = {
+      nome: f.nome,
+      email: f.email,
+      telefone: f.tel,
+      cnpj: f.cnpj
+    };
+
+    this.http.post(`${this.BASE_URL}/incluir`, payload).subscribe({
+      next: () => {
+        this.response.set('✅ Empresa cadastrada com sucesso!');
+        this.form.set({ nome: '', cnpj: '', email: '', tel: '' });
+        this.obterEmpresas(); // Recarrega a lista para trazer os dados atualizados do banco
+      },
+      error: (err) => {
+        this.response.set('❌ Falha ao salvar empresa.');
+      }
+    });
   }
 
-  excluir(id: number) {
-    this.empresas.set(this.empresas().filter(e => e.id !== id));
+  excluir(id: string) {
+    // Exemplo de como seria a chamada de exclusão (ajuste o endpoint se necessário)
+    this.http.delete(`${this.BASE_URL}/excluir/${id}`).subscribe({
+      next: () => this.obterEmpresas(),
+      error: () => this.response.set('❌ Erro ao excluir.')
+    });
   }
 }
