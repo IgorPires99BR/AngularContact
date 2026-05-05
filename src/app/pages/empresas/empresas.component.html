@@ -1,14 +1,19 @@
 <div class="ph">
   <div>
     <h1 class="ph-title">Empresas</h1>
-    <div class="ph-sub">POST /api/v2/empresa/incluir · GET /api/v2/empresa/obter</div>
+    <div class="ph-sub">Controle de registros via API v2</div>
   </div>
 </div>
 
 <div class="g2">
-  <!-- FORM -->
   <div class="card">
-    <div class="card-head"><div><div class="card-title">🏢 Cadastrar Empresa</div></div></div>
+    <div class="card-head">
+      <div>
+        <div class="card-title">
+          {{ editingId() ? '📝 Editar Empresa' : '🏢 Cadastrar Empresa' }}
+        </div>
+      </div>
+    </div>
     <div class="card-body">
       <div class="fg">
         <label>Razão Social</label>
@@ -32,19 +37,32 @@
         <input type="text" placeholder="+55 11 9 9999-8888"
                [ngModel]="form().tel" (ngModelChange)="update('tel', $event)">
       </div>
+
       <div class="btn-grp">
-        <button class="btn btn-primary" (click)="incluir()">✅ <span class="btn-label-long">Incluir</span></button>
-        <button class="btn btn-outline">🔄 <span class="btn-label-long">Listar</span></button>
+        <button class="btn btn-primary" (click)="salvar()">
+          {{ editingId() ? '💾 Salvar Alterações' : '✅ Incluir' }}
+        </button>
+
+        <button *ngIf="editingId()" class="btn btn-ghost" (click)="cancelarEdicao()">
+          Cancelar
+        </button>
+
+        <button class="btn btn-outline" (click)="obterEmpresas()">🔄 Listar</button>
       </div>
-      <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
+
+      <div class="payload-display" *ngIf="response()" style="margin-top: 14px">
+        {{ response() }}
+      </div>
     </div>
   </div>
 
-  <!-- LIST -->
   <div class="card">
     <div class="card-head">
-      <div><div class="card-title">Empresas Cadastradas</div><div class="card-sub">{{ empresas().length }} registros</div></div>
-      <button class="btn btn-ghost btn-sm">🔄</button>
+      <div>
+        <div class="card-title">Empresas Cadastradas</div>
+        <div class="card-sub">{{ empresas().length }} registros</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" (click)="obterEmpresas()">🔄</button>
     </div>
     <div class="crud-list">
       <div class="crud-item" *ngFor="let e of empresas()">
@@ -56,11 +74,13 @@
           <div class="crud-meta">{{ e.cnpj }} · {{ e.email }}</div>
         </div>
         <div class="crud-actions">
-          <button class="btn btn-ghost btn-xs">Editar</button>
+          <button class="btn btn-ghost btn-xs" (click)="prepararEdicao(e)">Editar</button>
           <button class="btn btn-danger btn-xs" (click)="excluir(e.id)">🗑</button>
         </div>
       </div>
-      <div class="crud-empty" *ngIf="empresas().length === 0">Nenhuma empresa cadastrada</div>
+      <div class="crud-empty" *ngIf="empresas().length === 0">
+        Nenhuma empresa cadastrada
+      </div>
     </div>
   </div>
 </div>

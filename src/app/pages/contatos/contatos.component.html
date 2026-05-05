@@ -1,66 +1,88 @@
 <div class="ph">
   <div>
     <h1 class="ph-title">Contatos</h1>
-    <div class="ph-sub">POST /api/contato/incluir · GET /api/contato/obter-por-usuario/{{ '{' }}id{{ '}' }}</div>
+    <div class="ph-sub">Gerencie seus contatos vinculados aos usuários</div>
   </div>
 </div>
 
 <div class="g2">
-  <!-- NOVO CONTATO -->
+  <!-- FORMULÁRIO (INCLUIR/EDITAR) -->
   <div class="card">
-    <div class="card-head"><div><div class="card-title">👥 Novo Contato</div></div></div>
+    <div class="card-head">
+      <div>
+        <div class="card-title">{{ editingId() ? '📝 Editar Contato' : '👥 Novo Contato' }}</div>
+      </div>
+    </div>
     <div class="card-body">
-      <div class="fg"><label>Nome Completo</label>
-        <input type="text" placeholder="Maria Silva" [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
+      <div class="fg">
+        <label>Nome Completo</label>
+        <input type="text" placeholder="Ex: Maria Silva" [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
       </div>
       <div class="fg-row">
-        <div class="fg"><label>Telefone (DDI)</label>
-          <input type="text" placeholder="5511999887766" [ngModel]="form().tel" (ngModelChange)="update('tel', $event)">
+        <div class="fg">
+          <label>Telefone (DDI)</label>
+          <input type="text" placeholder="5511..." [ngModel]="form().telefone" (ngModelChange)="update('tel', $event)">
         </div>
-        <div class="fg"><label>Usuário ID</label>
-          <input type="text" placeholder="ID do usuário" [ngModel]="form().uid" (ngModelChange)="update('uid', $event)">
+        <div class="fg">
+          <label>Usuário ID (Vínculo)</label>
+          <input type="text" placeholder="usr_..." [ngModel]="form().usuarioId" (ngModelChange)="update('uid', $event)">
         </div>
       </div>
-      <div class="fg"><label>E-mail</label>
+      <div class="fg">
+        <label>E-mail</label>
         <input type="email" placeholder="maria@email.com" [ngModel]="form().email" (ngModelChange)="update('email', $event)">
       </div>
-      <button class="btn btn-primary" (click)="incluir()">
-        ✅ <span class="btn-label-long">Incluir Contato</span><span class="hide-md">Incluir</span>
-      </button>
+
+      <div class="btn-grp" style="display: flex; gap: 8px;">
+        <button class="btn btn-primary" (click)="incluir()">
+          ✅ <span class="btn-label-long">{{ editingId() ? 'Salvar Alterações' : 'Incluir Contato' }}</span>
+        </button>
+        <button *ngIf="editingId()" class="btn btn-ghost" (click)="cancelarEdicao()">Cancelar</button>
+      </div>
+
       <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
     </div>
   </div>
+</div>
 
-  <!-- BUSCAR / EXCLUIR -->
-  <div class="card">
-    <div class="card-head"><div><div class="card-title">Buscar Contatos</div><div class="card-sub">GET por usuário</div></div></div>
-    <div class="card-body">
-      <div class="fg-row mb-14">
-        <div class="fg"><label>Usuário ID</label>
-          <input type="text" placeholder="ID do usuário" [ngModel]="search()" (ngModelChange)="search.set($event)">
-        </div>
-        <div class="align-end"><button class="btn btn-primary">🔍 <span class="btn-label-long">Buscar</span></button></div>
-      </div>
-
-      <div class="crud-list-mini">
-        <div class="crud-mini" *ngFor="let c of contatos()">
-          <div class="crud-mini-name">{{ c.nome }}</div>
-          <div class="crud-mini-meta mono">{{ c.tel }} · ID: {{ c.id }}</div>
-        </div>
-      </div>
-
-      <div class="section-divider"></div>
-
-      <div style="margin-bottom: 10px">
-        <div class="card-title" style="color: var(--danger); font-size: .84rem">🗑 Excluir Contato</div>
-      </div>
-      <div class="fg-row">
-        <div class="fg"><label>ID do Contato</label>
-          <input type="text" placeholder="ID" [ngModel]="delId()" (ngModelChange)="delId.set($event)">
-        </div>
-        <div class="align-end"><button class="btn btn-danger" (click)="excluir()">Excluir</button></div>
-      </div>
-      <div class="payload-display" *ngIf="delResponse()" style="margin-top: 8px">{{ delResponse() }}</div>
+<!-- TABELA DE RESULTADOS -->
+<div class="card mb-14" style="margin-top: 16px">
+  <div class="card-head">
+    <div>
+      <div class="card-title">📋 Lista de Contatos</div>
+      <div class="card-sub">{{ contatos().length }} contatos carregados</div>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nome</th>
+          <th>Telefone</th>
+          <th>E-mail</th>
+          <th>UID</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of contatos()">
+          <td class="mono">#{{ c.id }}</td>
+          <td><strong>{{ c.nome }}</strong></td>
+          <td class="mono">{{ c.telefone }}</td>
+          <td>{{ c.email }}</td>
+          <td class="mono" style="font-size: 10px">{{ c.usuarioId }}</td>
+          <td>
+            <div class="btn-grp">
+              <button class="btn btn-ghost btn-xs" (click)="prepararEdicao(c)">Editar</button>
+              <button class="btn btn-danger btn-xs" (click)="excluir(c.id!)">🗑</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="crud-empty" *ngIf="contatos().length === 0">
+      Nenhum contato encontrado. Realize uma busca por Usuário ID.
     </div>
   </div>
 </div>

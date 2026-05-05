@@ -1,8 +1,17 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 
-interface Contato { id: number; nome: string; tel: string; email: string; uid: string; }
+// Interface ajustada exatamente ao JSON da imagem image_66870d.png
+interface Contato {
+  id?: string;
+  usuarioId: string;
+  telefone: string;
+  nome?: string;
+  email?: string;
+  dataCriacao?: string;
+}
 
 @Component({
   selector: 'app-contatos',
@@ -11,38 +20,87 @@ interface Contato { id: number; nome: string; tel: string; email: string; uid: s
   templateUrl: './contatos.component.html',
   styleUrls: ['../shared-crud.css'],
 })
-export class ContatosComponent {
-  form = signal({ nome: '', tel: '', email: '', uid: '' });
+export class ContatosComponent implements OnInit {
+  private http = inject(HttpClient);
+  private readonly API_URL = 'https://localhost:7118/api/contato'; // URL da imagem
+
+  form = signal({
+    nome: '',
+    telefone: '',
+    email: '',
+    usuarioId: ''
+  });
+
   search = signal('');
-  delId = signal('');
+  editingId = signal<string | null>(null);
   response = signal('');
-  delResponse = signal('');
+  contatos = signal<Contato[]>([]);
 
-  contatos = signal<Contato[]>([
-    { id: 1, nome: 'João Silva',     tel: '5511999887766', email: 'joao@email.com',  uid: 'usr_001' },
-    { id: 2, nome: 'Maria Rocha',    tel: '5521988776655', email: 'maria@email.com', uid: 'usr_001' },
-    { id: 3, nome: 'Carlos Almeida', tel: '5511977665544', email: 'carlos@x.com',     uid: 'usr_002' },
-  ]);
+  ngOnInit() {
+    this.buscar();
+  }
 
-  update(field: string, value: string) { this.form.set({ ...this.form(), [field]: value }); }
+  update(field: string, value: string) {
+    this.form.set({ ...this.form(), [field]: value });
+  }
+
+  buscar() {
+    const term = this.search();
+
+    // Usando a URL completa da imagem para garantir o teste
+    this.http.get<Contato[]>(`${this.API_URL}/obter-por-usuario/255BECF9-4249-4F2C-B3E7-BD79C05E8D37`)
+      .subscribe({
+        next: (res) => {
+          this.contatos.set(res);
+          this.response.set(res.length > 0 ? `✅ ${res.length} contatos encontrados` : '⚠ Nenhum contato.');
+        },
+        error: (err) => {
+          console.error(err);
+          this.response.set('❌ Erro na requisição. Verifique o console.');
+        }
+      });
+  }
 
   incluir() {
     const f = this.form();
-    if (!f.nome || !f.tel) { this.response.set('❌ Nome e telefone obrigatórios'); return; }
-    const id = Math.max(0, ...this.contatos().map(c => c.id)) + 1;
-    this.contatos.set([...this.contatos(), { id, ...f }]);
-    this.response.set(`✅ Contato incluído\n${JSON.stringify({ id, ...f }, null, 2)}`);
-    this.form.set({ nome: '', tel: '', email: '', uid: '' });
+    if (!f.telefone || !f.usuarioId) {
+      this.response.set('❌ Telefone e UsuárioID são obrigatórios');
+      return;
+    }
+
+    const request = this.editingId()
+      ? this.http.put(`${this.API_URL}/alterar`, { id: this.editingId(), ...f })
+      : this.http.post(`${this.API_URL}/incluir`, f);
+
+    request.subscribe({
+      next: () => {
+        this.response.set('✅ Operação realizada!');
+        this.cancelarEdicao();
+        this.buscar();
+      },
+      error: (err) => this.response.set('❌ Erro: ' + err.message)
+    });
   }
 
-  excluir() {
-    const id = +this.delId();
-    if (!id) { this.delResponse.set('❌ Informe um ID válido'); return; }
-    const before = this.contatos().length;
-    this.contatos.set(this.contatos().filter(c => c.id !== id));
-    this.delResponse.set(before > this.contatos().length
-      ? `✅ Contato ${id} excluído`
-      : `⚠ Contato ${id} não encontrado`);
-    this.delId.set('');
+  prepararEdicao(c: Contato) {
+    this.editingId.set(c.id!);
+    this.form.set({
+      nome: c.nome || '',
+      telefone: c.telefone,
+      email: c.email || '',
+      usuarioId: c.usuarioId
+    });
+  }
+
+  cancelarEdicao() {
+    this.editingId.set(null);
+    this.form.set({ nome: '', telefone: '', email: '', usuarioId: '' });
+  }
+
+  excluir(id: string) {
+    if (!confirm('Deseja excluir?')) return;
+    this.http.delete(`${this.API_URL}/excluir/${id}`).subscribe(() => {
+      this.contatos.set(this.contatos().filter(c => c.id !== id));
+    });
   }
 }

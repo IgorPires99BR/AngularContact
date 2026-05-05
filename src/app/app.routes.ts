@@ -1,53 +1,45 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './auth-guard'; // Certifique-se de que o caminho está correto
+
+// Layout e Login
 import { ShellComponent } from './shell/shell.component';
 import { LoginComponent } from './features/login/login';
 
+// Componentes das Páginas (Eager Loading para evitar erros de chunk)
+import { DashboardComponent } from './pages/dashboard/dashboard.component';
+import { ChatsComponent } from './pages/chats/chats.component';
+import { DisparadorComponent } from './pages/disparador/disparador.component';
+import { FlowsComponent } from './pages/flows/flows.component';
+import { EmpresasComponent } from './pages/empresas/empresas.component';
+import { ContatosComponent } from './pages/contatos/contatos.component';
+import { NumerosComponent } from './pages/numeros/numeros.component';
+import { UsuariosComponent } from './pages/usuarios/usuarios.component';
+
 export const routes: Routes = [
+  // 1. Redirecionamento Inicial
   { path: '', pathMatch: 'full', redirectTo: 'login' },
 
-  // 2. Rota de Login
+  // 2. Rota Pública: O Login precisa estar fora do Guard para o usuário conseguir entrar
   { path: 'login', component: LoginComponent },
 
-  // Rotas Privadas (Usando a pasta Pages e o Shell como layout)
+  // 3. Rotas Protegidas: O Shell e todos os seus filhos agora exigem autenticação
   {
     path: '',
-    component: ShellComponent, // O Shell terá o seu Menu/Sidebar
+    component: ShellComponent,
+    canActivate: [authGuard], // <--- O bloqueio que você acabou de criar via terminal
     children: [
-      {
-        path: 'dashboard',
-        loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent)
-      },
-      {
-        path: 'chats',
-        loadComponent: () => import('./pages/chats/chats.component').then(m => m.ChatsComponent)
-      },
-      {
-        path: 'disparador',
-        loadComponent: () => import('./pages/disparador/disparador.component').then(m => m.DisparadorComponent)
-      },
-      {
-        path: 'flows',
-        loadComponent: () => import('./pages/flows/flows.component').then(m => m.FlowsComponent)
-      },
-      {
-        path: 'empresas',
-        loadComponent: () => import('./pages/empresas/empresas.component').then(m => m.EmpresasComponent)
-      },
-      {
-        path: 'contatos',
-        loadComponent: () => import('./pages/contatos/contatos.component').then(m => m.ContatosComponent)
-      },
-      {
-        path: 'numeros',
-        loadComponent: () => import('./pages/numeros/numeros.component').then(m => m.NumerosComponent)
-      },
-      {
-        path: 'usuarios',
-        loadComponent: () => import('./pages/usuarios/usuarios.component').then(m => m.UsuariosComponent)
-      },
+      { path: 'dashboard', component: DashboardComponent },
+      { path: 'chats', component: ChatsComponent },
+      { path: 'disparador', component: DisparadorComponent },
+      { path: 'flows', component: FlowsComponent },
+      { path: 'empresas', component: EmpresasComponent },
+      { path: 'contatos', component: ContatosComponent },
+      { path: 'numeros', component: NumerosComponent },
+      { path: 'usuarios', component: UsuariosComponent },
     ],
   },
 
-  // Wildcard para evitar erros de rota
+  // 4. Wildcard: Se o usuário tentar qualquer rota inexistente, volta para o login
+  // Se estiver logado, o guard no login ou o próprio redirecionamento cuidará disso
   { path: '**', redirectTo: 'login' },
 ];

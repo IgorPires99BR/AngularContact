@@ -1,56 +1,144 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 type Perfil = 'admin' | 'operador' | 'viewer';
+
 interface Usuario {
-  id: number; nome: string; email: string; eid: string; perfil: Perfil; criadoEm: string;
+  id: number;
+  nome: string;
+  email: string;
+  empresaId: string; // Atualizado de eid para empresaId
+  perfil: Perfil;
+  criadoEm: string;
 }
 
 @Component({
   selector: 'app-usuarios',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HttpClientModule],
   templateUrl: './usuarios.component.html',
   styleUrls: ['../shared-crud.css'],
 })
-export class UsuariosComponent {
-  form = signal<{ nome: string; email: string; senha: string; eid: string; perfil: Perfil }>(
-    { nome: '', email: '', senha: '', eid: '', perfil: 'admin' }
-  );
+export class UsuariosComponent implements OnInit {
+  private http = inject(HttpClient);
+  private readonly BASE_URL = 'https://localhost:7118/api/usuario';
+
+  // Estados com os nomes de propriedades idênticos ao Payload da API
+  form = signal({
+    nome: '',
+    email: '',
+    senhaHash: '', // Atualizado de senha para senhaHash
+    empresaId: '', // Atualizado de eid para empresaId
+    perfil: 'admin' as Perfil
+  });
+
   searchId = signal('');
   searchResult = signal('Aguardando consulta...');
   response = signal('');
+  usuarios = signal<Usuario[]>([]);
+  editingId = signal<number | null>(null);
 
-  usuarios = signal<Usuario[]>([
-    { id: 1, nome: 'Igor Pires',      email: 'igor@contactsolution.com', eid: 'EMP_001', perfil: 'admin',     criadoEm: '12/04/2025' },
-    { id: 2, nome: 'Ana Carolina',    email: 'ana@contactsolution.com',  eid: 'EMP_001', perfil: 'operador',  criadoEm: '15/04/2025' },
-    { id: 3, nome: 'Marcos Oliveira', email: 'marcos@empresa-b.com',     eid: 'EMP_002', perfil: 'viewer',    criadoEm: '18/04/2025' },
-  ]);
+  ngOnInit() {
+    this.listarTodos();
+  }
 
-  update<K extends keyof ReturnType<typeof this.form>>(field: K, value: any) {
+  update(field: string, value: any) {
     this.form.set({ ...this.form(), [field]: value });
   }
 
-  incluir() {
-    const f = this.form();
-    if (!f.nome || !f.email) { this.response.set('❌ Nome e e-mail obrigatórios'); return; }
-    const id = Math.max(0, ...this.usuarios().map(u => u.id)) + 1;
-    const novo = { id, nome: f.nome, email: f.email, eid: f.eid, perfil: f.perfil, criadoEm: new Date().toLocaleDateString('pt-BR') };
-    this.usuarios.set([...this.usuarios(), novo]);
-    this.response.set(`✅ Usuário criado\n${JSON.stringify({ ...novo, senha: '***' }, null, 2)}`);
-    this.form.set({ nome: '', email: '', senha: '', eid: '', perfil: 'admin' });
+  // --- Ações de API ---
+
+  listarTodos() {
+    // Ajustado para um endpoint genérico de listagem, caso exista. 
+    // Se precisar manter o /obter-por-id/1, basta voltar.
+    this.http.get<Usuario[]>(`${this.BASE_URL}/obter-por-id/1`).subscribe({
+      next: (dados) => this.usuarios.set(dados),
+      error: () => this.response.set('❌ Erro ao listar usuários.')
+    });
   }
 
   buscar() {
-    const id = +this.searchId();
+    const id = this.searchId();
     if (!id) { this.searchResult.set('❌ Informe um ID válido'); return; }
-    const u = this.usuarios().find(x => x.id === id);
-    this.searchResult.set(u ? JSON.stringify(u, null, 2) : `⚠ Usuário ${id} não encontrado`);
+
+    this.searchResult.set('Buscando...');
+    this.http.get<Usuario>(`${this.BASE_URL}/obter-por-id/${id}`).subscribe({
+      next: (u) => this.searchResult.set(JSON.stringify(u, null, 2)),
+      error: () => this.searchResult.set(`⚠ Usuário ${id} não encontrado`)
+    });
+  }
+
+  incluir() {
+    const payload = this.form();
+
+    if (!payload.nome || !payload.email || !payload.empresaId) {
+      this.response.set('❌ Nome, E-mail e Empresa ID são obrigatórios');
+      return;
+    }
+
+    if (this.editingId()) {
+      // EDITAR (PUT)
+      this.http.put(`${this.BASE_URL}/alterar`, { id: this.editingId(), ...payload }).subscribe({
+        next: () => {
+          this.response.set('✅ Usuário atualizado!');
+          this.cancelarEdicao();
+          this.listarTodos();
+        },
+        error: () => this.response.set('❌ Erro ao atualizar.')
+      });
+    } else {
+      // INCLUIR (POST)
+      // O payload agora já está no formato: { empresaId, nome, email, senhaHash }
+      this.http.post(`${this.BASE_URL}/incluir`, payload).subscribe({
+        next: () => {
+          this.response.set(`✅ Usuário criado com sucesso!`);
+          this.limparFormulario();
+          this.listarTodos();
+        },
+        error: () => this.response.set('❌ Erro ao criar usuário.')
+      });
+    }
+  }
+
+  prepararEdicao(u: Usuario) {
+    this.editingId.set(u.id);
+    this.form.set({
+      nome: u.nome,
+      email: u.email,
+      senhaHash: '',
+      empresaId: u.empresaId,
+      perfil: u.perfil
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  cancelarEdicao() {
+    this.limparFormulario();
+  }
+
+  private limparFormulario() {
+    this.editingId.set(null);
+    this.form.set({
+      nome: '',
+      email: '',
+      senhaHash: '',
+      empresaId: '',
+      perfil: 'admin'
+    });
   }
 
   excluir(id: number) {
-    this.usuarios.set(this.usuarios().filter(u => u.id !== id));
+    if (confirm(`Excluir usuário #${id}?`)) {
+      this.http.delete(`${this.BASE_URL}/excluir/${id}`).subscribe({
+        next: () => {
+          this.response.set('🗑️ Usuário removido.');
+          this.listarTodos();
+        },
+        error: () => this.response.set('❌ Erro ao excluir.')
+      });
+    }
   }
 
   perfilBadge(p: Perfil) {
