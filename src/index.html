@@ -8,6 +8,19 @@
   <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>
+
   <app-root></app-root>
+
+  <script>
+    window.fbAsyncInit = function () {
+      FB.init({
+        appId: 'SEU_APP_ID_AQUI',
+        cookie: true,
+        xfbml: true,
+        version: 'v19.0'
+      });
+    };
+  </script>
+  <script async defer crossorigin="anonymous" src="https://connect.facebook.net/pt_BR/sdk.js"></script>
 </body>
 </html>

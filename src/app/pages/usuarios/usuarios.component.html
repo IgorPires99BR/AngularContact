@@ -1,7 +1,7 @@
 <div class="ph">
   <div>
     <h1 class="ph-title">Usuários</h1>
-    <div class="ph-sub">POST /api/usuario/incluir · GET /api/usuario/obter-por-id/{{ '{' }}id{{ '}' }}</div>
+    <div class="ph-sub">Gerencie os membros e permissões da sua organização</div>
   </div>
 </div>
 
@@ -17,34 +17,30 @@
     <div class="card-body">
       <div class="fg">
         <label>Nome Completo</label>
-        <input type="text" placeholder="João Silva" [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
+        <input type="text" placeholder="Ex: João Silva" [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
       </div>
+
       <div class="fg-row">
         <div class="fg">
           <label>E-mail</label>
-          <input type="email" placeholder="email@gmail.com" [ngModel]="form().email" (ngModelChange)="update('email', $event)">
+          <input type="email" placeholder="email@empresa.com" [ngModel]="form().email" (ngModelChange)="update('email', $event)">
         </div>
         <div class="fg">
           <label>Senha</label>
           <input type="password" placeholder="••••••••" [ngModel]="form().senhaHash" (ngModelChange)="update('senhaHash', $event)">
         </div>
       </div>
-      <div class="fg-row">
-        <div class="fg">
-          <label>Empresa ID</label>
-          <input type="text" placeholder="ID" [ngModel]="form().empresaId" (ngModelChange)="update('empresaId', $event)">
-        </div>
-        <div class="fg">
-          <label>Perfil</label>
-          <select [ngModel]="form().perfil" (ngModelChange)="update('perfil', $event)">
-            <option value="admin">Admin</option>
-            <option value="operador">Operador</option>
-            <option value="viewer">Viewer</option>
-          </select>
-        </div>
+
+      <div class="fg">
+        <label>Perfil de Acesso</label>
+        <select [ngModel]="form().perfil" (ngModelChange)="update('perfil', $event)">
+          <option value="admin">Administrador (Total)</option>
+          <option value="operador">Operador (Uso)</option>
+          <option value="viewer">Visualizador (Leitura)</option>
+        </select>
       </div>
 
-      <div class="btn-grp" style="display: flex; gap: 8px;">
+      <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 16px;">
         <button class="btn btn-primary" (click)="incluir()">
           ✅ <span class="btn-label-long">{{ editingId() ? 'Salvar Alterações' : 'Criar Usuário' }}</span>
         </button>
@@ -53,45 +49,43 @@
           Cancelar
         </button>
       </div>
-    </div>
+
       <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
     </div>
   </div>
-
-  <!--<div class="card">
-    <div class="card-head"><div><div class="card-title">Buscar por ID</div><div class="card-sub">GET /api/usuario/obter-por-id/{{ '{' }}id{{ '}' }}</div></div></div>
-    <div class="card-body">
-      <div class="fg-row mb-14">
-        <div class="fg">
-          <label>Usuário ID</label>
-          <input type="text" placeholder="ID do usuário" [ngModel]="searchId()" (ngModelChange)="searchId.set($event)">
-        </div>
-        <div class="align-end"><button class="btn btn-primary" (click)="buscar()">🔍 <span class="btn-label-long">Buscar</span></button></div>
-      </div>
-      <div class="payload-display" style="min-height: 60px"><pre style="margin:0; font-size: 11px">{{ searchResult() }}</pre></div>
-    </div>
-  </div>
-</div>-->
+</div>
 
 <div class="card mb-14" style="margin-top: 16px">
   <div class="card-head">
-    <div><div class="card-title">👥 Usuários Cadastrados</div><div class="card-sub">{{ usuarios().length }} registros</div></div>
-    <button class="btn btn-ghost btn-sm" (click)="listarTodos()">🔄</button>
+    <div>
+      <div class="card-title">👥 Usuários Cadastrados</div>
+      <div class="card-sub">{{ usuarios().length }} membros na equipe</div>
+    </div>
+    <button class="btn btn-ghost btn-sm" (click)="listarPorEmpresa()">🔄</button>
   </div>
   <div class="tbl-wrap">
     <table class="tbl">
       <thead>
-        <tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Empresa</th><th>Perfil</th><th>Ações</th></tr>
+        <tr>
+          <th>ID</th>
+          <th>Nome</th>
+          <th>E-mail</th>
+          <th>Perfil</th>
+          <th style="width: 120px; text-align: center;">Ações</th>
+        </tr>
       </thead>
       <tbody>
         <tr *ngFor="let u of usuarios()">
           <td class="mono">#{{ u.id }}</td>
           <td><strong>{{ u.nome }}</strong></td>
           <td class="mono">{{ u.email }}</td>
-          <td class="mono">{{ u.empresaId }}</td>
-          <td><span class="badge" [ngClass]="perfilBadge(u.perfil)">{{ u.perfil }}</span></td>
           <td>
-            <div class="btn-grp">
+            <span class="badge" [ngClass]="perfilBadge(u.perfil)">
+              {{ u.perfil }}
+            </span>
+          </td>
+          <td>
+            <div class="btn-grp" style="justify-content: center;">
               <button class="btn btn-ghost btn-xs" (click)="prepararEdicao(u)">Editar</button>
               <button class="btn btn-danger btn-xs" (click)="excluir(u.id)">🗑</button>
             </div>
@@ -99,6 +93,9 @@
         </tr>
       </tbody>
     </table>
-    <div class="crud-empty" *ngIf="usuarios().length === 0">Nenhum usuário cadastrado ou erro na conexão.</div>
+
+    <div class="crud-empty" *ngIf="usuarios().length === 0">
+      Nenhum usuário encontrado para sua empresa.
+    </div>
   </div>
 </div>

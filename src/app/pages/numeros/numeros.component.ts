@@ -1,10 +1,21 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../core/services/auth';
 
 type NumStatus = 'ativo' | 'pendente' | 'bloqueado';
+
+declare var FB: any;
+
 interface Numero {
-  id: number; numero: string; descricao: string; pid: string; uid: string; status: NumStatus;
+  id: string;
+  usuarioId: string;
+  numeroTelefone: string;
+  descricao: string;
+  instanciaId: string;
+  status?: NumStatus;
+  dataCriacao?: string;
 }
 
 @Component({
@@ -14,43 +25,125 @@ interface Numero {
   templateUrl: './numeros.component.html',
   styleUrls: ['../shared-crud.css', './numeros.component.css'],
 })
-export class NumerosComponent {
-  form = signal<{ numero: string; descricao: string; pid: string; uid: string; status: NumStatus }>(
-    { numero: '', descricao: '', pid: '', uid: '', status: 'ativo' }
-  );
-  searchUid = signal('');
+
+
+
+export class NumerosComponent implements OnInit {
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
+  private readonly API_URL = 'https://localhost:7118/api/numero';
+
+
+
+  private userId = this.authService.usuarioIdSignal;
+
+  form = signal({
+    numeroTelefone: '',
+    descricao: '',
+    instanciaId: '',
+    status: 'ativo' as NumStatus
+  });
+
   response = signal('');
+  numeros = signal<Numero[]>([]);
 
-  numeros = signal<Numero[]>([
-    { id: 1, numero: '5511999887766', descricao: 'WhatsApp Vendas',     pid: 'PID_001', uid: 'usr_001', status: 'ativo' },
-    { id: 2, numero: '5511988776655', descricao: 'WhatsApp Suporte',    pid: 'PID_002', uid: 'usr_001', status: 'ativo' },
-    { id: 3, numero: '5521977665544', descricao: 'WhatsApp Marketing',  pid: 'PID_003', uid: 'usr_002', status: 'pendente' },
-    { id: 4, numero: '5531966554433', descricao: 'WhatsApp Cobrança',   pid: 'PID_004', uid: 'usr_002', status: 'bloqueado' },
-    { id: 5, numero: '5541955443322', descricao: 'WhatsApp Premium',    pid: 'PID_005', uid: 'usr_003', status: 'ativo' },
-  ]);
-
-  ativos     = computed(() => this.numeros().filter(n => n.status === 'ativo').length);
-  pendentes  = computed(() => this.numeros().filter(n => n.status === 'pendente').length);
+  // Stats baseados nos dados da API
+  ativos = computed(() => this.numeros().filter(n => n.status === 'ativo').length);
+  pendentes = computed(() => this.numeros().filter(n => n.status === 'pendente').length);
   bloqueados = computed(() => this.numeros().filter(n => n.status === 'bloqueado').length);
 
-  update<K extends keyof ReturnType<typeof this.form>>(field: K, value: any) {
+  ngOnInit() {
+    this.buscar();
+  }
+
+  update(field: string, value: any) {
     this.form.set({ ...this.form(), [field]: value });
+  }
+
+  buscar() {
+    const uid = this.userId();
+    if (!uid) return;
+
+    this.http.get<Numero[]>(`${this.API_URL}/obter-por-usuario/${uid}`)
+      .subscribe({
+        next: (res) => this.numeros.set(res),
+        error: (err) => this.response.set('❌ Erro ao buscar dados.')
+      });
   }
 
   incluir() {
     const f = this.form();
-    if (!f.numero) { this.response.set('❌ Número obrigatório'); return; }
-    const id = Math.max(0, ...this.numeros().map(n => n.id)) + 1;
-    this.numeros.set([...this.numeros(), { id, ...f }]);
-    this.response.set(`✅ Número cadastrado\n${JSON.stringify({ id, ...f }, null, 2)}`);
-    this.form.set({ numero: '', descricao: '', pid: '', uid: '', status: 'ativo' });
+    const uid = this.userId();
+
+    if (!f.numeroTelefone || !uid) {
+      this.response.set('❌ Preencha os campos obrigatórios.');
+      return;
+    }
+
+    const payload = {
+      usuarioId: uid,
+      numeroTelefone: f.numeroTelefone,
+      descricao: f.descricao,
+      instanciaId: f.instanciaId
+    };
+
+    this.http.post(`${this.API_URL}/incluir`, payload).subscribe({
+      next: () => {
+        this.response.set('✅ Número incluído com sucesso!');
+        this.limparForm();
+        this.buscar();
+      },
+      error: () => this.response.set('❌ Erro ao incluir na API.')
+    });
   }
 
-  excluir(id: number) {
-    this.numeros.set(this.numeros().filter(n => n.id !== id));
+  excluir(id: string) {
+    if (!confirm('Deseja excluir este número?')) return;
+    this.http.delete(`${this.API_URL}/excluir/${id}`).subscribe(() => {
+      this.numeros.update(list => list.filter(n => n.id !== id));
+    });
   }
 
-  badgeClass(s: NumStatus) {
-    return s === 'ativo' ? 'badge-green' : s === 'pendente' ? 'badge-warn' : 'badge-danger';
+  iniciarEmbeddedSignup() {
+    FB.login((response: any) => {
+      if (response.authResponse) {
+        const code = response.authResponse.code;
+        // Esse 'code' ou 'accessToken' deve ser enviado para o seu C#
+        this.vincularContaMeta(response.authResponse.accessToken);
+      } else {
+        this.response.set('❌ Onboarding cancelado pelo usuário.');
+      }
+    }, {
+      // Escopos necessários para gerenciar o WhatsApp do cliente
+      scope: 'whatsapp_business_management,whatsapp_business_messaging',
+      extras: {
+        feature: 'whatsapp_embedded_signup',
+        setup: {
+          // Aqui você pode pré-configurar dados se desejar
+        }
+      }
+    });
+  }
+
+  vincularContaMeta(token: string) {
+    this.response.set('⏳ Vinculando conta e buscando números...');
+
+    // Envia o Token para o seu Backend C# fazer o "Scan" dos números
+    this.http.post(`${this.API_URL}/vincular-meta`, { token }).subscribe({
+      next: (res: any) => {
+        this.response.set('✅ Conta vinculada! Atualizando lista...');
+        this.buscar(); // Atualiza a lista de números agora com os novos importados
+      },
+      error: () => this.response.set('❌ Erro ao processar dados da Meta.')
+    });
+  }
+
+  private limparForm() {
+    this.form.set({ numeroTelefone: '', descricao: '', instanciaId: '', status: 'ativo' });
+  }
+
+  badgeClass(s?: NumStatus) {
+    const classes = { ativo: 'badge-green', pendente: 'badge-warn', bloqueado: 'badge-danger' };
+    return s ? classes[s] : 'badge-green';
   }
 }
