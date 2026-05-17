@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
+import { environment } from '../../../environments/environment';
 
 type Perfil = 'admin' | 'operador' | 'viewer';
 
@@ -25,7 +26,7 @@ interface Usuario {
 export class UsuariosComponent implements OnInit {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
-  private readonly BASE_URL = 'https://localhost:7118/api/usuario';
+  private readonly BASE_URL = `${environment.apiUrl}/usuario`;
 
   // Obtemos o ID da empresa do Signal computado no AuthService
   private empresaIdLogada = computed(() => this.authService.user()?.idEmpresa);

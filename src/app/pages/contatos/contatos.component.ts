@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
-
+import { environment } from '../../../environments/environment';
 interface Contato {
   id?: string;
   usuarioId: string;
@@ -27,7 +27,7 @@ export class ContatosComponent implements OnInit {
   // Signal reativo que vem do AuthService
   private userId = this.authService.usuarioIdSignal;
 
-  private readonly API_URL = 'https://localhost:7118/api/contato';
+  private readonly API_URL = `${environment.apiUrl}/contato`;
 
   // Form sem o campo usuarioId, pois será injetado logicamente
   form = signal({

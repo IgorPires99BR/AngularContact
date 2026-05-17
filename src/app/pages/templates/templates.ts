@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
+import { environment } from '../../../environments/environment';
 
 interface Template {
   id: string;
@@ -27,7 +28,7 @@ export class TemplatesComponent implements OnInit {
   private authService = inject(AuthService);
 
   // URL Base mapeada exatamente conforme a convenção da sua controller
-  private readonly API_URL = 'https://localhost:7118/api/template';
+  private readonly API_URL = `${environment.apiUrl}/template`;
 
   // Resgatando o Id da Empresa logada do AuthService
   private empresaId = this.authService.empresaIdSignal;

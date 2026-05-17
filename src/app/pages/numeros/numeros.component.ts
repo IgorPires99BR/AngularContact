@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
+import { environment } from '../../../environments/environment';
+
 
 declare var FB: any;
 
@@ -29,7 +31,7 @@ export class NumerosComponent implements OnInit {
   private authService = inject(AuthService);
 
   // URL base limpa apontando para a sua Controller C#
-  private readonly API_URL = 'https://localhost:7118/api/numero';
+  private readonly API_URL = `${environment.apiUrl}/numero`;
 
   // ID do usuário logado vindo do seu serviço de autenticação global
   private userId = this.authService.usuarioIdSignal;

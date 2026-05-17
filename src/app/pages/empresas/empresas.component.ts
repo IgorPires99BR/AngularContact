@@ -2,6 +2,7 @@ import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 interface Empresa {
   id: string;
@@ -20,7 +21,7 @@ interface Empresa {
 })
 export class EmpresasComponent implements OnInit {
   private http = inject(HttpClient);
-  private readonly BASE_URL = 'https://localhost:7118/api/v2/empresa';
+  private readonly BASE_URL = `${environment.apiUrl}/v2/empresa`;
 
   // Estados
   empresas = signal<Empresa[]>([]);
