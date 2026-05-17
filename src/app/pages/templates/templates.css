@@ -1,0 +1,22 @@
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+
+  textarea:focus {
+    outline: none;
+    border-color: #0078ff;
+  }
+
+.crud-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

@@ -14,6 +14,7 @@ import { EmpresasComponent } from './pages/empresas/empresas.component';
 import { ContatosComponent } from './pages/contatos/contatos.component';
 import { NumerosComponent } from './pages/numeros/numeros.component';
 import { UsuariosComponent } from './pages/usuarios/usuarios.component';
+import { TemplatesComponent } from './pages/templates/templates'; // <--- IMPORTADO AQUI
 
 export const routes: Routes = [
   // 1. Redirecionamento Inicial
@@ -26,7 +27,7 @@ export const routes: Routes = [
   {
     path: '',
     component: ShellComponent,
-    canActivate: [authGuard], // <--- O bloqueio que você acabou de criar via terminal
+    canActivate: [authGuard],
     children: [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'chats', component: ChatsComponent },
@@ -36,6 +37,7 @@ export const routes: Routes = [
       { path: 'contatos', component: ContatosComponent },
       { path: 'numeros', component: NumerosComponent },
       { path: 'usuarios', component: UsuariosComponent },
+      { path: 'templates', component: TemplatesComponent }, // <--- INSERIDO DENTRO DO SHELL PROTEGIDO
     ],
   },
 

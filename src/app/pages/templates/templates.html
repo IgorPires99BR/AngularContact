@@ -1,0 +1,98 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">Modelos de Mensagem (Templates)</h1>
+    <div class="ph-sub">Crie e gerencie os modelos de mensagens HSM aprovados pela Meta</div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Aprovados</div>
+    <div class="stat-value green">{{ aprovados() }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Em Análise</div>
+    <div class="stat-value warn">{{ pendentes() }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Rejeitados</div>
+    <div class="stat-value danger">{{ rejeitados() }}</div>
+  </div>
+</div>
+
+<div class="g2">
+  <div class="card">
+    <div class="card-head"><div class="card-title">📝 Novo Template HSM</div></div>
+    <div class="card-body">
+      <div class="fg">
+        <label>Nome do Template (Minúsculas sem espaço)</label>
+        <input type="text" placeholder="Ex: atualizacao_pedido_cliente" [ngModel]="form().nomeTemplate" (ngModelChange)="update('nomeTemplate', $event)">
+      </div>
+
+      <div class="fg-row">
+        <div class="fg">
+          <label>Categoria Meta</label>
+          <select [ngModel]="form().categoria" (ngModelChange)="update('categoria', $event)">
+            <option value="UTILITY">Utilidade (Avisos, transações)</option>
+            <option value="MARKETING">Marketing (Promoções, ofertas)</option>
+            <option value="AUTHENTICATION">Autenticação (Códigos OTP/PIN)</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Idioma</label>
+          <select [ngModel]="form().idioma" (ngModelChange)="update('idioma', $event)">
+            <option value="pt_BR">Português (Brasil)</option>
+            <option value="en_US">Inglês (EUA)</option>
+            <option value="es_ES">Espanhol</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label>Conteúdo do Corpo (BODY)</label>
+        <textarea rows="5" placeholder="Use {{1}}, {{2}} para variáveis. Ex: Olá {{1}}, seu pedido {{2}} foi enviado!" [ngModel]="form().conteudo" (ngModelChange)="update('conteudo', $event)"></textarea>
+      </div>
+
+      <button class="btn btn-primary" (click)="incluir()">🚀 Enviar para Meta e Cadastrar</button>
+      <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">Templates Sincronizados</div>
+        <div class="card-sub">{{ templates().length }} registros em banco</div>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <button class="btn btn-ghost btn-sm" title="Sincronizar com Painel da Meta via PUT" (click)="sincronizarComMeta()" [disabled]="sincronizando()">
+          {{ sincronizando() ? '⏳ Sincronizando...' : '🔄 Sincronizar Meta' }}
+        </button>
+        <button class="btn btn-ghost btn-sm" title="Atualizar Grade Local" (click)="buscar()">Local 🔁</button>
+      </div>
+    </div>
+
+    <div class="crud-list">
+      <div class="crud-item" *ngFor="let t of templates()">
+        <div class="num-icon APPROVED">📝</div>
+        <div class="crud-info" style="max-width: 70%;">
+          <div class="crud-name">{{ t.nomeTemplate }}</div>
+          <div class="crud-meta" style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">
+            Categoria: <strong>{{ t.categoria }}</strong> · Idioma: <strong>{{ t.idioma }}</strong>
+          </div>
+          <div style="font-size: 11px; background: #f8f9fa; padding: 8px; border-radius: 4px; color: #333; border: 1px solid #eee; line-height: 1.4;">
+            {{ t.conteudo }}
+          </div>
+        </div>
+
+        <span class="badge" [ngClass]="badgeClass(t.status)">{{ t.status || 'PENDING' }}</span>
+
+        <div class="crud-actions">
+          <button class="btn btn-ghost btn-xs" style="opacity: 0.3; cursor: not-allowed;" (click)="excluir(t.id)" title="Exclusão física indisponível">🗑</button>
+        </div>
+      </div>
+
+      <div class="crud-empty" *ngIf="templates().length === 0">Nenhum template retornado do servidor. Clique em "Sincronizar Meta" para carregar.</div>
+    </div>
+  </div>
+</div>

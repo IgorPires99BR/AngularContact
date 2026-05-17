@@ -39,46 +39,48 @@ export class LoginComponent {
     this.errorMsg = '';
 
     try {
-      // Chamada para API .NET Core conforme image_478c1e.png
+      // Chamada para a API .NET Core
       const res = await firstValueFrom(this.api.login({
         email: this.email,
         password: this.password
       }));
 
-      // VALIDAR SE RECEBEMOS O OBJETO COMPLETO
-      if (res && (res.idUsuario || res.IdUsuario)) {
+      // 1. Tratamento caso o seu backend use o padrão Response wrapper (com propriedade success/errors)
+      // Se a requisição voltou com sucesso HTTP, mas o banco rejeitou as credenciais:
+      if (res && res.success === false) {
+        this.errorMsg = 'Credenciais incorretas.';
+        this.loading = false;
+        return;
+      }
 
-        // CORREÇÃO: Passamos o objeto 'res' INTEIRO para o AuthService.
-        // Isso garante que idEmpresa, email e role fiquem disponíveis para o Shell.
-        this.auth.setSession(res);
+      // 2. Validação se o objeto do usuário foi realmente retornado com sucesso
+      if (res && (res.idUsuario || res.IdUsuario || res.data?.idUsuario)) {
 
-        // Redireciona para o Dashboard
+        // Extrai os dados se eles vierem encapsulados em uma propriedade 'data', ou usa o objeto direto
+        const userData = res.data ? res.data : res;
+
+        // Salva a sessão ativa de forma segura
+        this.auth.setSession(userData);
+
+        // Redireciona estritamente para o Dashboard
         this.zone.run(() => {
           this.router.navigate(['/dashboard']);
         });
       } else {
-        this.errorMsg = 'Resposta do servidor inválida (Dados do usuário não encontrados).';
+        this.errorMsg = 'Credenciais incorretas.';
         this.loading = false;
       }
 
     } catch (err: any) {
       this.loading = false;
 
-      // Fallback para desenvolvimento (API Offline)
+      // 3. Tratamento de erros HTTP disparados pelo servidor (Ex: 401 Unauthorized, 400 Bad Request, ou API offline)
       if (err.status === 0) {
-        // Criamos um objeto mock com a mesma estrutura da imagem para não quebrar o Shell
-        const mockUser = {
-          idUsuario: '00000000-0000-0000-0000-000000000000',
-          idEmpresa: '00000000-0000-0000-0000-000000000000',
-          email: this.email,
-          role: 'admin',
-          status: 'success'
-        };
-
-        this.auth.setSession(mockUser);
-        this.zone.run(() => this.router.navigate(['/dashboard']));
+        this.errorMsg = 'Não foi possível conectar ao servidor de autenticação.';
+      } else if (err.status === 401 || err.status === 400) {
+        this.errorMsg = 'Credenciais incorretas.';
       } else {
-        this.errorMsg = 'E-mail ou senha incorretos.';
+        this.errorMsg = err.error?.message || 'Erro ao realizar login. Tente novamente mais tarde.';
       }
     }
   }
