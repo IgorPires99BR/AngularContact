@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://contactsolution.onrender.com' // <- Troque pela URL de produção real
+  apiUrl: 'https://contactsolution.onrender.com/api' // <- Troque pela URL de produção real
 };
