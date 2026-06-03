@@ -1,130 +1,125 @@
 <div class="ph">
   <div>
-    <h1 class="ph-title">Disparos em Massa</h1>
-    <div class="ph-sub">POST /Disparador/enviar-meta · Selecione contatos e configure a mensagem</div>
+    <h1 class="ph-title">🚀 Disparador de Mensagens</h1>
+    <div class="ph-sub">Configure o seu template e selecione os contatos em lote</div>
   </div>
 </div>
 
-<div class="disp-grid">
-
-  <!-- LEFT FORM -->
-  <div class="disp-form">
-
-    <!-- STEP 1 -->
-    <div class="card mb-16">
-      <div class="card-head">
-        <div>
-          <div class="card-title">1 · Selecionar Contatos</div>
-          <div class="card-sub">Escolha os destinatários do banco da empresa</div>
-        </div>
-        <div class="head-actions">
-          <span class="selected-count">{{ selectedCount() }} selecionados</span>
-          <button class="btn btn-ghost btn-xs" (click)="selAll()">Todos</button>
-          <button class="btn btn-ghost btn-xs" (click)="selNone()">Nenhum</button>
-        </div>
-      </div>
-      <div class="card-body" style="padding: 12px">
-        <div class="contact-selector">
-          <div class="cs-head">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--muted)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input class="cs-search" placeholder="Buscar contato..." [ngModel]="search()" (ngModelChange)="search.set($event)">
-            <span class="cs-count">{{ contatos().length }} contatos</span>
-          </div>
-          <div class="cs-list">
-            <label class="cs-item" *ngFor="let c of filteredContatos()">
-              <input type="checkbox" [checked]="c.checked" (change)="toggle(c)">
-              <div class="cs-avatar" [style.background]="c.color">{{ c.name.substring(0,2).toUpperCase() }}</div>
-              <div style="flex: 1; min-width: 0;">
-                <div class="cs-item-name">{{ c.name }}</div>
-                <div class="cs-item-phone">{{ c.phone }}</div>
-              </div>
-            </label>
-          </div>
-        </div>
+<div class="g2">
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">⚙️ 1. Configurar Mensagem</div>
       </div>
     </div>
 
-    <!-- STEP 2 -->
-    <div class="card mb-16">
-      <div class="card-head"><div><div class="card-title">2 · Configurar Template</div><div class="card-sub">Defina o template e adicione parâmetros</div></div></div>
-      <div class="card-body">
-        <div class="fg-row">
-          <div class="fg">
-            <label>Nome do Template</label>
-            <input type="text" placeholder="ex: hello_world" [ngModel]="template()" (ngModelChange)="template.set($event)">
-          </div>
-          <div class="fg">
-            <label>Idioma</label>
-            <select [ngModel]="lang()" (ngModelChange)="lang.set($event)">
-              <option value="pt_BR">pt_BR — Português Brasil</option>
-              <option value="en_US">en_US — English</option>
-              <option value="es_ES">es_ES — Español</option>
-            </select>
-          </div>
-        </div>
-        <div class="fg">
-          <label>Phone Number ID (Meta)</label>
-          <input type="text" placeholder="ID do número no Meta Business" [ngModel]="phoneId()" (ngModelChange)="phoneId.set($event)">
-        </div>
-        <div class="fg">
-          <label>Access Token (Meta)</label>
-          <input type="password" placeholder="EAAxxxxxxx..." [ngModel]="token()" (ngModelChange)="token.set($event)">
-        </div>
+    <div class="card-body">
+      <div class="fg">
+        <label>Canal de Disparo (Número Conectado)</label>
+        <select [ngModel]="form().instanciaId" (ngModelChange)="updateForm('instanciaId', $event)">
+          <option value="">-- Selecione uma Instância Ativa --</option>
+          <option *ngFor="let n of numerosAtivos()" [value]="n.id">
+            {{ n.descricao }} ({{ n.telefone }})
+          </option>
+        </select>
+      </div>
 
-        <div class="params-block">
-          <div class="params-head">
-            <label>Parâmetros do Corpo</label>
-            <button class="btn btn-ghost btn-xs" (click)="addParam()">+ Adicionar</button>
-          </div>
-          <div class="param-row" *ngFor="let p of params(); let i = index">
-            <select class="param-type" [ngModel]="p.type" (ngModelChange)="updateParam(i, { type: $event })">
-              <option value="text">Texto</option>
-              <option value="currency">Moeda</option>
-              <option value="date_time">Data/Hora</option>
-            </select>
-            <input class="param-value" placeholder="Valor do parâmetro {{i+1}}"
-                   [ngModel]="p.value" (ngModelChange)="updateParam(i, { value: $event })">
-            <button class="param-rm" (click)="removeParam(i)" title="Remover">✕</button>
-          </div>
+      <div class="fg">
+        <label>Template (Meta)</label>
+        <select [ngModel]="form().templateId" (ngModelChange)="onTemplateChange($event)">
+          <option value="">-- Selecione um Template --</option>
+          <option *ngFor="let t of templates()" [value]="t.id">
+            {{ t.nomeTemplate }} ({{ t.idioma }})
+          </option>
+        </select>
+      </div>
+
+      <div *ngIf="params().length > 0" style="margin-top: 16px;">
+        <div class="card-title" style="font-size: 0.95rem; margin-bottom: 12px;">✨ Variáveis do Template</div>
+        <div *ngFor="let p of params(); let i = index" class="fg">
+          <label>Parâmetro {{ '{{' }}{{ i + 1 }}{{ '}}' }}</label>
+          <input type="text"
+                 [ngModel]="p.value"
+                 (ngModelChange)="updateParam(i, $event)"
+                 placeholder="Digite o valor da variável" />
         </div>
       </div>
-    </div>
 
-    <!-- STEP 3 -->
-    <div class="card">
-      <div class="card-head"><div><div class="card-title">3 · Confirmar e Disparar</div><div class="card-sub">Revise o payload e envie</div></div></div>
-      <div class="card-body">
-        <div class="btn-grp mb-14">
-          <button class="btn btn-primary" (click)="disparar()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
-            <span class="btn-label-long">Disparar para Selecionados</span>
-            <span class="hide-md">Disparar</span>
-          </button>
-          <button class="btn btn-ghost" (click)="limpar()">Limpar</button>
-        </div>
-        <div class="payload-display" *ngIf="responseText()">{{ responseText() }}</div>
+      <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-primary" (click)="disparar()" [disabled]="selecionados().length === 0">
+          重新✅ <span class="btn-label-long">Disparar para {{ selecionados().length }} contato(s)</span>
+        </button>
+      </div>
+
+      <div class="payload-display" *ngIf="response()" style="margin-top: 14px">
+        {{ response() }}
       </div>
     </div>
   </div>
 
-  <!-- RIGHT: Preview + Payload -->
-  <div class="disp-side">
-    <div class="preview-panel">
-      <div class="preview-label">Preview da Mensagem</div>
-      <div class="wpp-mock">
-        <div class="wpp-bubble">
-          {{ template() ? 'Template "' + template() + '" será enviado para ' + selectedCount() + ' contato(s).' : 'Configure o template ao lado para visualizar a mensagem aqui.' }}
-        </div>
-        <div class="wpp-time">Template: {{ template() || '—' }} · Idioma: {{ lang() }}</div>
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">👁️ Preview da Mensagem</div>
       </div>
     </div>
-    <div class="card">
-      <div class="card-head">
-        <div><div class="card-title">Payload JSON</div><div class="card-sub">Gerado automaticamente</div></div>
+    <div class="card-body" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+      <div style="background-color: rgba(255,255,255,0.03); padding: 16px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); min-height: 140px; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5;">
+        {{ templatePreview() }}
       </div>
-      <div class="card-body" style="padding: 12px">
-        <div class="payload-display">{{ payloadJson() }}</div>
+      <div class="card-sub" style="margin-top: 12px; font-style: italic;">
+        * Variáveis dinâmicas serão processadas no ato do envio.
       </div>
     </div>
+  </div>
+</div>
+
+<div class="card mb-14" style="margin-top: 16px">
+  <div class="card-head" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <div class="card-title">📋 2. Selecionar Destinatários</div>
+      <div class="card-sub">Selecionados: {{ selecionados().length }} de {{ contatosFiltrados().length }} listados</div>
+    </div>
+
+    <div class="fg" style="margin-bottom: 0; min-width: 240px;">
+      <input type="text"
+             placeholder="🔍 Buscar contato..."
+             [ngModel]="search()"
+             (ngModelChange)="search.set($event)" />
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width: 50px; text-align: center;">
+            <input type="checkbox"
+                   [checked]="isAllSelected()"
+                   (change)="selAll()" />
+          </th>
+          <th>Nome</th>
+          <th>Telefone</th>
+          <th>E-mail</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of contatosFiltrados()">
+          <td style="text-align: center;">
+            <input type="checkbox"
+                   [checked]="c.checked"
+                   (change)="toggleContato(c)" />
+          </td>
+          <td><strong>{{ c.nome || 'Sem nome' }}</strong></td>
+          <td class="mono">{{ c.telefone }}</td>
+          <td>{{ c.email || '-' }}</td>
+        </tr>
+        <tr *ngIf="contatosFiltrados().length === 0">
+          <td colspan="4" class="crud-empty" style="text-align: center; padding: 20px;">
+            Nenhum contato encontrado.
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </div>
