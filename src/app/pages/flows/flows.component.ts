@@ -1,21 +1,30 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../core/services/auth';
+import { environment } from '../../../environments/environment';
 
-type StepType = 'msg' | 'input' | 'cond' | 'end';
-interface Step {
-  id: number;
-  type: StepType;
-  message: string;
-  variable?: string;
+export interface Step {
+  id: string;
+  ordem: number;          // Alinhado com o DTO do Back-end
+  nomeEtapa: string;      // "Mensagem" | "Capturar Input" | "Condição" | "Encerrar"
+  conteudoLivre: string;  // O texto digitado na caixa
+  variavelSaida?: string; // O nome da variável de input (ex: 'nome')
+  gatilhoResposta?: string;
+  proximaEtapaId?: string | null;
+  ehEtapaInicial?: boolean;
 }
-interface Flow {
-  id: number;
-  name: string;
-  trigger: string;
-  status: 'ativo' | 'inativo' | 'teste';
-  clients: number;
-  steps: Step[];
+
+export interface Flow {
+  id: string;
+  idEmpresa: string;      // Vinculado ao ecossistema multi-tenant
+  nome: string;
+  descricao: string;
+  gatilhoPalavraChave: string;
+  ativo: boolean;
+  clients?: number;       // Controle visual mantido no front
+  etapas: Step[];
 }
 
 @Component({
@@ -23,79 +32,261 @@ interface Flow {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './flows.component.html',
-  styleUrls: ['./flows.component.css'],
+  styleUrls: ['../shared-crud.css', './flows.component.css'],
 })
-export class FlowsComponent {
-  Math = Math;  // expor no template
+export class FlowsComponent implements OnInit {
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
+
+  // URL base extraída diretamente do Swagger: /api/config/flow
+  private readonly API_URL = `${environment.apiUrl}/config/flow`;
+
+  // ID da empresa logada vindo do serviço global de autenticação
+  private idEmpresaLogada = this.authService.empresaIdSignal;
+
+  // Controle de Abas e Estados de UI
+  Math = Math;
   tab = signal<'builder' | 'monitor' | 'saved'>('builder');
+  response = signal('');
+  sincronizando = signal(false);
 
-  flows = signal<Flow[]>([
-    {
-      id: 1, name: 'Atendimento Inicial', trigger: 'oi, olá, bom dia', status: 'ativo', clients: 87,
-      steps: [
-        { id: 1, type: 'msg',   message: 'Olá! Bem-vindo à Contact Solution 👋' },
-        { id: 2, type: 'input', message: 'Qual seu nome?', variable: 'nome' },
-        { id: 3, type: 'msg',   message: 'Prazer, {{nome}}! Como posso ajudar?' },
-        { id: 4, type: 'end',   message: 'Encerrar atendimento' },
-      ],
-    },
-    { id: 2, name: 'Qualificação Lead',   trigger: 'quero saber',  status: 'ativo',   clients: 54, steps: [] },
-    { id: 3, name: 'Pós-Venda',           trigger: 'recebido',     status: 'ativo',   clients: 12, steps: [] },
-    { id: 4, name: 'Carrinho Abandonado', trigger: '',             status: 'inativo', clients: 0,  steps: [] },
-    { id: 5, name: 'Boas-vindas Premium', trigger: 'premium',      status: 'teste',   clients: 3,  steps: [] },
-  ]);
+  // Estado dos dados
+  flows = signal<Flow[]>([]);
+  selectedId = signal<string>('');
 
-  selectedId = signal<number>(1);
-  selected = () => this.flows().find(f => f.id === this.selectedId()) ?? this.flows()[0];
+  // Computeds para os contadores visuais e estatísticas
+  ativos = computed(() => this.flows().filter(f => f.ativo).length);
+  inativos = computed(() => this.flows().filter(f => !f.ativo).length);
+  totalSteps = computed(() => this.flows().reduce((acc, f) => acc + f.etapas.length, 0));
 
-  stepTypes: { value: StepType; label: string }[] = [
-    { value: 'msg',   label: 'Mensagem' },
-    { value: 'input', label: 'Capturar Input' },
-    { value: 'cond',  label: 'Condição' },
-    { value: 'end',   label: 'Encerrar' },
+  // Provedor do item selecionado na árvore de edição
+  selected = computed(() => this.flows().find(f => f.id === this.selectedId()) ?? this.flows()[0]);
+
+  stepTypes = [
+    { value: 'Mensagem', label: 'Mensagem' },
+    { value: 'Capturar Input', label: 'Capturar Input' },
+    { value: 'Condição', label: 'Condição' },
+    { value: 'Encerrar', label: 'Encerrar' },
   ];
 
-  stepLabel(t: StepType) {
-    return this.stepTypes.find(s => s.value === t)?.label ?? t;
+  ngOnInit() {
+    this.buscar();
   }
 
-  select(id: number) { this.selectedId.set(id); }
+  // 1. LISTAR FLOWS (GET /api/config/flow)
+  buscar() {
+    const empId = this.idEmpresaLogada();
 
+    if (!empId) {
+      console.warn('⚠️ Aguardando ID da empresa para listar os fluxos.');
+      return;
+    }
+
+    // Ajustado para refletir o envelope de resposta do .NET: { value: [...], erros: [], hasValidations: false }
+    this.http.get<{ value: any[] }>(`${this.API_URL}/${empId}`).subscribe({
+      next: (res) => {
+        // Verifica se a propriedade 'value' existe e possui itens
+        if (!res || !res.value || !Array.isArray(res.value)) {
+          this.flows.set([]);
+          return;
+        }
+
+        // Mapeia a partir de res.value
+        const mapeados: Flow[] = res.value.map(f => {
+          // Trata o array de etapas interno do fluxo
+          const etapasRaw = f.etapas || f.Etapas || [];
+
+          const etapasOrdenadas = etapasRaw.map((e: any) => ({
+            id: e.id || e.Id,
+            ordem: e.ordem !== undefined ? e.ordem : e.Ordem,
+            nomeEtapa: e.nomeEtapa || e.NomeEtapa,
+            conteudoLivre: e.conteudoLivre || e.ConteudoLivre,
+            variavelSaida: e.variavelSaida || e.VariavelSaida,
+            gatilhoResposta: e.gatilhoResposta || e.GatilhoResposta,
+            proximaEtapaId: e.proximaEtapaId || e.ProximaEtapaId,
+            ehEtapaInicial: e.ehEtapaInicial !== undefined ? e.ehEtapaInicial : e.EhEtapaInicial
+          })).sort((a: any, b: any) => a.ordem - b.ordem);
+
+          // Retorna o objeto Flow mapeado estritamente para o padrão do seu Front-end
+          return {
+            id: f.id || f.Id,
+            idEmpresa: f.idEmpresa || f.IdEmpresa || f.empresaId || f.EmpresaId,
+            nome: f.nome || f.Nome,
+            descricao: f.descricao || f.Descricao,
+            // Fallback robusto caso a palavra-chave venha nula do banco
+            gatilhoPalavraChave: f.gatilhoPalavraChave || f.GatilhoPalavraChave || '',
+            ativo: f.ativo !== undefined ? f.ativo : f.Ativo,
+            clients: f.clients || f.Clients || 0,
+            etapas: etapasOrdenadas
+          };
+        });
+
+        this.flows.set(mapeados);
+
+        // Sincroniza o primeiro item na tela de edição imediatamente após carregar
+        if (mapeados.length > 0) {
+          const currentId = this.selectedId();
+          // Se não houver ID selecionado ou o ID atual não fizer parte da nova lista, força o primeiro
+          if (!currentId || !mapeados.some(f => f.id === currentId)) {
+            this.selectedId.set(mapeados[0].id);
+          }
+        }
+      },
+      error: (err) => {
+        console.error('Erro ao buscar flows:', err);
+        this.response.set('❌ Erro ao carregar fluxos do servidor para esta empresa.');
+      }
+    });
+  }
+
+  // 2. SALVAR OU ALTERAR FLOW (POST ou PUT /api/config/flow)
+  salvar() {
+    const fluxoAtual = this.selected();
+    const empId = this.idEmpresaLogada();
+
+    if (!fluxoAtual || !empId) {
+      this.response.set('❌ Sessão expirada ou fluxo inválido.');
+      return;
+    }
+
+    if (!fluxoAtual.nome || !fluxoAtual.gatilhoPalavraChave) {
+      this.response.set('❌ Nome do fluxo e palavra-chave são obrigatórios.');
+      return;
+    }
+
+    // Garante o ID da empresa logada (Multi-tenant)
+    fluxoAtual.idEmpresa = empId;
+
+    this.sincronizando.set(true);
+    this.response.set('⏳ Sincronizando fluxo com o banco de dados...');
+
+    // Se o fluxo foi gerado agora pelo botão "Novo Flow", faz POST. Caso contrário, PUT.
+    // (Nota: Lembre de remover a propriedade temporária 'isNew' antes de enviar se seu C# for estrito)
+    const { isNew, ...payload } = fluxoAtual as any;
+
+    if (isNew === false || !isNew) {
+      // PUT /api/config/flow -> Atualiza o registro existente
+      this.http.put(this.API_URL, payload).subscribe({
+        next: () => this.processarSucesso('✅ Fluxo atualizado com sucesso!'),
+        error: (err) => this.processarErro(err, 'Erro ao atualizar fluxo.')
+      });
+    } else {
+      // POST /api/config/flow -> Cria um novo registro
+      this.http.post(this.API_URL, payload).subscribe({
+        next: () => {
+          // Desmarca a flag de novo após salvar com sucesso
+          (fluxoAtual as any).isNew = false;
+          this.processarSucesso('✅ Novo fluxo registrado com sucesso!');
+        },
+        error: (err) => this.processarErro(err, 'Erro ao criar fluxo.')
+      });
+    }
+  }
+
+  // 3. EXCLUIR FLOW (DELETE /api/config/flow/{id})
+  excluir(id: string) {
+    if (!confirm('Deseja realmente remover este fluxo de conversa? Isso apagará todas as etapas vinculadas.')) return;
+
+    this.response.set('⏳ Removendo fluxo...');
+    this.http.delete(`${this.API_URL}/${id}`).subscribe({
+      next: () => {
+        this.flows.update(list => list.filter(f => f.id !== id));
+        this.response.set('✅ Fluxo removido com sucesso.');
+        if (this.selectedId() === id && this.flows().length > 0) {
+          this.selectedId.set(this.flows()[0].id);
+        }
+      },
+      error: () => this.response.set('❌ Erro ao tentar excluir o fluxo do servidor.')
+    });
+  }
+
+  // Métodos Auxiliares de Gerenciamento Local
   newFlow() {
-    const id = Math.max(...this.flows().map(f => f.id)) + 1;
-    const f: Flow = { id, name: 'Novo Flow', trigger: '', status: 'inativo', clients: 0, steps: [] };
+    const novoGuid = crypto.randomUUID();
+    const f: Flow & { isNew?: boolean } = {
+      id: novoGuid,
+      idEmpresa: this.idEmpresaLogada() || '',
+      nome: 'Novo Flow',
+      descricao: '',
+      gatilhoPalavraChave: '',
+      ativo: false,
+      clients: 0,
+      etapas: [],
+      isNew: true // <-- Essa flag garante que o sistema saiba que ele DEVE ser criado (POST)
+    };
     this.flows.set([f, ...this.flows()]);
-    this.selectedId.set(id);
+    this.selectedId.set(novoGuid);
     this.tab.set('builder');
+    this.response.set('✨ Novo fluxo engatado na memória. Clique em Salvar para persistir.');
   }
 
   addStep() {
     const f = this.selected();
-    const id = (f.steps[f.steps.length - 1]?.id ?? 0) + 1;
-    f.steps.push({ id, type: 'msg', message: '' });
-    this.flows.set([...this.flows()]);
-  }
-  removeStep(stepId: number) {
-    const f = this.selected();
-    f.steps = f.steps.filter(s => s.id !== stepId);
+    if (!f) return;
+
+    const novaOrdem = f.etapas.length + 1;
+    f.etapas.push({
+      id: crypto.randomUUID(),
+      ordem: novaOrdem,
+      nomeEtapa: 'Mensagem',
+      conteudoLivre: '',
+      ehEtapaInicial: novaOrdem === 1,
+      gatilhoResposta: 'Avancar'
+    });
     this.flows.set([...this.flows()]);
   }
 
-  updateFlowField(field: keyof Flow, value: string) {
+  removeStep(stepId: string) {
     const f = this.selected();
+    if (!f) return;
+
+    // Remove e reorganiza a propriedade ordem sequencialmente
+    f.etapas = f.etapas
+      .filter(s => s.id !== stepId)
+      .map((s, index) => ({ ...s, ordem: index + 1 }));
+
+    this.flows.set([...this.flows()]);
+  }
+
+  updateFlowField(field: keyof Flow, value: any) {
+    const f = this.selected();
+    if (!f) return;
     (f as any)[field] = value;
     this.flows.set([...this.flows()]);
   }
-  updateStep(stepId: number, partial: Partial<Step>) {
+
+  updateStep(stepId: string, partial: Partial<Step>) {
     const f = this.selected();
-    f.steps = f.steps.map(s => s.id === stepId ? { ...s, ...partial } : s);
+    if (!f) return;
+    f.etapas = f.etapas.map(s => s.id === stepId ? { ...s, ...partial } : s);
     this.flows.set([...this.flows()]);
   }
 
-  statusBadge(s: Flow['status']) {
-    return s === 'ativo' ? 'badge-green' : s === 'teste' ? 'badge-warn' : 'badge-muted';
+  select(id: string) {
+    this.selectedId.set(id);
   }
-  statusLabel(s: Flow['status']) {
-    return s === 'ativo' ? 'Ativo' : s === 'teste' ? 'Teste' : 'Inativo';
+
+  stepLabel(t: string) {
+    return this.stepTypes.find(s => s.value === t)?.label ?? t;
+  }
+
+  badgeClass(ativo: boolean) {
+    return ativo ? 'badge-green' : 'badge-muted';
+  }
+
+  statusLabel(ativo: boolean) {
+    return ativo ? 'Ativo' : 'Inativo';
+  }
+
+  private processarSucesso(msg: string) {
+    this.response.set(msg);
+    this.sincronizando.set(false);
+    this.buscar();
+  }
+
+  private processarErro(err: any, msgPadrao: string) {
+    console.error(err);
+    this.response.set(`❌ ${err.error?.message || msgPadrao}`);
+    this.sincronizando.set(false);
   }
 }
