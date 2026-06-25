@@ -7,11 +7,19 @@
 
 <div class="g2">
   <div class="card">
-    <div class="card-head">
+    <div class="card-head" style="display: flex; justify-content: space-between; align-items: center;">
       <div>
         <div class="card-title">{{ editingId() ? '📝 Editar Contato' : '👥 Novo Contato' }}</div>
       </div>
+
+      <div>
+        <label class="btn btn-ghost" style="color: #1d6f42; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600;" title="Importar Contatos via CSV (Coluna A: Telefone, Coluna B: Nome)">
+          📊 <span>Importar CSV</span>
+          <input type="file" (change)="importarCsv($event)" accept=".csv" style="display: none;">
+        </label>
+      </div>
     </div>
+
     <div class="card-body">
       <div class="fg">
         <label>Nome Completo</label>
