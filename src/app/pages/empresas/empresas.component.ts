@@ -7,9 +7,13 @@ import { environment } from '../../../environments/environment';
 interface Empresa {
   id: string;
   nome: string;
-  cnpj: string;
-  email: string;
-  telefone: string;
+  email?: string;
+  telefone?: string;
+  cnpj?: string;
+  accessToken?: string;   // Mapeado de AccessToken (empresa.MetaAccessToken)
+  wabaId?: string;        // Mapeado de WabaId
+  dataCriacao: string;    // Mapeado de DataCriacao
+  planoId?: string;       // ID do plano contratado
 }
 
 @Component({
@@ -23,11 +27,10 @@ export class EmpresasComponent implements OnInit {
   private http = inject(HttpClient);
   private readonly BASE_URL = `${environment.apiUrl}/v2/empresa`;
 
-  // Estados
   empresas = signal<Empresa[]>([]);
-  form = signal({ nome: '', cnpj: '', email: '', tel: '' });
+  form = signal({ nome: '', cnpj: '', email: '', tel: '', metaAccessToken: '', planoId: '', wabaId: '' });
   response = signal('');
-  editingId = signal<string | null>(null); // Controla se estamos editando
+  editingId = signal<string | null>(null);
 
   ngOnInit() {
     this.obterEmpresas();
@@ -44,14 +47,16 @@ export class EmpresasComponent implements OnInit {
     });
   }
 
-  // Preenche o formulário com os dados da linha selecionada
   prepararEdicao(empresa: Empresa) {
     this.editingId.set(empresa.id);
     this.form.set({
       nome: empresa.nome,
-      cnpj: empresa.cnpj,
-      email: empresa.email,
-      tel: empresa.telefone
+      cnpj: empresa.cnpj || '',
+      email: empresa.email || '',
+      tel: empresa.telefone || '',
+      metaAccessToken: empresa.accessToken || '',
+      planoId: empresa.planoId || '',
+      wabaId: empresa.wabaId || ''
     });
     this.response.set(`Editando: ${empresa.nome}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -59,7 +64,7 @@ export class EmpresasComponent implements OnInit {
 
   cancelarEdicao() {
     this.editingId.set(null);
-    this.form.set({ nome: '', cnpj: '', email: '', tel: '' });
+    this.form.set({ nome: '', cnpj: '', email: '', tel: '', metaAccessToken: '', planoId: '', wabaId: '' });
     this.response.set('');
   }
 
@@ -70,17 +75,17 @@ export class EmpresasComponent implements OnInit {
       return;
     }
 
-    // Monta o payload base
     const payload: any = {
       nome: f.nome,
       email: f.email,
       telefone: f.tel,
-      cnpj: f.cnpj
+      cnpj: f.cnpj,
+      planoId: f.planoId
     };
 
     if (this.editingId()) {
-      // --- LÓGICA DE EDIÇÃO (PUT) ---
-      payload.id = this.editingId(); // Inclui o ID conforme exigido pela API /alterar
+      payload.id = this.editingId();
+      payload.accessToken = f.metaAccessToken;
 
       this.http.put(`${this.BASE_URL}/alterar`, payload).subscribe({
         next: () => {
@@ -91,16 +96,40 @@ export class EmpresasComponent implements OnInit {
         error: () => this.response.set('❌ Erro ao atualizar empresa.')
       });
     } else {
-      // --- LÓGICA DE INCLUSÃO (POST) ---
+      payload.acessToken = f.metaAccessToken;
+
       this.http.post(`${this.BASE_URL}/incluir`, payload).subscribe({
         next: () => {
           this.response.set('✅ Empresa cadastrada com sucesso!');
-          this.form.set({ nome: '', cnpj: '', email: '', tel: '' });
+          this.form.set({ nome: '', cnpj: '', email: '', tel: '', metaAccessToken: '', planoId: '', wabaId: '' });
           this.obterEmpresas();
         },
         error: () => this.response.set('❌ Falha ao salvar empresa.')
       });
     }
+  }
+
+  sincronizarWaba(empresa: Empresa) {
+    if (!empresa.accessToken) {
+      this.response.set('❌ Não é possível sincronizar: Empresa não possui Meta Access Token cadastrado.');
+      return;
+    }
+
+    this.response.set('⏳ Sincronizando WABA com a Meta...');
+
+    const url = `${this.BASE_URL}/atualizar-waba/${empresa.id}`;
+
+    // Passando o token como string direta no body. 
+    // Nota técnica: Se sua API continuar usando [HttpGet], mude .post para .request('GET', ...)
+    this.http.post(url, JSON.stringify(empresa.accessToken), {
+      headers: { 'Content-Type': 'application/json' }
+    }).subscribe({
+      next: () => {
+        this.response.set('✅ WABA ID sincronizado e atualizado!');
+        this.obterEmpresas();
+      },
+      error: () => this.response.set('❌ Falha ao sincronizar WABA ID na Meta.')
+    });
   }
 
   excluir(id: string) {

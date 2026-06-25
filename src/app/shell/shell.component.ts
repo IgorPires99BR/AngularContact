@@ -2,7 +2,7 @@ import { Component, inject, computed, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../core/services/auth';
-import { MENU } from '../shared/menu';
+import { getMenuByRole } from '../shared/menu';
 
 @Component({
   selector: 'app-shell',
@@ -16,7 +16,10 @@ export class ShellComponent {
   public auth = inject(AuthService);
 
   // Estado do Menu e Títulos
-  menu = MENU;
+  menu = computed(() => {
+    const userData = this.auth.user();
+    return getMenuByRole(userData?.role);
+  });
   drawerOpen = signal(false);
   topTitle = signal('Dashboard');
   crumb = signal('Contact Solution / Principal');

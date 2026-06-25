@@ -5,7 +5,6 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
 
-
 declare var FB: any;
 
 interface Numero {
@@ -30,24 +29,24 @@ export class NumerosComponent implements OnInit {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
 
-  // URL base limpa apontando para a sua Controller C#
   private readonly API_URL = `${environment.apiUrl}/numero`;
 
   // ID do usuário logado vindo do seu serviço de autenticação global
   private userId = this.authService.usuarioIdSignal;
 
-  // Form estruturado para o fluxo do CriaNumeroHandler
+  // ID da empresa ativa resgatado do sinal global do AuthService
+  empresaId = this.authService.empresaIdSignal;
+
   form = signal({
     telefone: '',
     nomeVerificado: '',
-    codigoPais: '55' // Padrão Brasil
+    codigoPais: '55'
   });
 
   response = signal('');
   numeros = signal<Numero[]>([]);
   sincronizando = signal(false);
 
-  // Mapeia os estados da Meta (APPROVED, PENDING, CONNECTED, etc.) para os contadores visuais
   ativos = computed(() => this.numeros().filter(n =>
     n.statusMeta?.toUpperCase() === 'CONNECTED' ||
     n.statusMeta?.toUpperCase() === 'APPROVED' ||
@@ -63,6 +62,10 @@ export class NumerosComponent implements OnInit {
   ).length);
 
   ngOnInit() {
+    this.carregarDadosIniciais();
+  }
+
+  carregarDadosIniciais() {
     this.buscar();
   }
 
@@ -70,12 +73,10 @@ export class NumerosComponent implements OnInit {
     this.form.set({ ...this.form(), [field]: value });
   }
 
-  // 1. LISTAR NÚMEROS LOCALMENTE
   buscar() {
     const uid = this.userId();
     if (!uid) return;
 
-    // Rota exata mapeada no seu [HttpGet("api/numero/ListarNumeros/{usuarioId}")]
     this.http.get<Numero[]>(`${this.API_URL}/ListarNumeros/${uid}`)
       .subscribe({
         next: (res) => this.numeros.set(res),
@@ -83,26 +84,27 @@ export class NumerosComponent implements OnInit {
       });
   }
 
-  // 2. SOLICITAR NOVO NÚMERO (META ONBOARDING + INCLUSÃO EM BANCO)
+  // Método incluir ajustado para contemplar o idEmpresa no Command
   incluir() {
     const f = this.form();
     const uid = this.userId();
+    const eid = this.empresaId(); // Resgata o ID da empresa ativa
 
     if (!f.telefone || !f.nomeVerificado || !f.codigoPais || !uid) {
       this.response.set('❌ Preencha todos os campos obrigatórios.');
       return;
     }
 
-    // Payload limpo estruturado exatamente como o CriaNumeroCommand espera no C#
+    // Payload atualizado exatamente conforme a classe CriaNumeroCommand do C#
     const payload = {
       usuarioId: uid,
+      idEmpresa: eid, // Injetado dinamicamente do contexto da sessão
       numeroTelefone: f.telefone,
       nomeEmpresa: f.nomeVerificado
     };
 
     this.response.set('⏳ Solicitando criação na Meta e registrando...');
 
-    // Rota exata mapeada no seu [HttpPost("api/numero/incluir")]
     this.http.post(`${this.API_URL}/incluir`, payload).subscribe({
       next: (res: any) => {
         if (res && res.success === false) {
@@ -117,11 +119,9 @@ export class NumerosComponent implements OnInit {
     });
   }
 
-  // 3. SINCRONIZAÇÃO VIA EMBEDDED SIGNUP (FACEBOOK DIALOG)
   iniciarEmbeddedSignup() {
     FB.login((response: any) => {
       if (response.authResponse) {
-        // Envia o usuário para o fluxo que dispara o endpoint C# correspondente
         this.vincularContaMeta();
       } else {
         this.response.set('❌ Fluxo de Onboarding cancelado pelo usuário.');
@@ -134,9 +134,10 @@ export class NumerosComponent implements OnInit {
     });
   }
 
-  // 4. DISPARO DO ENDPOINT DE SINCRONIZAÇÃO/IMPORTAÇÃO DA META
   vincularContaMeta() {
     const uid = this.userId();
+    const eid = this.empresaId();
+
     if (!uid) {
       this.response.set('❌ Usuário não identificado para sincronização.');
       return;
@@ -145,12 +146,13 @@ export class NumerosComponent implements OnInit {
     this.sincronizando.set(true);
     this.response.set('⏳ Baixando atualizações e sincronizando banco com a Meta...');
 
-    // Rota corrigida: Agora executa um HTTP GET apontando para api/numero/AtualizarNumerosMeta/{usuarioId}
-    this.http.get(`${this.API_URL}/AtualizarNumerosMeta/${uid}`).subscribe({
+    const url = `${this.API_URL}/AtualizarNumerosMeta/${uid}?idEmpresa=${eid}`;
+
+    this.http.post(url, {}).subscribe({
       next: () => {
         this.response.set('✅ Banco local sincronizado com sucesso com a Meta!');
         this.sincronizando.set(false);
-        this.buscar(); // Atualiza a tabela na interface trazendo as mudanças
+        this.buscar();
       },
       error: (err) => {
         console.error(err);
@@ -160,7 +162,6 @@ export class NumerosComponent implements OnInit {
     });
   }
 
-  // 5. EXCLUSÃO LOCAL DE REGISTRO
   excluir(id: string) {
     if (!confirm('Deseja deletar este número do seu painel local?')) return;
 

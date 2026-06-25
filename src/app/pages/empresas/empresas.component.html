@@ -32,10 +32,35 @@
                  [ngModel]="form().email" (ngModelChange)="update('email', $event)">
         </div>
       </div>
-      <div class="fg">
-        <label>Telefone</label>
-        <input type="text" placeholder="+55 11 9 9999-8888"
-               [ngModel]="form().tel" (ngModelChange)="update('tel', $event)">
+
+      <div class="fg-row">
+        <div class="fg">
+          <label>Telefone</label>
+          <input type="text" placeholder="+55 11 9 9999-8888"
+                 [ngModel]="form().tel" (ngModelChange)="update('tel', $event)">
+        </div>
+        <div class="fg" *ngIf="editingId()">
+          <label>WhatsApp Business Account ID (WABA)</label>
+          <input type="text" placeholder="Identificador numérico do WABA"
+                 [ngModel]="form().wabaId" disabled style="background-color: var(--bg-disabled, #f4f5f7); cursor: not-allowed;">
+        </div>
+      </div>
+
+      <div class="fg-row">
+        <div class="fg">
+          <label>Meta Access Token</label>
+          <input type="text" placeholder="Token de acesso da Meta"
+                 [ngModel]="form().metaAccessToken" (ngModelChange)="update('metaAccessToken', $event)">
+        </div>
+        <div class="fg">
+          <label>Plano</label>
+          <select [ngModel]="form().planoId" (ngModelChange)="update('planoId', $event)">
+            <option value="">Selecione um plano...</option>
+            <option value="1">1 - Básico</option>
+            <option value="2">2 - Completo</option>
+            <option value="3">3 - Demonstração</option>
+          </select>
+        </div>
       </div>
 
       <div class="btn-grp">
@@ -46,8 +71,6 @@
         <button *ngIf="editingId()" class="btn btn-ghost" (click)="cancelarEdicao()">
           Cancelar
         </button>
-
-        <button class="btn btn-outline" (click)="obterEmpresas()">🔄 Listar</button>
       </div>
 
       <div class="payload-display" *ngIf="response()" style="margin-top: 14px">
@@ -67,13 +90,23 @@
     <div class="crud-list">
       <div class="crud-item" *ngFor="let e of empresas()">
         <div class="crud-avatar" style="background: linear-gradient(135deg, #3D6EE8, #4B7BFF)">
-          {{ e.nome.substring(0, 2).toUpperCase() }}
+          {{ e.nome ? e.nome.substring(0, 2).toUpperCase() : 'EP' }}
         </div>
         <div class="crud-info">
           <div class="crud-name">{{ e.nome }}</div>
-          <div class="crud-meta">{{ e.cnpj }} · {{ e.email }}</div>
+          <div class="crud-meta">
+            <span *ngIf="e.cnpj">{{ e.cnpj }}</span>
+            <span *ngIf="e.email"> · {{ e.email }}</span>
+            <span *ngIf="e.telefone"> · {{ e.telefone }}</span>
+          </div>
+          <div class="crud-meta" *ngIf="e.wabaId" style="color: #25D366; font-size: 11px; font-weight: 500; margin-top: 2px;">
+            WABA ID: {{ e.wabaId }}
+          </div>
         </div>
         <div class="crud-actions">
+          <button class="btn btn-outline btn-xs" style="color: #25D366; border-color: rgba(37, 211, 102, 0.3)" (click)="sincronizarWaba(e)" title="Sincronizar WABA ID usando o Token">
+            Sincronizar WABA
+          </button>
           <button class="btn btn-ghost btn-xs" (click)="prepararEdicao(e)">Editar</button>
           <button class="btn btn-danger btn-xs" (click)="excluir(e.id)">🗑</button>
         </div>

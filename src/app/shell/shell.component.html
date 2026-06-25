@@ -22,7 +22,7 @@
     </div>
 
     <nav class="sb-nav">
-      <div class="sb-section" *ngFor="let section of menu">
+      <div class="sb-section" *ngFor="let section of menu()">
         <div class="sb-group-label">{{ section.label }}</div>
         <a class="sb-item"
            *ngFor="let item of section.items"

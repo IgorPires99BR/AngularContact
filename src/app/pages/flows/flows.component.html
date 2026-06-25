@@ -86,8 +86,8 @@
             <div class="step-num">{{ step.ordem }}</div>
             <div class="step-head">
               <select class="step-type-select"
-                      [ngModel]="step.nomeEtapa"
-                      (ngModelChange)="updateStep(step.id, { nomeEtapa: $event })">
+                      [ngModel]="step.tipoStep"
+                      (ngModelChange)="updateStep(step.id, { tipoStep: $event })">
                 <option *ngFor="let t of stepTypes" [value]="t.value">{{ t.label }}</option>
               </select>
               <div class="step-actions">
@@ -97,11 +97,10 @@
             <div class="step-fg">
               <label>Mensagem / Pergunta</label>
               <textarea rows="2"
-                        [ngModel]="step.conteudoLivre"
-                        (ngModelChange)="updateStep(step.id, { conteudoLivre: $event })"
+                        [ngModel]="step.mensagemPergunta"
                         placeholder="O que o bot diz neste step..."></textarea>
             </div>
-            <div class="step-fg" *ngIf="step.nomeEtapa === 'Capturar Input'">
+            <div class="step-fg" *ngIf="step.tipoStep === 'Capturar Input'">
               <label>Variável de saída</label>
               <input type="text" placeholder="ex: nome, email, telefone"
                      [ngModel]="step.variavelSaida"
@@ -144,7 +143,7 @@
         <div class="step-stat" *ngFor="let s of selected().etapas; let i = index">
           <div class="step-stat-num">{{ s.ordem }}</div>
           <div class="step-stat-info">
-            <div class="step-stat-name">{{ stepLabel(s.nomeEtapa) }}</div>
+            <div class="step-stat-name">{{ stepLabel(s.tipoStep) }}</div>
             <div class="step-stat-bar">
               <div class="step-stat-bar-fill" [style.width.%]="Math.max(10, 100 - i * 18)"></div>
             </div>

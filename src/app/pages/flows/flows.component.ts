@@ -8,9 +8,9 @@ import { environment } from '../../../environments/environment';
 export interface Step {
   id: string;
   ordem: number;          // Alinhado com o DTO do Back-end
-  nomeEtapa: string;      // "Mensagem" | "Capturar Input" | "Condição" | "Encerrar"
-  conteudoLivre: string;  // O texto digitado na caixa
-  variavelSaida?: string; // O nome da variável de input (ex: 'nome')
+  tipoStep: string;        // Mudado de 'nomeEtapa' para 'tipoStep'
+  mensagemPergunta: string; // Mudado de 'conteudoLivre' para 'mensagemPergunta'
+  variavelSaida?: string; // Tornou-se opcional (?) ou string vazia
   gatilhoResposta?: string;
   proximaEtapaId?: string | null;
   ehEtapaInicial?: boolean;
@@ -99,9 +99,9 @@ export class FlowsComponent implements OnInit {
           const etapasOrdenadas = etapasRaw.map((e: any) => ({
             id: e.id || e.Id,
             ordem: e.ordem !== undefined ? e.ordem : e.Ordem,
-            nomeEtapa: e.nomeEtapa || e.NomeEtapa,
-            conteudoLivre: e.conteudoLivre || e.ConteudoLivre,
-            variavelSaida: e.variavelSaida || e.VariavelSaida,
+            tipoStep: e.tipoStep || e.TipoStep || e.nomeEtapa || e.NomeEtapa, // Fallback seguro
+            mensagemPergunta: e.mensagemPergunta || e.MensagemPergunta || e.conteudoLivre || e.ConteudoLivre,
+            variavelSaida: e.variavelSaida || e.VariavelSaida || '',
             gatilhoResposta: e.gatilhoResposta || e.GatilhoResposta,
             proximaEtapaId: e.proximaEtapaId || e.ProximaEtapaId,
             ehEtapaInicial: e.ehEtapaInicial !== undefined ? e.ehEtapaInicial : e.EhEtapaInicial
@@ -154,27 +154,39 @@ export class FlowsComponent implements OnInit {
       return;
     }
 
-    // Garante o ID da empresa logada (Multi-tenant)
-    fluxoAtual.idEmpresa = empId;
-
     this.sincronizando.set(true);
     this.response.set('⏳ Sincronizando fluxo com o banco de dados...');
 
-    // Se o fluxo foi gerado agora pelo botão "Novo Flow", faz POST. Caso contrário, PUT.
-    // (Nota: Lembre de remover a propriedade temporária 'isNew' antes de enviar se seu C# for estrito)
-    const { isNew, ...payload } = fluxoAtual as any;
+    // Mapeia o objeto local para o contrato estrito que o C# espera
+    const payloadToPost = {
+      id: fluxoAtual.id,
+      idEmpresa: empId,
+      nome: fluxoAtual.nome,
+      descricao: fluxoAtual.descricao,
+      gatilhoPalavraChave: fluxoAtual.gatilhoPalavraChave,
+      ativo: fluxoAtual.ativo,
+      etapas: fluxoAtual.etapas.map(e => ({
+        id: e.id,
+        ordem: e.ordem,
+        tipoStep: e.tipoStep,          // De 'nomeEtapa' para 'tipoStep'
+        mensagemPergunta: e.mensagemPergunta, // De 'conteudoLivre' para 'mensagemPergunta'
+        variavelSaida: e.variavelSaida || '',
+        gatilhoResposta: e.gatilhoResposta,
+        proximaEtapaId: e.proximaEtapaId,
+        ehEtapaInicial: e.ehEtapaInicial
+      }))
+    };
+
+    const { isNew } = fluxoAtual as any;
 
     if (isNew === false || !isNew) {
-      // PUT /api/config/flow -> Atualiza o registro existente
-      this.http.put(this.API_URL, payload).subscribe({
+      this.http.put(this.API_URL, payloadToPost).subscribe({
         next: () => this.processarSucesso('✅ Fluxo atualizado com sucesso!'),
         error: (err) => this.processarErro(err, 'Erro ao atualizar fluxo.')
       });
-    } else {
-      // POST /api/config/flow -> Cria um novo registro
-      this.http.post(this.API_URL, payload).subscribe({
+    } {
+      this.http.post(this.API_URL, payloadToPost).subscribe({
         next: () => {
-          // Desmarca a flag de novo após salvar com sucesso
           (fluxoAtual as any).isNew = false;
           this.processarSucesso('✅ Novo fluxo registrado com sucesso!');
         },
@@ -225,14 +237,23 @@ export class FlowsComponent implements OnInit {
     if (!f) return;
 
     const novaOrdem = f.etapas.length + 1;
-    f.etapas.push({
+
+    // 1. Criamos a nova etapa com a tipagem e campos que o Back-end exige
+    const novaEtapa: Step = {
       id: crypto.randomUUID(),
       ordem: novaOrdem,
-      nomeEtapa: 'Mensagem',
-      conteudoLivre: '',
+      tipoStep: 'Mensagem',          // Alinhado com TipoStep (antigo nomeEtapa)
+      mensagemPergunta: '',          // Alinhado com MensagemPergunta (antigo conteudoLivre)
+      variavelSaida: '',             // Enviando vazio para evitar o erro de validação do 400
       ehEtapaInicial: novaOrdem === 1,
-      gatilhoResposta: 'Avancar'
-    });
+      gatilhoResposta: 'Avancar',
+      proximaEtapaId: null
+    };
+
+    // 2. Atualizamos a lista de etapas criando um novo array para garantir a reatividade do Signal
+    f.etapas = [...f.etapas, novaEtapa];
+
+    // 3. Notificamos o Signal da mudança
     this.flows.set([...this.flows()]);
   }
 

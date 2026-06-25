@@ -6,12 +6,14 @@ export interface MenuItem {
   badge?: string | number;
   badgeType?: 'default' | 'warn' | 'danger';
 }
+
 export interface MenuSection {
   label: string;
   items: MenuItem[];
 }
 
-export const MENU: MenuSection[] = [
+// 1. Estrutura com todas as telas do sistema
+const MENU_RAW: MenuSection[] = [
   {
     label: 'Painel',
     items: [
@@ -64,6 +66,27 @@ export const MENU: MenuSection[] = [
     ],
   },
 ];
+
+/**
+ * Retorna o menu correto baseando-se diretamente na role fornecida pelo AuthService
+ */
+export function getMenuByRole(role: string | undefined): MenuSection[] {
+  // Se for admin, retorna tudo sem filtros
+  if (role === 'admin') {
+    return MENU_RAW;
+  }
+
+  // IDs das telas permitidas para operador comum
+  const telasPermitidas = ['disparador', 'contatos', 'numeros', 'templates'];
+
+  return MENU_RAW.map(section => ({
+    ...section,
+    items: section.items.filter(item => telasPermitidas.includes(item.id))
+  })).filter(section => section.items.length > 0);
+}
+
+// Mantemos o export do MENU original como fallback para evitar quebras em outros locais
+export const MENU: MenuSection[] = MENU_RAW;
 
 export const PAGE_TITLES: Record<string, string> = {
   dashboard: 'Dashboard',
