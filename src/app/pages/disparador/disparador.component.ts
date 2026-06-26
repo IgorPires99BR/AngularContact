@@ -202,25 +202,35 @@ export class DisparadorComponent implements OnInit {
       return;
     }
 
-    // Montando o payload com a estrutura exata exigida pelo Swagger da Contact Solution
+    // 1. Obtém o Id da Empresa do Signal de autenticação do usuário logado
+    const empId = this.empresaId();
+    if (!empId) {
+      this.response.set('❌ Erro: Identificador da empresa não encontrado na sessão.');
+      return;
+    }
+
+    // 2. Monta o payload incluindo a propriedade idEmpresa conforme o Command do Mediator
     const payload = {
+      idEmpresa: empId, // <-- Passando o Guid da Empresa logada
       telefones: this.selecionados().map(c => c.telefone),
       nomeTemplate: templateSelecionado.nomeTemplate,
-      idioma: templateSelecionado.idioma,
+      idioma: templateSelecionado.idioma || 'pt_BR',
       parametrosBody: this.params().map(p => p.value),
-      parametrosButton: [] // Se não usar variáveis em botões por enquanto, enviamos vazio
+      parametrosButton: []
     };
 
     this.response.set('⏳ Iniciando envio em lote...');
 
-    // Ajustado a rota para bater com o Swagger: /disparador/EnviarMensagemTemplateLote
+    // Ajustado para bater com a sua nova rota de lote do Mediator
     this.http.post(`${this.API_DISPARO}/EnviarMensagemTemplateLote`, payload).subscribe({
       next: (res: any) => {
-        // Aproveitando que o Result devolve um sumário do lote:
+        // Trata os contadores retornados pela API
         const total = res?.data?.totalProcessado ?? payload.telefones.length;
         const sucesso = res?.data?.totalSucesso ?? total;
 
         this.response.set(`✅ Disparo concluído! Sucesso: ${sucesso} de ${total}.`);
+
+        // Reseta o estado do formulário e desmarca os contatos
         this.params.set([]);
         this.updateForm('templateId', '');
         this.contatos.update(list => list.map(c => ({ ...c, checked: false })));

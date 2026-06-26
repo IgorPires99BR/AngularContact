@@ -10,10 +10,11 @@ interface Empresa {
   email?: string;
   telefone?: string;
   cnpj?: string;
-  accessToken?: string;   // Mapeado de AccessToken (empresa.MetaAccessToken)
+  accessToken?: string;   // Mapeado de MetaAccessToken
   wabaId?: string;        // Mapeado de WabaId
-  dataCriacao: string;    // Mapeado de DataCriacao
-  planoId?: string;       // ID do plano contratado
+  phoneNumberId?: string; // Mapeado de PhoneNumberId
+  dataCriacao: string;
+  planoId?: string;
 }
 
 @Component({
@@ -28,7 +29,17 @@ export class EmpresasComponent implements OnInit {
   private readonly BASE_URL = `${environment.apiUrl}/v2/empresa`;
 
   empresas = signal<Empresa[]>([]);
-  form = signal({ nome: '', cnpj: '', email: '', tel: '', metaAccessToken: '', planoId: '', wabaId: '' });
+  // DEPOIS (Correto):
+  form = signal({
+    nome: '',
+    cnpj: '',
+    email: '',
+    tel: '',
+    metaAccessToken: '',
+    planoId: '',
+    wabaId: '',
+    phoneNumberId: '' // <-- ADICIONE ESTA LINHA
+  });
   response = signal('');
   editingId = signal<string | null>(null);
 
@@ -54,9 +65,10 @@ export class EmpresasComponent implements OnInit {
       cnpj: empresa.cnpj || '',
       email: empresa.email || '',
       tel: empresa.telefone || '',
-      metaAccessToken: empresa.accessToken || '',
+      metaAccessToken: empresa.accessToken || '', // Garanta que o mapeamento do token está batendo com o que vem da API
       planoId: empresa.planoId || '',
-      wabaId: empresa.wabaId || ''
+      wabaId: empresa.wabaId || '',
+      phoneNumberId: empresa.phoneNumberId || '' // <-- ADICIONE ESTA LINHA
     });
     this.response.set(`Editando: ${empresa.nome}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -64,7 +76,7 @@ export class EmpresasComponent implements OnInit {
 
   cancelarEdicao() {
     this.editingId.set(null);
-    this.form.set({ nome: '', cnpj: '', email: '', tel: '', metaAccessToken: '', planoId: '', wabaId: '' });
+    this.form.set({ nome: '', cnpj: '', email: '', tel: '', metaAccessToken: '', planoId: '', wabaId: '', phoneNumberId: '' });
     this.response.set('');
   }
 
@@ -75,17 +87,20 @@ export class EmpresasComponent implements OnInit {
       return;
     }
 
+    // Payload unificado contendo as propriedades digitadas
     const payload: any = {
       nome: f.nome,
       email: f.email,
       telefone: f.tel,
       cnpj: f.cnpj,
-      planoId: f.planoId
+      planoId: f.planoId,
+      wabaId: f.wabaId,
+      phoneNumberId: f.phoneNumberId
     };
 
     if (this.editingId()) {
       payload.id = this.editingId();
-      payload.accessToken = f.metaAccessToken;
+      payload.accessToken = f.metaAccessToken; // Mapeia para alterar
 
       this.http.put(`${this.BASE_URL}/alterar`, payload).subscribe({
         next: () => {
@@ -95,41 +110,18 @@ export class EmpresasComponent implements OnInit {
         },
         error: () => this.response.set('❌ Erro ao atualizar empresa.')
       });
-    } else {
-      payload.acessToken = f.metaAccessToken;
+    } else { // <-- AGORA SIM! Adicionado o else correto
+      payload.accessToken = f.metaAccessToken; // Mapeia Corretamente para incluir
 
       this.http.post(`${this.BASE_URL}/incluir`, payload).subscribe({
         next: () => {
           this.response.set('✅ Empresa cadastrada com sucesso!');
-          this.form.set({ nome: '', cnpj: '', email: '', tel: '', metaAccessToken: '', planoId: '', wabaId: '' });
+          this.cancelarEdicao();
           this.obterEmpresas();
         },
         error: () => this.response.set('❌ Falha ao salvar empresa.')
       });
     }
-  }
-
-  sincronizarWaba(empresa: Empresa) {
-    if (!empresa.accessToken) {
-      this.response.set('❌ Não é possível sincronizar: Empresa não possui Meta Access Token cadastrado.');
-      return;
-    }
-
-    this.response.set('⏳ Sincronizando WABA com a Meta...');
-
-    const url = `${this.BASE_URL}/atualizar-waba/${empresa.id}`;
-
-    // Passando o token como string direta no body. 
-    // Nota técnica: Se sua API continuar usando [HttpGet], mude .post para .request('GET', ...)
-    this.http.post(url, JSON.stringify(empresa.accessToken), {
-      headers: { 'Content-Type': 'application/json' }
-    }).subscribe({
-      next: () => {
-        this.response.set('✅ WABA ID sincronizado e atualizado!');
-        this.obterEmpresas();
-      },
-      error: () => this.response.set('❌ Falha ao sincronizar WABA ID na Meta.')
-    });
   }
 
   excluir(id: string) {
