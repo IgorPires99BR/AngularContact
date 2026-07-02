@@ -24,16 +24,30 @@ interface NumeroMeta {
   dataCriacao: string;
 }
 
-// Interface corrigida para mapear com o payload real do banco
+// 1. Interfaces mapeadas com as regras de negócio limpas do C#
+export interface TemplateBotao {
+  Tipo: number;       // Antes era 'tipo'
+  Texto: string;      // Antes era 'texto'
+  Url?: string;       // Antes era 'url'
+}
+
+export interface TemplateComponente {
+  Tipo: number;       // Antes era 'tipo' (0 = Header, 1 = Body, 2 = Footer, 3 = Buttons)
+  FormatMidia: number; // Antes era 'formatMidia' (0 = None, 1 = Text, 2 = Image, 3 = Video, 4 = Document)
+  Texto?: string;
+  Botoes?: TemplateBotao[];
+}
+
 interface TemplateMeta {
   id: string;
   empresaId: string;
-  nomeTemplate: string; // antes era 'nome'
-  conteudo: string;     // antes era 'bodyOriginal'
+  nomeTemplate: string;
+  conteudo: string;
   categoria: string;
   idioma: string;
   status: string;
-  dataCriacao?: string;
+  componentesJson: string; // String JSON vinda do Banco de dados
+  componentesParsed?: TemplateComponente[]; // Cache local pós-parse
 }
 
 @Component({
@@ -67,6 +81,9 @@ export class DisparadorComponent implements OnInit {
   });
 
   params = signal<{ value: string }[]>([]);
+  buttonParams = signal<{ value: string }[]>([]);
+  headerMediaUrl = signal('');
+  temMediaHeader = signal(false);
   response = signal('');
 
   // Computeds
@@ -88,13 +105,36 @@ export class DisparadorComponent implements OnInit {
     return filtrados.every(c => c.checked);
   });
 
-  // Preview dinâmico mapeando a propriedade correta (conteudo)
-  templatePreview = computed(() => {
+  // Captura o objeto de template atualmente ativo e realiza o Parse do JSON interno
+  templateAtivo = computed(() => {
     const tplId = this.form().templateId;
     const tpl = this.templates().find(t => t.id === tplId);
+    if (!tpl) return null;
+
+    if (!tpl.componentesParsed && tpl.componentesJson) {
+      try {
+        tpl.componentesParsed = JSON.parse(tpl.componentesJson) as TemplateComponente[];
+      } catch (e) {
+        console.error('Erro ao realizar parse dos componentes do template comercial', e);
+        tpl.componentesParsed = [];
+      }
+    }
+    return tpl;
+  });
+
+  templatePreview = computed(() => {
+    const tpl = this.templateAtivo();
     if (!tpl) return 'Selecione um template para visualizar o preview...';
 
-    let textoFormatado = tpl.conteudo; // Ajustado de bodyOriginal para conteudo
+    let textoFormatado = '';
+
+    if (this.temMediaHeader()) {
+      const url = this.headerMediaUrl().trim() ? this.headerMediaUrl().trim() : 'https://www.theeagleview.com.br/2018/09/midia-em-clima-de-baixaria.html';
+      textoFormatado += `🖼️ [MÍDIA HEADER]: ${url}\n\n`;
+    }
+
+    textoFormatado += tpl.conteudo;
+
     this.params().forEach((p, index) => {
       const valorSubstitutos = p.value.trim() ? p.value : `[Parâmetro ${index + 1}]`;
       const regex = new RegExp(`\\{\\{${index + 1}\\}\\}`, 'g');
@@ -127,7 +167,6 @@ export class DisparadorComponent implements OnInit {
     this.http.get<TemplateMeta[]>(`${this.API_TEMPLATE}/Listar/${empId}`)
       .subscribe({
         next: (res) => {
-          // Filtra trazendo apenas os homologados (APPROVED) para segurança do disparo
           const aprovados = res.filter(t => t.status?.toUpperCase() === 'APPROVED');
           this.templates.set(aprovados);
         },
@@ -141,23 +180,40 @@ export class DisparadorComponent implements OnInit {
 
     this.http.get<NumeroMeta[]>(`${this.API_NUMERO}/ListarNumeros/${uid}`)
       .subscribe({
-        next: (res) => {
-          // Removeu o filtro de 'CONNECTED' para listar o seu número de teste (que vem com statusMeta: null)
-          this.numerosAtivos.set(res);
-        },
+        next: (res) => this.numerosAtivos.set(res),
         error: () => this.response.set('❌ Erro ao carregar canais/números.')
       });
   }
 
   onTemplateChange(id: string) {
     this.updateForm('templateId', id);
-    const tpl = this.templates().find(t => t.id === id);
-    if (tpl) {
-      // Mapeia os matches em cima da propriedade 'conteudo'
+
+    // Reseta os estados anteriores
+    this.headerMediaUrl.set('');
+    this.params.set([]);
+    this.buttonParams.set([]);
+    this.temMediaHeader.set(false);
+
+    const tpl = this.templateAtivo();
+
+    if (tpl && tpl.componentesParsed) {
+      // 1. Captura variáveis dinâmicas do corpo
       const matches = tpl.conteudo.match(/\{\{\d+\}\}/g) || [];
       this.params.set(matches.map(() => ({ value: '' })));
-    } else {
-      this.params.set([]);
+
+      // 2. CORREÇÃO AQUI: Procura usando 'Tipo' e 'FormatMidia' em maiúsculo
+      const headerComp = tpl.componentesParsed.find(c => c.Tipo === 0);
+      if (headerComp && [2, 3, 4].includes(headerComp.FormatMidia)) {
+        this.temMediaHeader.set(true); // Isso vai forçar o HTML a exibir o campo!
+      }
+
+      const buttonsComp = tpl.componentesParsed.find(c => c.Tipo === 3);
+      if (buttonsComp && buttonsComp.Botoes) {
+        const possuiUrlDinamica = buttonsComp.Botoes.some(b => b.Tipo === 1 && b.Url && b.Url.includes('{{1}}'));
+        if (possuiUrlDinamica) {
+          this.buttonParams.set([{ value: '' }]);
+        }
+      }
     }
   }
 
@@ -169,6 +225,16 @@ export class DisparadorComponent implements OnInit {
     const p = [...this.params()];
     p[index] = { value: val };
     this.params.set(p);
+  }
+
+  updateButtonParam(index: number, val: string) {
+    const bp = [...this.buttonParams()];
+    bp[index] = { value: val };
+    this.buttonParams.set(bp);
+  }
+
+  trackByIndex(index: number): number {
+    return index;
   }
 
   toggleContato(contato: Contato) {
@@ -190,48 +256,60 @@ export class DisparadorComponent implements OnInit {
       this.response.set('❌ Selecione um número ativo (Instância).');
       return;
     }
-    const tplId = this.form().templateId;
-    const templateSelecionado = this.templates().find(t => t.id === tplId);
+    const tpl = this.templateAtivo();
 
-    if (!templateSelecionado) {
+    if (!tpl) {
       this.response.set('❌ Selecione um template de mensagem válido.');
       return;
     }
+
+    if (this.temMediaHeader() && !this.headerMediaUrl().trim()) {
+      this.response.set('❌ Insira a URL da imagem/mídia para o cabeçalho deste template.');
+      return;
+    }
+
     if (this.selecionados().length === 0) {
       this.response.set('❌ Selecione ao menos um contato na tabela.');
       return;
     }
 
-    // 1. Obtém o Id da Empresa do Signal de autenticação do usuário logado
     const empId = this.empresaId();
     if (!empId) {
       this.response.set('❌ Erro: Identificador da empresa não encontrado na sessão.');
       return;
     }
 
-    // 2. Monta o payload incluindo a propriedade idEmpresa conforme o Command do Mediator
+    const urlMidia = this.temMediaHeader() ? this.headerMediaUrl().trim() : null;
+    const corpoParams = this.params().map(p => p.value.trim());
+    const botaoParams = this.buttonParams().map(bp => bp.value.trim());
+
     const payload = {
-      idEmpresa: empId, // <-- Passando o Guid da Empresa logada
+      idEmpresa: empId,
+      empresaId: empId,
       telefones: this.selecionados().map(c => c.telefone),
-      nomeTemplate: templateSelecionado.nomeTemplate,
-      idioma: templateSelecionado.idioma || 'pt_BR',
-      parametrosBody: this.params().map(p => p.value),
-      parametrosButton: []
+      contatosIds: this.selecionados().map(c => c.id), // ✅ INSERIDO EM PARALELO À LISTA DE TELEFONES
+      nomeTemplate: tpl.nomeTemplate,
+      idioma: tpl.idioma || 'pt_BR',
+      templateId: tpl.id,
+      parametroHeaderMediaUrl: urlMidia,
+      parametrosBody: corpoParams,
+      parametrosButton: botaoParams,
+      contatoId: '00000000-0000-0000-0000-000000000000'
     };
 
     this.response.set('⏳ Iniciando envio em lote...');
 
-    // Ajustado para bater com a sua nova rota de lote do Mediator
     this.http.post(`${this.API_DISPARO}/EnviarMensagemTemplateLote`, payload).subscribe({
       next: (res: any) => {
-        // Trata os contadores retornados pela API
         const total = res?.data?.totalProcessado ?? payload.telefones.length;
         const sucesso = res?.data?.totalSucesso ?? total;
 
         this.response.set(`✅ Disparo concluído! Sucesso: ${sucesso} de ${total}.`);
 
-        // Reseta o estado do formulário e desmarca os contatos
         this.params.set([]);
+        this.buttonParams.set([]);
+        this.headerMediaUrl.set('');
+        this.temMediaHeader.set(false);
         this.updateForm('templateId', '');
         this.contatos.update(list => list.map(c => ({ ...c, checked: false })));
       },

@@ -34,14 +34,34 @@
         </select>
       </div>
 
+      <div *ngIf="temMediaHeader()" class="fg" style="margin-top: 16px;">
+        <div class="card-title" style="font-size: 0.95rem; margin-bottom: 12px;">🖼️ Mídia do Cabeçalho (Header)</div>
+        <label>URL do Arquivo (Imagem, Vídeo ou Documento)</label>
+        <input type="text"
+               [ngModel]="headerMediaUrl()"
+               (ngModelChange)="headerMediaUrl.set($event)"
+               placeholder="https://exemplo.com/arquivo.jpg" />
+      </div>
+
       <div *ngIf="params().length > 0" style="margin-top: 16px;">
-        <div class="card-title" style="font-size: 0.95rem; margin-bottom: 12px;">✨ Variáveis do Template</div>
-        <div *ngFor="let p of params(); let i = index" class="fg">
+        <div class="card-title" style="font-size: 0.95rem; margin-bottom: 12px;">✨ Variáveis do Corpo (Body)</div>
+        <div *ngFor="let p of params(); let i = index; trackBy: trackByIndex" class="fg">
           <label>Parâmetro {{ '{{' }}{{ i + 1 }}{{ '}}' }}</label>
           <input type="text"
                  [ngModel]="p.value"
                  (ngModelChange)="updateParam(i, $event)"
                  placeholder="Digite o valor da variável" />
+        </div>
+      </div>
+
+      <div *ngIf="buttonParams().length > 0" style="margin-top: 16px;">
+        <div class="card-title" style="font-size: 0.95rem; margin-bottom: 12px;">🔗 Variáveis dos Botões (Ações/Links)</div>
+        <div *ngFor="let bp of buttonParams(); let i = index; trackBy: trackByIndex" class="fg">
+          <label>Parâmetro do Botão {{ '{{' }}{{ i + 1 }}{{ '}}' }}</label>
+          <input type="text"
+                 [ngModel]="bp.value"
+                 (ngModelChange)="updateButtonParam(i, $event)"
+                 placeholder="Ex: sufixo-do-link ou cupom" />
         </div>
       </div>
 
