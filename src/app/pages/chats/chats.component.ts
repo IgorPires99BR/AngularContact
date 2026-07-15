@@ -1,13 +1,26 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../core/services/auth';
+import { environment } from '../../../environments/environment';
 
 interface ChatItem {
-  id: number;
-  initials: string; name: string; phone: string; color: string;
-  lastMessage: string; time: string; unread: number; online: boolean;
+  contatoId: string;
+  nomeContato: string;
+  telefone: string;
+  ultimaMensagem: string;
+  dataUltimaMensagem: string;
+  quantidadeNaoLidas: number;
+  color?: string;
+  initials?: string;
 }
-interface Message { from: 'bot' | 'user' | 'step'; text: string; time?: string; }
+
+interface Message {
+  from: 'bot' | 'user' | 'step' | 'recebida' | 'enviada';
+  text: string;
+  time?: string;
+}
 
 @Component({
   selector: 'app-chats',
@@ -16,51 +29,155 @@ interface Message { from: 'bot' | 'user' | 'step'; text: string; time?: string; 
   templateUrl: './chats.component.html',
   styleUrls: ['./chats.component.css'],
 })
-export class ChatsComponent {
-  search = signal('');
-  selectedId = signal<number | null>(1);
-  draft = signal('');
+export class ChatsComponent implements OnInit {
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
 
-  chats: ChatItem[] = [
-    { id: 1, initials: 'JS', name: 'João Silva',     phone: '+55 11 9 9988-7766', color: 'linear-gradient(135deg,#3D6EE8,#4B7BFF)', lastMessage: 'Quero saber mais sobre o plano…',   time: '2m',  unread: 2, online: true  },
-    { id: 2, initials: 'MR', name: 'Maria Rocha',    phone: '+55 21 9 8877-6655', color: 'linear-gradient(135deg,#F59E0B,#FBBF24)', lastMessage: 'Obrigada pelo retorno!',           time: '14m', unread: 0, online: true  },
-    { id: 3, initials: 'CA', name: 'Carlos Almeida', phone: '+55 11 9 7766-5544', color: 'linear-gradient(135deg,#22C55E,#4ADE80)', lastMessage: 'Posso fechar o pedido?',            time: '32m', unread: 1, online: false },
-    { id: 4, initials: 'PL', name: 'Paula Lima',     phone: '+55 31 9 6655-4433', color: 'linear-gradient(135deg,#6366F1,#8B5CF6)', lastMessage: 'Estou avaliando a proposta.',       time: '1h',  unread: 0, online: false },
-    { id: 5, initials: 'RF', name: 'Ricardo Fontes', phone: '+55 41 9 5544-3322', color: 'linear-gradient(135deg,#EC4899,#F472B6)', lastMessage: 'Bom dia, tudo bem?',                 time: '2h',  unread: 3, online: true  },
-    { id: 6, initials: 'AM', name: 'Ana Martins',    phone: '+55 51 9 4433-2211', color: 'linear-gradient(135deg,#06B6D4,#22D3EE)', lastMessage: 'Já recebi, obrigada!',               time: '3h',  unread: 0, online: false },
+  // Obtém reativamente o Id da Empresa logada do AuthService
+  private empresaId = this.authService.empresaIdSignal;
+
+  // URLs base dos controllers
+  private readonly API_URL = `${environment.apiUrl}/chat`;
+  private readonly DISPARADOR_URL = `${environment.apiUrl}/disparador`;
+
+  search = signal('');
+  selectedId = signal<string | null>(null);
+  draft = signal('');
+  response = signal('');
+
+  chats = signal<ChatItem[]>([]);
+  activeMessages = signal<Message[]>([]);
+
+  private colors = [
+    'linear-gradient(135deg,#3D6EE8,#4B7BFF)',
+    'linear-gradient(135deg,#F59E0B,#FBBF24)',
+    'linear-gradient(135deg,#22C55E,#4ADE80)',
+    'linear-gradient(135deg,#6366F1,#8B5CF6)'
   ];
 
-  messages: Record<number, Message[]> = {
-    1: [
-      { from: 'step', text: 'Início do flow: Qualificação Lead' },
-      { from: 'bot',  text: 'Olá João! Tudo bem? Sou o assistente da Contact Solution 👋', time: '10:32' },
-      { from: 'user', text: 'Olá, tudo sim! Quero saber mais sobre o plano Premium', time: '10:33' },
-      { from: 'bot',  text: 'Claro! O plano Premium inclui: 10 mil mensagens/mês, 3 números WhatsApp e suporte prioritário. Posso te enviar a apresentação completa?', time: '10:33' },
-      { from: 'user', text: 'Pode sim, por favor', time: '10:35' },
-    ],
-  };
+  ngOnInit() {
+    this.carregarConversas();
+  }
+
+  carregarConversas() {
+    const idEmpresa = this.empresaId();
+    if (!idEmpresa) {
+      this.response.set('⚠ Empresa não identificada no sistema.');
+      return;
+    }
+
+    this.http.get<{ value: { chats: ChatItem[] } }>(`${this.API_URL}/conversas/${idEmpresa}`)
+      .subscribe({
+        next: (res) => {
+          const dadosTratados = (res.value?.chats || []).map((c, index) => ({
+            ...c,
+            initials: c.nomeContato ? c.nomeContato.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'CT',
+            color: this.colors[index % this.colors.length]
+          }));
+          this.chats.set(dadosTratados);
+        },
+        error: (err) => {
+          console.error(err);
+          this.response.set('❌ Erro ao carregar chats ativos.');
+        }
+      });
+  }
+
+  carregarMensagens(contatoId: string) {
+    const idEmpresa = this.empresaId();
+    if (!idEmpresa) return;
+
+    this.http.get<{ value: Message[] }>(`${this.API_URL}/mensagens/${idEmpresa}/${contatoId}`)
+      .subscribe({
+        next: (res) => {
+          // Normaliza o retorno 'recebida'/'enviada' para bater com as classes de alinhamento do CSS
+          const mensagensNormais = (res.value || []).map(m => ({
+            ...m,
+            // 'recebida' vira 'user' (Esquerda) | 'enviada' vira 'bot' (Direita)
+            from: m.from === 'recebida' ? 'user' : m.from === 'enviada' ? 'bot' : m.from
+          }));
+          this.activeMessages.set(mensagensNormais);
+        },
+        error: (err) => console.error('Erro ao buscar histórico', err)
+      });
+  }
 
   filtered = computed(() => {
     const q = this.search().toLowerCase().trim();
-    if (!q) return this.chats;
-    return this.chats.filter(c =>
-      c.name.toLowerCase().includes(q) || c.phone.includes(q),
+    if (!q) return this.chats();
+    return this.chats().filter(c =>
+      c.nomeContato.toLowerCase().includes(q) || c.telefone.includes(q)
     );
   });
 
-  selected = computed(() => this.chats.find(c => c.id === this.selectedId()) ?? null);
-  selectedMessages = computed(() => this.messages[this.selectedId() ?? 0] ?? []);
+  selected = computed(() => this.chats().find(c => c.contatoId === this.selectedId()) ?? null);
+  selectedMessages = computed(() => this.activeMessages());
 
-  select(id: number) { this.selectedId.set(id); }
+  select(id: string) {
+    this.selectedId.set(id);
+    this.carregarMensagens(id);
+
+    // 1) Zera visualmente a quantidade de não lidas imediatamente na UI
+    this.chats.update(lista =>
+      lista.map(c => c.contatoId === id ? { ...c, quantidadeNaoLidas: 0 } : c)
+    );
+
+    // 2) Avisa o backend para atualizar o status no banco de dados
+    const idEmpresa = this.empresaId();
+    if (idEmpresa) {
+      this.http.post(`${this.API_URL}/marcar-como-lida`, { empresaId: idEmpresa, contatoId: id })
+        .subscribe({
+          next: () => console.log('Conversa marcada como lida no servidor.'),
+          error: (err) => console.error('Erro ao marcar conversa como lida:', err)
+        });
+    }
+  }
 
   send() {
     const text = this.draft().trim();
-    const id = this.selectedId();
-    if (!text || id == null) return;
-    const list = this.messages[id] ?? [];
-    const now = new Date();
-    list.push({ from: 'user', text, time: `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}` });
-    this.messages[id] = list;
+    const idContato = this.selectedId();
+    const idEmpresa = this.empresaId();
+    const chatAtivo = this.selected();
+
+    if (!text || idContato == null || !idEmpresa || !chatAtivo) return;
+
+    // Payload estruturado para a API do Disparador (Texto Livre)
+    const payload = {
+      celular: chatAtivo.telefone,
+      template: '',
+      textoMensagem: text,
+      empresaId: idEmpresa,
+      contatoId: idContato
+    };
+
+    // Limpa o input de texto imediatamente
     this.draft.set('');
+
+    // Dispara o POST de envio para o Meta Integration
+    this.http.post(`${this.DISPARADOR_URL}/enviar-mensagem-meta`, payload)
+      .subscribe({
+        next: () => {
+          const now = new Date();
+          const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+          // Adiciona a mensagem localmente no chat (lado direito)
+          this.activeMessages.update(msgs => [
+            ...msgs,
+            { from: 'bot', text: text, time: timeStr }
+          ]);
+
+          // Atualiza a barra lateral com a última mensagem enviada
+          this.chats.update(lista =>
+            lista.map(c => c.contatoId === idContato
+              ? { ...c, ultimaMensagem: text, dataUltimaMensagem: now.toISOString() }
+              : c
+            )
+          );
+        },
+        error: (err) => {
+          console.error('Erro ao disparar mensagem:', err);
+          this.response.set('❌ Erro ao enviar a mensagem. Verifique a conexão.');
+        }
+      });
   }
 }

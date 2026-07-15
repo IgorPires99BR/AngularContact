@@ -5,9 +5,14 @@
   </div>
 </div>
 
+<!-- Container para exibir erros de autenticação ou carregamento se houver -->
+<div class="payload-display" *ngIf="response()" style="margin: 0 24px 14px 24px;">
+  {{ response() }}
+</div>
+
 <div class="chat-layout" [class.chat-open]="selectedId() !== null">
 
-  <!-- LIST -->
+  <!-- LIST PANEL -->
   <div class="chat-list-panel">
     <div class="chat-list-head">
       <input class="chat-search"
@@ -15,40 +20,47 @@
              [ngModel]="search()"
              (ngModelChange)="search.set($event)">
     </div>
+
     <div class="chat-list">
       <div class="chat-item"
            *ngFor="let c of filtered()"
-           [class.active]="c.id === selectedId()"
-           (click)="select(c.id)">
+           [class.active]="c.contatoId === selectedId()"
+           (click)="select(c.contatoId)">
         <div class="chat-avatar" [style.background]="c.color">
           {{ c.initials }}
-          <span class="online-dot" *ngIf="c.online"></span>
         </div>
         <div class="chat-info">
-          <div class="chat-name">{{ c.name }}</div>
-          <div class="chat-last">{{ c.lastMessage }}</div>
+          <div class="chat-name">{{ c.nomeContato || 'Sem nome' }}</div>
+          <div class="chat-last">{{ c.ultimaMensagem }}</div>
         </div>
         <div class="chat-meta">
-          <div class="chat-time">{{ c.time }}</div>
-          <div class="chat-unread" *ngIf="c.unread">{{ c.unread }}</div>
+          <div class="chat-time">{{ c.dataUltimaMensagem | date:'HH:mm' }}</div>
+          <div class="chat-unread" *ngIf="c.quantidadeNaoLidas > 0">{{ c.quantidadeNaoLidas }}</div>
         </div>
+      </div>
+
+      <div class="crud-empty" *ngIf="filtered().length === 0" style="padding: 20px; text-align: center;">
+        Nenhum chat ativo encontrado.
       </div>
     </div>
   </div>
 
-  <!-- WINDOW -->
+  <!-- WINDOW PANEL -->
   <div class="chat-window">
     <ng-container *ngIf="selected(); else noChat">
       <div class="chat-win-head">
         <button class="chat-back" (click)="selectedId.set(null)" aria-label="Voltar">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
         </button>
-        <div class="chat-win-avatar" [style.background]="selected()!.color">{{ selected()!.initials }}</div>
+        <div class="chat-win-avatar" [style.background]="selected()!.color">
+          {{ selected()!.initials }}
+        </div>
         <div>
-          <div class="chat-win-name">{{ selected()!.name }}</div>
+          <div class="chat-win-name">{{ selected()!.nomeContato || 'Sem nome' }}</div>
           <div class="chat-win-status">
-            <span [class.online-text]="selected()!.online">{{ selected()!.online ? '● Online' : 'Offline' }}</span>
-            · {{ selected()!.phone }}
+            {{ selected()!.telefone }}
           </div>
         </div>
         <div class="chat-win-actions">
@@ -57,25 +69,38 @@
         </div>
       </div>
 
+      <!-- Área de Mensagens -->
       <div class="chat-messages">
         <ng-container *ngFor="let m of selectedMessages()">
-          <div *ngIf="m.from === 'step'" class="msg-step">{{ m.text }}</div>
-          <div *ngIf="m.from !== 'step'" class="msg" [class.bot]="m.from === 'bot'" [class.user]="m.from === 'user'">
-            <div class="msg-bubble">{{ m.text }}</div>
-            <div class="msg-time" *ngIf="m.time">{{ m.time }}</div>
+          <!-- Mensagem do sistema / Step do fluxo -->
+          <div *ngIf="m.from === 'step'" class="msg-step">
+            {{ m.text }}
+          </div>
+
+          <!-- Mensagens normais do chat (Estilo WhatsApp) -->
+          <div *ngIf="m.from !== 'step'" class="msg-row" [class.msg-right]="m.from === 'bot'" [class.msg-left]="m.from === 'user'">
+            <div class="msg-bubble">
+              {{ m.text }}
+              <div class="msg-time" *ngIf="m.time">{{ m.time }}</div>
+            </div>
           </div>
         </ng-container>
       </div>
 
+      <!-- Barra de Input de Mensagem -->
       <div class="chat-input-bar">
         <textarea class="chat-input"
                   rows="1"
                   placeholder="Digite uma mensagem..."
                   [ngModel]="draft()"
                   (ngModelChange)="draft.set($event)"
-                  (keydown.enter)="$event.preventDefault(); send()"></textarea>
+                  (keydown.enter)="$event.preventDefault(); send()">
+        </textarea>
         <button class="chat-send" (click)="send()" aria-label="Enviar">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22,2 15,22 11,13 2,9" />
+          </svg>
         </button>
       </div>
     </ng-container>
