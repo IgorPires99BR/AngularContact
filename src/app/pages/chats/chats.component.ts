@@ -1,9 +1,10 @@
-import { Component, signal, computed, inject, OnInit } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
+import * as signalR from '@microsoft/signalr';
 
 interface ChatItem {
   contatoId: string;
@@ -20,6 +21,7 @@ interface Message {
   from: 'bot' | 'user' | 'step' | 'recebida' | 'enviada';
   text: string;
   time?: string;
+  contatoId?: string;
 }
 
 @Component({
@@ -29,16 +31,19 @@ interface Message {
   templateUrl: './chats.component.html',
   styleUrls: ['./chats.component.css'],
 })
-export class ChatsComponent implements OnInit {
+export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
+  @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
+
   private http = inject(HttpClient);
   private authService = inject(AuthService);
 
-  // Obtém reativamente o Id da Empresa logada do AuthService
   private empresaId = this.authService.empresaIdSignal;
 
-  // URLs base dos controllers
   private readonly API_URL = `${environment.apiUrl}/chat`;
   private readonly DISPARADOR_URL = `${environment.apiUrl}/disparador`;
+
+  private hubConnection?: signalR.HubConnection;
+  private shouldScrollToBottom = false;
 
   search = signal('');
   selectedId = signal<string | null>(null);
@@ -57,6 +62,80 @@ export class ChatsComponent implements OnInit {
 
   ngOnInit() {
     this.carregarConversas();
+    this.iniciarSignalR();
+  }
+
+  ngAfterViewChecked() {
+    if (this.shouldScrollToBottom) {
+      this.scrollToBottom();
+      this.shouldScrollToBottom = false;
+    }
+  }
+
+  ngOnDestroy() {
+    this.hubConnection?.stop();
+  }
+
+  // --- CONEXÃO SIGNALR EM TEMPO REAL ---
+  private iniciarSignalR() {
+    const idEmpresa = this.empresaId();
+    if (!idEmpresa) return;
+
+    this.hubConnection = new signalR.HubConnectionBuilder()
+      .withUrl(`${environment.apiUrl}/hubs/chat`)
+      .withAutomaticReconnect()
+      .build();
+
+    this.hubConnection.start()
+      .then(() => {
+        console.log('SignalR Conectado!');
+        this.hubConnection?.invoke('EntrarNoGrupo', idEmpresa);
+      })
+      .catch(err => console.error('Erro ao conectar SignalR:', err));
+
+    this.hubConnection.on('ReceberNovaMensagem', (mensagemRecebida: any) => {
+      this.tratarMensagemEmTempoReal(mensagemRecebida);
+    });
+  }
+
+  private tratarMensagemEmTempoReal(msg: any) {
+    const contatoIdMsg = msg.contatoId || msg.ContatoId;
+    const conteudo = msg.conteudo || msg.Conteudo || msg.text || msg;
+    const now = new Date();
+    const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    // 1. Se a mensagem recebida pertence ao chat aberto no momento
+    if (this.selectedId() === contatoIdMsg) {
+      this.activeMessages.update(msgs => [
+        ...msgs,
+        { from: 'user', text: conteudo, time: timeStr }
+      ]);
+      this.shouldScrollToBottom = true;
+    }
+
+    // 2. Atualiza a lista lateral com a última mensagem e contador
+    this.chats.update(lista =>
+      lista.map(c => {
+        if (c.contatoId === contatoIdMsg) {
+          const isSelected = this.selectedId() === contatoIdMsg;
+          return {
+            ...c,
+            ultimaMensagem: conteudo,
+            dataUltimaMensagem: now.toISOString(),
+            quantidadeNaoLidas: isSelected ? 0 : (c.quantidadeNaoLidas + 1)
+          };
+        }
+        return c;
+      })
+    );
+  }
+
+  private scrollToBottom(): void {
+    try {
+      if (this.scrollContainer) {
+        this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
+      }
+    } catch (err) { }
   }
 
   carregarConversas() {
@@ -90,13 +169,12 @@ export class ChatsComponent implements OnInit {
     this.http.get<{ value: Message[] }>(`${this.API_URL}/mensagens/${idEmpresa}/${contatoId}`)
       .subscribe({
         next: (res) => {
-          // Normaliza o retorno 'recebida'/'enviada' para bater com as classes de alinhamento do CSS
           const mensagensNormais = (res.value || []).map(m => ({
             ...m,
-            // 'recebida' vira 'user' (Esquerda) | 'enviada' vira 'bot' (Direita)
             from: m.from === 'recebida' ? 'user' : m.from === 'enviada' ? 'bot' : m.from
           }));
           this.activeMessages.set(mensagensNormais);
+          this.shouldScrollToBottom = true;
         },
         error: (err) => console.error('Erro ao buscar histórico', err)
       });
@@ -117,12 +195,10 @@ export class ChatsComponent implements OnInit {
     this.selectedId.set(id);
     this.carregarMensagens(id);
 
-    // 1) Zera visualmente a quantidade de não lidas imediatamente na UI
     this.chats.update(lista =>
       lista.map(c => c.contatoId === id ? { ...c, quantidadeNaoLidas: 0 } : c)
     );
 
-    // 2) Avisa o backend para atualizar o status no banco de dados
     const idEmpresa = this.empresaId();
     if (idEmpresa) {
       this.http.post(`${this.API_URL}/marcar-como-lida`, { empresaId: idEmpresa, contatoId: id })
@@ -141,7 +217,6 @@ export class ChatsComponent implements OnInit {
 
     if (!text || idContato == null || !idEmpresa || !chatAtivo) return;
 
-    // Payload estruturado para a API do Disparador (Texto Livre)
     const payload = {
       celular: chatAtivo.telefone,
       template: '',
@@ -150,29 +225,27 @@ export class ChatsComponent implements OnInit {
       contatoId: idContato
     };
 
-    // Limpa o input de texto imediatamente
     this.draft.set('');
 
-    // Dispara o POST de envio para o Meta Integration
     this.http.post(`${this.DISPARADOR_URL}/enviar-mensagem-meta`, payload)
       .subscribe({
         next: () => {
           const now = new Date();
           const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-          // Adiciona a mensagem localmente no chat (lado direito)
           this.activeMessages.update(msgs => [
             ...msgs,
             { from: 'bot', text: text, time: timeStr }
           ]);
 
-          // Atualiza a barra lateral com a última mensagem enviada
           this.chats.update(lista =>
             lista.map(c => c.contatoId === idContato
               ? { ...c, ultimaMensagem: text, dataUltimaMensagem: now.toISOString() }
               : c
             )
           );
+
+          this.shouldScrollToBottom = true;
         },
         error: (err) => {
           console.error('Erro ao disparar mensagem:', err);

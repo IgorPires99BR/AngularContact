@@ -69,15 +69,15 @@
         </div>
       </div>
 
-      <!-- Área de Mensagens -->
-      <div class="chat-messages">
+      <!-- Área de Mensagens (Com Rolagem Independente) -->
+      <div class="chat-messages" #scrollContainer>
         <ng-container *ngFor="let m of selectedMessages()">
           <!-- Mensagem do sistema / Step do fluxo -->
           <div *ngIf="m.from === 'step'" class="msg-step">
             {{ m.text }}
           </div>
 
-          <!-- Mensagens normais do chat (Estilo WhatsApp) -->
+          <!-- Mensagens normais do chat -->
           <div *ngIf="m.from !== 'step'" class="msg-row" [class.msg-right]="m.from === 'bot'" [class.msg-left]="m.from === 'user'">
             <div class="msg-bubble">
               {{ m.text }}
@@ -87,7 +87,7 @@
         </ng-container>
       </div>
 
-      <!-- Barra de Input de Mensagem -->
+      <!-- Barra de Input de Mensagem (Fixa no Rodapé) -->
       <div class="chat-input-bar">
         <textarea class="chat-input"
                   rows="1"
