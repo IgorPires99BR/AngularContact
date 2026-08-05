@@ -1,9 +1,10 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './auth-guard'; // Certifique-se de que o caminho está correto
 
-// Layout e Login
+// Layout, Landing e Login
 import { ShellComponent } from './shell/shell.component';
 import { LoginComponent } from './features/login/login';
+import { LandingComponent } from './features/landing/landing';
 
 // Componentes das Páginas (Eager Loading para evitar erros de chunk)
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
@@ -17,8 +18,8 @@ import { UsuariosComponent } from './pages/usuarios/usuarios.component';
 import { TemplatesComponent } from './pages/templates/templates'; // <--- IMPORTADO AQUI
 
 export const routes: Routes = [
-  // 1. Redirecionamento Inicial
-  { path: '', pathMatch: 'full', redirectTo: 'login' },
+  // 1. Rota Pública: Landing Page (home) — porta de entrada comercial/pagamentos
+  { path: '', pathMatch: 'full', component: LandingComponent },
 
   // 2. Rota Pública: O Login precisa estar fora do Guard para o usuário conseguir entrar
   { path: 'login', component: LoginComponent },
@@ -41,7 +42,6 @@ export const routes: Routes = [
     ],
   },
 
-  // 4. Wildcard: Se o usuário tentar qualquer rota inexistente, volta para o login
-  // Se estiver logado, o guard no login ou o próprio redirecionamento cuidará disso
-  { path: '**', redirectTo: 'login' },
+  // 4. Wildcard: Se o usuário tentar qualquer rota inexistente, volta para a home (Landing)
+  { path: '**', redirectTo: '' },
 ];

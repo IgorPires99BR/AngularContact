@@ -1,0 +1,170 @@
+<div class="landing">
+
+  <!-- NAVBAR -->
+  <header class="lp-nav">
+    <div class="lp-nav-inner">
+      <div class="lp-brand">
+        <div class="lp-brand-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4FA8FF" stroke-width="2.5">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
+        </div>
+        <span>Contact Solution</span>
+      </div>
+
+      <nav class="lp-nav-links">
+        <a href="#recursos">Recursos</a>
+        <a href="#planos">Planos</a>
+        <a href="#faq">Perguntas frequentes</a>
+      </nav>
+
+      <a routerLink="/login" class="btn btn-ghost lp-nav-cta">Entrar</a>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="lp-hero">
+    <div class="globe-stage" aria-hidden="true">
+      <app-globe3d></app-globe3d>
+    </div>
+
+    <div class="lp-hero-inner">
+      <span class="lp-badge">🚀 Plataforma completa de atendimento</span>
+      <h1>Transforme conversas em <span>vendas reais</span></h1>
+      <p>
+        Centralize WhatsApp, automatize atendimentos e acompanhe cada conversão em um único painel.
+        A Contact Solution é a plataforma SaaS que escala seu time comercial sem escalar sua folha de pagamento.
+      </p>
+
+      <div class="lp-hero-actions">
+        <a routerLink="/login" class="btn btn-primary btn-lg">Começar agora</a>
+        <a href="#planos" class="btn btn-outline btn-lg">Ver planos e preços</a>
+      </div>
+
+      <div class="lp-hero-stats">
+        <div class="stat-item">
+          <div class="stat-val">99.9%</div>
+          <div class="stat-label">Uptime da API</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val">+24M</div>
+          <div class="stat-label">Mensagens/mês processadas</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val">+70%</div>
+          <div class="stat-label">Redução no tempo de resposta</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="lp-section" id="recursos">
+    <div class="lp-section-head">
+      <span class="lp-eyebrow">RECURSOS</span>
+      <h2>Tudo que sua operação de atendimento precisa</h2>
+      <p>Ferramentas pensadas para times que vivem de conversa e conversão.</p>
+    </div>
+
+    <div class="lp-features-grid">
+      <div class="lp-feature-card" *ngFor="let f of features">
+        <div class="lp-feature-icon">{{ f.icon }}</div>
+        <h3>{{ f.title }}</h3>
+        <p>{{ f.description }}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="lp-section lp-section-alt" id="planos">
+    <div class="lp-section-head">
+      <span class="lp-eyebrow">PLANOS</span>
+      <h2>Um plano para cada etapa do seu crescimento</h2>
+      <p>Sem taxas escondidas. Cancele ou mude de plano quando quiser.</p>
+    </div>
+
+    <div class="lp-pricing-grid">
+      <div class="lp-plan-card" [class.lp-plan-highlight]="plan.highlighted" *ngFor="let plan of plans">
+        <div class="lp-plan-badge" *ngIf="plan.highlighted">Mais popular</div>
+
+        <h3>{{ plan.name }}</h3>
+        <p class="lp-plan-desc">{{ plan.description }}</p>
+
+        <div class="lp-plan-price">
+          <span class="lp-plan-price-val">{{ plan.price }}</span>
+          <span class="lp-plan-price-period">{{ plan.period }}</span>
+        </div>
+
+        <ul class="lp-plan-features">
+          <li *ngFor="let feat of plan.features">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span>{{ feat }}</span>
+          </li>
+        </ul>
+
+        <a routerLink="/login" class="btn lp-plan-cta" [class.btn-primary]="plan.highlighted" [class.btn-outline]="!plan.highlighted">
+          {{ plan.ctaLabel }}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="lp-section">
+    <div class="lp-section-head">
+      <span class="lp-eyebrow">DEPOIMENTOS</span>
+      <h2>Times reais, resultados reais</h2>
+    </div>
+
+    <div class="lp-testimonials-grid">
+      <div class="lp-testimonial-card" *ngFor="let t of testimonials">
+        <p class="lp-quote">“{{ t.quote }}”</p>
+        <div class="lp-author">
+          <div class="lp-author-avatar">{{ t.author.charAt(0) }}</div>
+          <div>
+            <div class="lp-author-name">{{ t.author }}</div>
+            <div class="lp-author-role">{{ t.role }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="lp-section lp-section-alt" id="faq">
+    <div class="lp-section-head">
+      <span class="lp-eyebrow">DÚVIDAS</span>
+      <h2>Perguntas frequentes</h2>
+    </div>
+
+    <div class="lp-faq-list">
+      <details class="lp-faq-item" *ngFor="let item of faqs">
+        <summary>{{ item.question }}</summary>
+        <p>{{ item.answer }}</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="lp-cta-banner">
+    <h2>Pronto para escalar seu atendimento?</h2>
+    <p>Comece agora e veja sua primeira automação rodando em minutos.</p>
+    <a routerLink="/login" class="btn btn-primary btn-lg">Começar agora</a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="lp-footer">
+    <div class="lp-brand">
+      <div class="lp-brand-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4FA8FF" stroke-width="2.5">
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+        </svg>
+      </div>
+      <span>Contact Solution</span>
+    </div>
+    <p>© 2026 Contact Solution SaaS. Tecnologia para conversões reais.</p>
+  </footer>
+
+</div>
