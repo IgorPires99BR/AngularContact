@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
 import * as signalR from '@microsoft/signalr';
+import { TemplateMessagePipe } from '../../shared/pipes/template-message.pipe';
 
 interface ChatItem {
   contatoId: string;
@@ -27,7 +28,7 @@ interface Message {
 @Component({
   selector: 'app-chats',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TemplateMessagePipe],
   templateUrl: './chats.component.html',
   styleUrls: ['./chats.component.css'],
 })
