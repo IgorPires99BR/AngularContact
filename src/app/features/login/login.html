@@ -1,102 +1,134 @@
 <div class="login-page">
-  <!-- LEFT: BRANDING & INFO -->
-  <div class="login-left">
-    <div class="login-left-inner">
+  <div #tooltip class="feature-tooltip"></div>
+
+  <!-- ===================== COLUNA ESQUERDA: PROPOSTA DE VALOR ===================== -->
+  <section class="left-panel">
+    <!-- Elemento 3D (globo + conexões renderizados via Three.js no ngAfterViewInit) -->
+    <div #graphWrap class="globo-3d" aria-hidden="true"></div>
+
+    <div class="content-block">
       <div class="brand">
-        <div class="brand-logo">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#4FA8FF" stroke-width="2.5">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 4h16v11H8l-4 4V4z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linejoin="round" />
           </svg>
         </div>
-        <div class="brand-info">
-          <div class="brand-name">Contact Solution</div>
-          <div class="brand-sub">SaaS PLATFORM</div>
+        <div class="brand-text">
+          <span class="brand-name">Contact Solution</span>
+          <span class="brand-tag">SaaS PLATFORM</span>
         </div>
       </div>
 
-      <div class="hero-text">
-        <h1>Potencialize suas<br><span>Conexões</span></h1>
-        <p>A solução completa para automação de atendimento e gestão de leads em alta escala.</p>
-      </div>
+      <h1 class="headline">
+        Potencialize suas<br />
+        <span class="highlight">Conexões</span>
+      </h1>
 
-      <div class="left-features">
-        <div class="lf-item">
-          <div class="lf-icon">⚡</div>
-          <span>Automação em Tempo Real</span>
-        </div>
-        <div class="lf-item">
-          <div class="lf-icon">📊</div>
-          <span>Dashboard de Conversão</span>
-        </div>
-      </div>
+      <p class="subheadline">
+        A solução completa para automação de atendimento e gestão de leads em
+        alta escala.
+      </p>
 
-      <div class="left-stats">
-        <div class="stat-item">
-          <div class="stat-val">99.9%</div>
-          <div class="stat-label">Uptime API</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-val">+24M</div>
-          <div class="stat-label">Mensagens/mês</div>
-        </div>
-      </div>
+      <ul class="feature-list">
+        <li class="feature-item">
+          <span class="feature-icon feature-icon--amber">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" fill="currentColor" />
+            </svg>
+          </span>
+          Automação em Tempo Real
+        </li>
+        <li class="feature-item">
+          <span class="feature-icon feature-icon--blue">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="4" y="12" width="4" height="8" fill="currentColor" />
+              <rect x="10" y="7" width="4" height="13" fill="currentColor" />
+              <rect x="16" y="3" width="4" height="17" fill="currentColor" />
+            </svg>
+          </span>
+          Dashboard de Conversão
+        </li>
+      </ul>
     </div>
-  </div>
 
-  <!-- RIGHT: LOGIN FORM -->
-  <div class="login-right">
-    <div class="login-card">
-      <div class="lc-header">
+    <!-- Separada do content-block por gap generoso — não sobrepõe o globo 3D -->
+    <dl class="stats">
+      <div class="stat">
+        <dt class="stat-label">Uptime API</dt>
+        <dd class="stat-value">99.9%</dd>
+      </div>
+      <div class="stat">
+        <dt class="stat-label">Mensagens/mês</dt>
+        <dd class="stat-value">+24M</dd>
+      </div>
+    </dl>
+  </section>
+
+  <!-- ===================== COLUNA DIREITA: CARD DE ACESSO ===================== -->
+  <section class="right-panel">
+    <form class="login-card" (ngSubmit)="onLogin()" novalidate>
+      <header class="login-card__header">
         <h2>Acesso ao Sistema</h2>
-        <p>Bem-vindo à Contact Solution</p>
+        <p class="login-subtitle">Bem-vindo à Contact Solution</p>
+      </header>
+
+      <div class="field-group">
+        <label class="field-label" for="email">E-mail corporativo</label>
+        <input id="email"
+               name="email"
+               type="email"
+               class="field-input"
+               placeholder="seu@email.com"
+               [(ngModel)]="email"
+               autocomplete="username" />
       </div>
 
-      <!-- Caixa de Erro Reativa -->
-      <div class="lc-err" *ngIf="errorMsg">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
-        <span>{{ errorMsg }}</span>
+      <div class="field-group">
+        <label class="field-label" for="password">Senha</label>
+        <div class="password-wrap">
+          <input id="password"
+                 name="password"
+                 [type]="showPassword() ? 'text' : 'password'"
+                 class="field-input"
+                 placeholder="••••••••"
+                 [(ngModel)]="password"
+                 autocomplete="current-password" />
+          <button type="button"
+                  class="toggle-password"
+                  (click)="togglePassword()"
+                  [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'">
+            <svg *ngIf="!showPassword()" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="1.6" />
+              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6" />
+            </svg>
+            <svg *ngIf="showPassword()" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 3l18 18M10.6 10.6a3 3 0 0 0 4.2 4.2M6.3 6.4C4 8 2 12 2 12s3.5 7 10 7c1.9 0 3.5-.5 4.8-1.2M17.7 17.6C20 16 22 12 22 12s-1-2-2.8-3.6"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Link de recuperação — sutil, alinhado à direita, entre a senha e o CTA -->
+        <a class="forgot-password-link" href="javascript:void(0)">
+          Esqueci minha senha
+        </a>
       </div>
 
-      <form (ngSubmit)="onLogin()">
-        <div class="fg">
-          <label class="check-label">E-mail Corporativo</label>
-          <input class="cs-input" type="email" name="email" [(ngModel)]="email"
-                 placeholder="seu@email.com" required [disabled]="loading">
-        </div>
+      <p class="error" *ngIf="errorMessage()" role="alert">{{ errorMessage() }}</p>
 
-        <div class="fg">
-          <label class="check-label">Senha</label>
-          <div class="input-pw-wrap">
-            <input class="cs-input" [type]="showPw ? 'text' : 'password'" name="password"
-                   [(ngModel)]="password" placeholder="••••••••" required [disabled]="loading">
+      <button type="submit" class="submit-btn" [disabled]="loading()">
+        {{ loading() ? 'Entrando...' : 'Entrar na Plataforma' }}
+      </button>
 
-            <button type="button" class="pw-toggle" (click)="showPw = !showPw">
-              <svg *ngIf="!showPw" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              <svg *ngIf="showPw" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17.94 17.94A10 10 0 0112 20C5 20 1 12 1 12a18.5 18.5 0 015.06-5.94M9.9 4.24A9.1 9.1 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
-                <line x1="1" y1="1" x2="23" y2="23" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <button type="submit" class="btn btn-primary lc-submit" [disabled]="loading">
-          <span *ngIf="!loading">Entrar na Plataforma</span>
-          <div class="spinner" *ngIf="loading"></div>
-        </button>
-      </form>
-
-      <div class="lc-footer">
-        © 2026 Contact Solution SaaS.<br>
+      <p class="footer-text">
+        © 2026 Contact Solution SaaS.<br />
         Tecnologia para conversões reais.
-      </div>
-    </div>
-  </div>
+      </p>
+    </form>
+  </section>
 </div>

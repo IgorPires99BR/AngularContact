@@ -1,391 +1,419 @@
-/* Adicione isso ao topo do seu login.css ou styles.css */
-:root {
-  --cs-blue: #3D6EE8;
-  --bg: #FFFFFF;
-  --bg2: #F8FAFC;
-  --text: #0F172A;
-  --muted: #64748B;
-  --border: #E2E8F0;
-  --danger: #EF4444;
+/* ============================================================
+   Design tokens — tema dark (azul-marinho profundo) + destaque ciano
+   ============================================================ */
+:host {
+  --color-bg-base: #0a1128;
+  --color-bg-elevated: #0f1a3c;
+  --color-card-bg: rgba(18, 28, 58, 0.55);
+  /* variação sutil da cor principal */
+  --color-border-subtle: rgba(148, 163, 184, 0.15);
+  --color-text-primary: #ffffff;
+  --color-text-support: #94a3b8;
+  /* textos de apoio — contraste AA no fundo dark */
+  --color-text-support-strong: #cbd5e1;
+  --color-accent-cyan: #00e5ff;
+  /* CTA principal */
+  --color-accent-cyan-dark: #0a1128;
+  /* texto sobre o CTA */
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2.5rem;
+  --space-xl: 4rem;
+  /* gap generoso entre bloco de texto e ilustração 3D */
+  --radius-card: 20px;
+  --radius-input: 10px;
 }
 
-.cs-input {
-  width: 100%;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 0.9rem;
-  transition: all 0.2s;
-  outline: none;
-}
-
-  .cs-input:focus {
-    border-color: var(--cs-blue);
-    box-shadow: 0 0 0 4px rgba(61, 110, 232, 0.1);
-  }
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-}
-
-.btn-primary {
-  background: var(--cs-blue);
-  color: #fff;
-}
-
-  .btn-primary:hover {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
-  }
-
-  .btn-primary:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-
-/* ... mantenha o restante do seu login.css original abaixo ... */
-
-
+/* ============================================================
+   Layout geral
+   ============================================================ */
 .login-page {
-  display: flex;
   min-height: 100vh;
+  display: flex;
+  background: radial-gradient(circle at 15% 20%, rgba(37, 99, 235, 0.25), transparent 45%), radial-gradient(circle at 85% 80%, rgba(15, 23, 42, 0.6), transparent 50%), linear-gradient(160deg, var(--color-bg-base) 0%, var(--color-bg-elevated) 45%, var(--color-bg-base) 100%);
+  color: var(--color-text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* ── LEFT ── */
-.login-left {
-  flex: 1.1;
-  background: linear-gradient(145deg, #0A1628 0%, #0D2347 40%, #0A1A3A 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px;
+/* ============================================================
+   Coluna esquerda — proposta de valor + globo 3D
+   ============================================================ */
+.left-panel {
   position: relative;
+  flex: 1.4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-xl) clamp(2rem, 6vw, 6rem);
   overflow: hidden;
 }
 
-  .login-left::before {
-    content: '';
-    position: absolute;
-    top: -120px;
-    right: -120px;
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(0,102,204,0.2) 0%, transparent 65%);
-    pointer-events: none;
-  }
+/* Elemento 3D: ocupa o painel inteiro como camada de fundo (z-index: 0),
+   enquanto o texto fica numa camada acima — evita qualquer sobreposição
+   visual "dura" porque o conteúdo textual sempre respeita o gap abaixo. */
+.globo-3d {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
 
-  .login-left::after {
-    content: '';
-    position: absolute;
-    bottom: -100px;
-    left: -80px;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(0,168,118,0.12) 0%, transparent 65%);
-    pointer-events: none;
-  }
-
-.login-left-inner {
-  max-width: 480px;
-  width: 100%;
+/* Bloco de texto: título, subtítulo e badges — separado da área do globo
+   e das estatísticas por um espaçamento generoso (--space-xl). */
+.content-block {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  margin-bottom: var(--space-xl);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 64px;
+  gap: 12px;
+  margin-bottom: var(--space-lg);
 }
 
-.brand-logo {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.15);
+.brand-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 24px rgba(0,102,204,0.4);
+  color: #60a5fa;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.25);
+}
+
+  .brand-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
 }
 
 .brand-name {
-  font-family: 'Syne', sans-serif;
   font-weight: 800;
-  font-size: 1.3rem;
-  color: #fff;
-  line-height: 1.2;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
 }
 
-.brand-sub {
-  font-size: 0.72rem;
-  color: #4FA8FF;
-  font-weight: 500;
-  letter-spacing: 0.08em;
+.brand-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: #60a5fa;
 }
 
-.hero-text {
-  margin-bottom: 40px;
+.headline {
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--space-md);
+  color: var(--color-text-primary);
 }
 
-  .hero-text h1 {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: clamp(2rem, 3.5vw, 2.8rem);
-    color: #fff;
-    line-height: 1.1;
-    letter-spacing: -0.03em;
-    margin-bottom: 16px;
-  }
+.highlight {
+  background: linear-gradient(90deg, var(--color-accent-cyan), #34d399);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 
-    .hero-text h1 span {
-      background: linear-gradient(135deg, #4FA8FF, #00E676);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
+.subheadline {
+  color: var(--color-text-support);
+  font-size: 1.05rem;
+  max-width: 420px;
+  line-height: 1.6;
+  margin-bottom: var(--space-lg);
+}
 
-  .hero-text p {
-    color: #A8BDD8;
-    font-size: 1rem;
-    line-height: 1.65;
-    max-width: 400px;
-  }
-
-.left-features {
+.feature-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 40px;
+  gap: 1.1rem;
 }
 
-.lf-item {
+.feature-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 0.88rem;
-  color: #CBD8EA;
-  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--color-text-support-strong);
 }
 
-.lf-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.1);
+.feature-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
   flex-shrink: 0;
 }
 
-.left-stats {
+  .feature-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+.feature-icon--amber {
+  background: rgba(251, 146, 60, 0.15);
+  color: #fb923c;
+}
+
+.feature-icon--blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+/* Estatísticas — bloco final da coluna esquerda, com respiro próprio. */
+.stats {
+  position: relative;
+  z-index: 2;
   display: flex;
-  gap: 32px;
-  padding-top: 32px;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  gap: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border-subtle);
+  max-width: 420px;
+  margin: 0;
 }
 
-.stat-item {
+.stat {
+  display: flex;
+  flex-direction: column-reverse;
+  /* valor em destaque, label de apoio embaixo do DOM mas visualmente acima */
 }
 
-.stat-val {
-  font-family: 'Syne', sans-serif;
+.stat-value {
+  font-size: 1.7rem;
   font-weight: 800;
-  font-size: 1.6rem;
-  color: #fff;
-  line-height: 1;
+  margin: 0;
+  color: var(--color-text-primary);
 }
 
 .stat-label {
-  font-size: 0.72rem;
-  color: #6B8CAD;
-  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--color-text-support);
 }
 
-/* ── RIGHT ── */
-.login-right {
-  width: 480px;
-  flex-shrink: 0;
+/* ============================================================
+   Coluna direita — card de login
+   ============================================================ */
+.right-panel {
+  flex: 1;
+  min-width: 380px;
+  max-width: 460px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg2);
-  padding: 40px 32px;
+  padding: var(--space-lg);
+  /* sem borda/linha dura dividindo a tela — o card abaixo já cria a separação visual */
 }
 
 .login-card {
   width: 100%;
-  max-width: 400px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 36px 32px;
-  box-shadow: 0 4px 40px rgba(13,27,46,0.1);
-  animation: fadeUp .4s ease both;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-lg) var(--space-md);
+  /* "card" com fundo levemente diferente do principal + sombra suave */
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  backdrop-filter: blur(10px);
 }
 
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.lc-header {
+.login-card__header {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: var(--space-lg);
 }
 
-  .lc-header h2 {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
+  .login-card__header h2 {
     font-size: 1.5rem;
-    color: var(--text);
+    font-weight: 800;
+    margin: 0 0 0.4rem;
+    color: var(--color-text-primary);
   }
 
-  .lc-header p {
-    color: var(--muted);
-    font-size: 0.85rem;
-    margin-top: 6px;
-  }
-
-.lc-err {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #FEF2F2;
-  border: 1px solid #FECACA;
-  border-radius: 9px;
-  padding: 10px 14px;
-  color: var(--danger);
-  font-size: 0.82rem;
-  margin-bottom: 18px;
+.login-subtitle {
+  color: var(--color-text-support);
+  font-size: 0.9rem;
+  margin: 0;
 }
 
-.fg {
-  margin-bottom: 16px;
+.field-group {
+  margin-bottom: var(--space-md);
 }
 
-.input-pw-wrap {
-  position: relative;
+.field-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-support-strong);
+  margin-bottom: var(--space-xs);
 }
 
-  .input-pw-wrap .cs-input {
-    padding-right: 42px;
-  }
-
-.pw-toggle {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  transition: color .15s;
-}
-
-  .pw-toggle:hover {
-    color: var(--cs-blue);
-  }
-
-.input-err {
-  border-color: var(--danger) !important;
-}
-
-.lc-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 6px 0 22px;
-}
-
-.check-label {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 0.82rem;
-  color: var(--text2);
-  cursor: pointer;
-}
-
-  .check-label input {
-    accent-color: var(--cs-blue);
-  }
-
-.lc-link {
-  font-size: 0.82rem;
-  color: var(--cs-blue);
-  text-decoration: none;
-}
-
-  .lc-link:hover {
-    text-decoration: underline;
-  }
-
-.lc-submit {
+.field-input {
   width: 100%;
-  padding: 13px;
-  justify-content: center;
+  height: 46px;
+  padding: 0 1rem;
+  border-radius: var(--radius-input);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--color-text-primary);
   font-size: 0.95rem;
 }
 
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin .7s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+  .field-input::placeholder {
+    color: var(--color-text-support);
   }
+
+  .field-input:focus {
+    outline: none;
+    border-color: var(--color-accent-cyan);
+    box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.18);
+  }
+
+.password-wrap {
+  position: relative;
 }
 
-.lc-footer {
+  .password-wrap .field-input {
+    padding-right: 2.75rem;
+  }
+
+.toggle-password {
+  position: absolute;
+  right: 0.9rem;
+  top: 14px;
+  background: none;
+  border: none;
+  color: var(--color-text-support);
+  cursor: pointer;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 22px;
-  font-size: 0.76rem;
-  color: var(--muted2);
+}
+
+  .toggle-password svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .toggle-password:hover {
+    color: var(--color-text-support-strong);
+  }
+
+/* Diretriz 4 — link "Esqueci minha senha": sutil, alinhado à direita,
+   entre o campo de senha e o botão de login. */
+.forgot-password-link {
+  display: block;
+  text-align: right;
+  margin-top: var(--space-xs);
+  font-size: 0.8rem;
+  color: var(--color-text-support);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+  .forgot-password-link:hover {
+    color: var(--color-accent-cyan);
+    text-decoration: underline;
+  }
+
+.error {
+  color: #f87171;
+  font-size: 0.85rem;
+  margin: 0 0 var(--space-sm);
+}
+
+/* Diretriz 1 — CTA em ciano vibrante, texto escuro, sem fundo branco. */
+.submit-btn {
+  height: 48px;
+  border: none;
+  border-radius: var(--radius-input);
+  background: var(--color-accent-cyan);
+  color: var(--color-accent-cyan-dark);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: filter 0.2s ease, transform 0.15s ease;
+  margin-top: var(--space-xs);
+}
+
+  .submit-btn:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+
+  .submit-btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+.footer-text {
   text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-text-support);
+  margin: var(--space-md) 0 0;
   line-height: 1.5;
 }
 
-@media (max-width: 900px) {
-  .login-left {
-    display: none;
+/* ============================================================
+   Tooltip dos arcos de destaque (feature highlights do globo 3D)
+   ============================================================ */
+.feature-tooltip {
+  position: fixed;
+  pointer-events: none;
+  z-index: 50;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  color: var(--color-text-support-strong);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  opacity: 0;
+  transform: translate(-50%, -140%);
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+  .feature-tooltip.visible {
+    opacity: 1;
   }
 
-  .login-right {
-    width: 100%;
+/* ============================================================
+   Responsivo
+   ============================================================ */
+@media (max-width: 900px) {
+  .login-page {
+    flex-direction: column;
+  }
+
+  .right-panel {
+    max-width: 100%;
+    padding: var(--space-md);
+  }
+
+  .content-block {
+    margin-bottom: var(--space-lg);
   }
 }

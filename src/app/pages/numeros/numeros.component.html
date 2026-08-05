@@ -39,7 +39,12 @@
         <input type="text" placeholder="Ex: My Business Name" [ngModel]="form().nomeVerificado" (ngModelChange)="update('nomeVerificado', $event)">
       </div>
 
-      <button class="btn btn-primary" (click)="incluir()">🚀 Enviar para Meta e Cadastrar</button>
+      <div class="btn-grp">
+        <button class="btn btn-primary" (click)="incluir()">🚀 Enviar para Meta e Cadastrar</button>
+        <button class="btn btn-outline" (click)="iniciarEmbeddedSignup()" [disabled]="embeddedSignupCarregando()">
+          {{ embeddedSignupCarregando() ? '⏳ Conectando...' : '🔗 Conectar via Embedded Signup' }}
+        </button>
+      </div>
 
       <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
     </div>
@@ -71,8 +76,16 @@
         </div>
 
         <span class="badge" [ngClass]="badgeClass(n.statusMeta)">{{ n.statusMeta || 'CONNECTED' }}</span>
+        <span class="badge badge-blue" *ngIf="n.tipoConexao === 2">CoEx</span>
 
         <div class="crud-actions">
+          <button class="btn btn-outline btn-xs"
+                  *ngIf="n.tipoConexao !== 2"
+                  [disabled]="coexistenciaAtivandoId() === n.id"
+                  (click)="ativarCoexistencia(n.id)"
+                  title="Ativar Coexistência (app celular + Cloud API)">
+            {{ coexistenciaAtivandoId() === n.id ? '⏳' : '🔄 CoEx' }}
+          </button>
           <button class="btn btn-danger btn-xs" (click)="excluir(n.id)" title="Excluir da base local">🗑</button>
         </div>
       </div>

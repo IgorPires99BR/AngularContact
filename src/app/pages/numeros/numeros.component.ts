@@ -16,6 +16,8 @@ interface Numero {
   statusMeta: string;     // Mapeado com a entidade C#
   qualidadeMeta: string;  // Mapeado com a entidade C#
   dataCriacao?: string;
+  tipoConexao?: number;   // 1 = ApiOficial, 2 = Coexistencia (TipoConexaoNumero no backend)
+  statusConexao?: string; // Pendente, Conectado, Erro, Desconectado
 }
 
 @Component({
@@ -119,17 +121,96 @@ export class NumerosComponent implements OnInit {
     });
   }
 
+  embeddedSignupCarregando = signal(false);
+  coexistenciaAtivandoId = signal<string | null>(null);
+
   iniciarEmbeddedSignup() {
+    const f = this.form();
+
+    if (!f.telefone || !f.nomeVerificado) {
+      this.response.set('❌ Preencha o telefone e o nome comercial antes de conectar via Embedded Signup.');
+      return;
+    }
+
     FB.login((response: any) => {
-      if (response.authResponse) {
-        this.vincularContaMeta();
+      // No fluxo de Embedded Signup a Meta retorna um "code" de autorização em authResponse.code
+      // (exige response_type: 'code' + override_default_response_type: true nas extras do login)
+      const code = response?.authResponse?.code;
+
+      if (code) {
+        this.concluirEmbeddedSignup(code);
       } else {
-        this.response.set('❌ Fluxo de Onboarding cancelado pelo usuário.');
+        this.response.set('❌ Fluxo de Onboarding cancelado pelo usuário ou sem "code" retornado pela Meta.');
       }
     }, {
       scope: 'whatsapp_business_management,whatsapp_business_messaging',
+      response_type: 'code',
+      override_default_response_type: true,
       extras: {
         feature: 'whatsapp_embedded_signup'
+      }
+    });
+  }
+
+  concluirEmbeddedSignup(code: string) {
+    const f = this.form();
+    const uid = this.userId();
+    const eid = this.empresaId();
+
+    if (!uid || !eid) {
+      this.response.set('❌ Usuário ou empresa não identificados para concluir o Embedded Signup.');
+      return;
+    }
+
+    const payload = {
+      usuarioId: uid,
+      idEmpresa: eid,
+      code,
+      numeroTelefone: f.telefone,
+      nomeEmpresa: f.nomeVerificado
+    };
+
+    this.embeddedSignupCarregando.set(true);
+    this.response.set('⏳ Trocando código de autorização e vinculando número via Embedded Signup...');
+
+    this.http.post(`${this.API_URL}/embedded-signup`, payload).subscribe({
+      next: () => {
+        this.response.set('✅ Número conectado via Embedded Signup com sucesso!');
+        this.embeddedSignupCarregando.set(false);
+        this.limparForm();
+        this.buscar();
+      },
+      error: (err) => {
+        const erros = Array.isArray(err.error) ? err.error.join(', ') : (err.error?.message || 'Falha na comunicação.');
+        this.response.set(`❌ Erro no Embedded Signup: ${erros}`);
+        this.embeddedSignupCarregando.set(false);
+      }
+    });
+  }
+
+  ativarCoexistencia(numeroId: string) {
+    const eid = this.empresaId();
+
+    if (!eid) {
+      this.response.set('❌ Empresa não identificada para ativar coexistência.');
+      return;
+    }
+
+    this.coexistenciaAtivandoId.set(numeroId);
+    this.response.set('⏳ Ativando coexistência (WhatsApp Business App + Cloud API)...');
+
+    const url = `${this.API_URL}/ativa-coexistencia?numeroId=${numeroId}&idEmpresa=${eid}`;
+
+    this.http.post(url, {}).subscribe({
+      next: () => {
+        this.response.set('✅ Coexistência ativada com sucesso!');
+        this.coexistenciaAtivandoId.set(null);
+        this.buscar();
+      },
+      error: (err) => {
+        const erros = Array.isArray(err.error) ? err.error.join(', ') : (err.error?.message || 'Falha na comunicação.');
+        this.response.set(`❌ Erro ao ativar coexistência: ${erros}`);
+        this.coexistenciaAtivandoId.set(null);
       }
     });
   }

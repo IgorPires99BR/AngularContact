@@ -1,4 +1,4 @@
-import { Component, inject, NgZone } from '@angular/core';
+import { Component, inject, NgZone, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -25,18 +25,22 @@ export class LoginComponent {
   password = '';
 
   // Estado da UI
-  loading = false;
-  showPw = false;
-  errorMsg = '';
+  loading = signal(false);
+  showPassword = signal(false);
+  errorMessage = signal('');
+
+  togglePassword() {
+    this.showPassword.update(v => !v);
+  }
 
   async onLogin() {
     if (!this.email || !this.password) {
-      this.errorMsg = 'Por favor, preencha todos os campos.';
+      this.errorMessage.set('Por favor, preencha todos os campos.');
       return;
     }
 
-    this.loading = true;
-    this.errorMsg = '';
+    this.loading.set(true);
+    this.errorMessage.set('');
 
     try {
       // Chamada para a API .NET Core
@@ -48,8 +52,8 @@ export class LoginComponent {
       // 1. Tratamento caso o seu backend use o padrão Response wrapper (com propriedade success/errors)
       // Se a requisição voltou com sucesso HTTP, mas o banco rejeitou as credenciais:
       if (res && res.success === false) {
-        this.errorMsg = 'Credenciais incorretas.';
-        this.loading = false;
+        this.errorMessage.set('Credenciais incorretas.');
+        this.loading.set(false);
         return;
       }
 
@@ -67,20 +71,20 @@ export class LoginComponent {
           this.router.navigate(['/dashboard']);
         });
       } else {
-        this.errorMsg = 'Credenciais incorretas.';
-        this.loading = false;
+        this.errorMessage.set('Credenciais incorretas.');
+        this.loading.set(false);
       }
 
     } catch (err: any) {
-      this.loading = false;
+      this.loading.set(false);
 
       // 3. Tratamento de erros HTTP disparados pelo servidor (Ex: 401 Unauthorized, 400 Bad Request, ou API offline)
       if (err.status === 0) {
-        this.errorMsg = 'Não foi possível conectar ao servidor de autenticação.';
+        this.errorMessage.set('Não foi possível conectar ao servidor de autenticação.');
       } else if (err.status === 401 || err.status === 400) {
-        this.errorMsg = 'Credenciais incorretas.';
+        this.errorMessage.set('Credenciais incorretas.');
       } else {
-        this.errorMsg = err.error?.message || 'Erro ao realizar login. Tente novamente mais tarde.';
+        this.errorMessage.set(err.error?.message || 'Erro ao realizar login. Tente novamente mais tarde.');
       }
     }
   }
