@@ -132,6 +132,11 @@ export class NumerosComponent implements OnInit {
       return;
     }
 
+    if (typeof FB === 'undefined') {
+      this.response.set('❌ SDK da Meta não carregado. Verifique o appId em index.html (ver docs/deploy-embedded-signup-coex.md).');
+      return;
+    }
+
     FB.login((response: any) => {
       // No fluxo de Embedded Signup a Meta retorna um "code" de autorização em authResponse.code
       // (exige response_type: 'code' + override_default_response_type: true nas extras do login)
