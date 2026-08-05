@@ -9,6 +9,7 @@ export interface UserData {
   email: string;
   role?: string;
   status?: string;
+  token?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -25,6 +26,10 @@ export class AuthService {
   // Atalho reativo para o ID da Empresa (usado na tela de Templates e isolamento multi-tenant)
   readonly empresaIdSignal = computed(() => this.userState()?.idEmpresa);
 
+  getToken(): string | null {
+    return this.userState()?.token ?? localStorage.getItem('token');
+  }
+
   setSession(apiResponse: any) {
     // Garante que a resposta contém os dados necessários antes de persistir
     if (apiResponse && typeof apiResponse === 'object') {
@@ -34,13 +39,17 @@ export class AuthService {
         nome: apiResponse.nome,
         email: apiResponse.email,
         role: apiResponse.role,
-        status: apiResponse.status
+        status: apiResponse.status,
+        token: apiResponse.token
       };
 
       // Salva no localStorage para manter a sessão ao atualizar a página (F5)
       localStorage.setItem('userData', JSON.stringify(data));
       localStorage.setItem('usuarioId', data.idUsuario);
       localStorage.setItem('empresaId', data.idEmpresa);
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
 
       // Atualiza o Signal global de forma reativa
       this.userState.set(data);
