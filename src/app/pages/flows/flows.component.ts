@@ -1,6 +1,7 @@
 import { Component, signal, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
@@ -14,6 +15,7 @@ export interface Step {
   gatilhoResposta?: string;
   proximaEtapaId?: string | null;
   ehEtapaInicial?: boolean;
+  templateId?: string;
 }
 
 export interface Flow {
@@ -30,7 +32,7 @@ export interface Flow {
 @Component({
   selector: 'app-flows',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './flows.component.html',
   styleUrls: ['../shared-crud.css', './flows.component.css'],
 })
@@ -104,7 +106,8 @@ export class FlowsComponent implements OnInit {
             variavelSaida: e.variavelSaida || e.VariavelSaida || '',
             gatilhoResposta: e.gatilhoResposta || e.GatilhoResposta,
             proximaEtapaId: e.proximaEtapaId || e.ProximaEtapaId,
-            ehEtapaInicial: e.ehEtapaInicial !== undefined ? e.ehEtapaInicial : e.EhEtapaInicial
+            ehEtapaInicial: e.ehEtapaInicial !== undefined ? e.ehEtapaInicial : e.EhEtapaInicial,
+            templateId: e.templateId || e.TemplateId
           })).sort((a: any, b: any) => a.ordem - b.ordem);
 
           // Retorna o objeto Flow mapeado estritamente para o padrão do seu Front-end
@@ -173,7 +176,8 @@ export class FlowsComponent implements OnInit {
         variavelSaida: e.variavelSaida || '',
         gatilhoResposta: e.gatilhoResposta,
         proximaEtapaId: e.proximaEtapaId,
-        ehEtapaInicial: e.ehEtapaInicial
+        ehEtapaInicial: e.ehEtapaInicial,
+        templateId: e.templateId
       }))
     };
 

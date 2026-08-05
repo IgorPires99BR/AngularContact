@@ -1,0 +1,78 @@
+.mapa-mensagem {
+  margin: 8px 0 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.12);
+  font-size: 13px;
+}
+
+.flow-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.mapa-wrap {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mapa-canvas {
+  background: #0b0f19;
+}
+
+.mapa-loading,
+.mapa-empty {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #fff;
+}
+
+.mapa-empty {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 320px;
+  text-align: center;
+}
+
+.mapa-painel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 280px;
+  background: rgba(20, 20, 30, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #fff;
+}
+
+.mapa-painel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.mapa-painel-body {
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mapa-painel-conteudo {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: pre-wrap;
+}

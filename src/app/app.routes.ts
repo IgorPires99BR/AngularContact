@@ -17,6 +17,7 @@ import { NumerosComponent } from './pages/numeros/numeros.component';
 import { UsuariosComponent } from './pages/usuarios/usuarios.component';
 import { TemplatesComponent } from './pages/templates/templates'; // <--- IMPORTADO AQUI
 import { TemplatesMapaComponent } from './pages/templates-mapa/templates-mapa';
+import { FlowsMapaComponent } from './pages/flows-mapa/flows-mapa';
 
 export const routes: Routes = [
   // 1. Rota Pública: Landing Page (home) — porta de entrada comercial/pagamentos
@@ -35,6 +36,7 @@ export const routes: Routes = [
       { path: 'chats', component: ChatsComponent },
       { path: 'disparador', component: DisparadorComponent },
       { path: 'flows', component: FlowsComponent },
+      { path: 'flows/mapa', component: FlowsMapaComponent },
       { path: 'empresas', component: EmpresasComponent },
       { path: 'contatos', component: ContatosComponent },
       { path: 'numeros', component: NumerosComponent },
