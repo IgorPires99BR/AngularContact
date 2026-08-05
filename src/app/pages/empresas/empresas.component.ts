@@ -51,6 +51,14 @@ export class EmpresasComponent implements OnInit {
     this.form.set({ ...this.form(), [field]: value });
   }
 
+  // Aceita só dígitos e limita a quantidade (ex: CNPJ = 14). Escreve direto no
+  // elemento pra não depender do timing do ciclo de change detection do Angular.
+  updateSomenteNumeros(field: string, input: HTMLInputElement, maxDigitos: number) {
+    const apenasDigitos = input.value.replace(/\D/g, '').slice(0, maxDigitos);
+    input.value = apenasDigitos;
+    this.form.set({ ...this.form(), [field]: apenasDigitos });
+  }
+
   obterEmpresas() {
     this.http.get<Empresa[]>(`${this.BASE_URL}/obter`).subscribe({
       next: (dados) => this.empresas.set(dados),

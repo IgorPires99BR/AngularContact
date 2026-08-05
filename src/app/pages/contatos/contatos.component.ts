@@ -49,6 +49,14 @@ export class ContatosComponent implements OnInit {
     this.form.set({ ...this.form(), [field]: value });
   }
 
+  // Aceita só dígitos (formato E.164: DDI+DDD+número, até 15 dígitos). Escreve
+  // direto no elemento pra não depender do timing do change detection do Angular.
+  updateSomenteNumeros(field: string, input: HTMLInputElement, maxDigitos: number) {
+    const apenasDigitos = input.value.replace(/\D/g, '').slice(0, maxDigitos);
+    input.value = apenasDigitos;
+    this.form.set({ ...this.form(), [field]: apenasDigitos });
+  }
+
   buscar() {
     const id = this.userId();
     if (!id) {

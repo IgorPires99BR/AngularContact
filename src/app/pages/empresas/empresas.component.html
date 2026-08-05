@@ -17,14 +17,14 @@
     <div class="card-body">
       <div class="fg">
         <label>Razão Social</label>
-        <input type="text" placeholder="Empresa XYZ LTDA"
+        <input type="text" placeholder="Empresa XYZ LTDA" maxlength="50"
                [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
       </div>
       <div class="fg-row">
         <div class="fg">
-          <label>CNPJ</label>
-          <input type="text" placeholder="00.000.000/0001-00"
-                 [ngModel]="form().cnpj" (ngModelChange)="update('cnpj', $event)">
+          <label>CNPJ (somente números)</label>
+          <input #cnpjInput type="text" inputmode="numeric" placeholder="00000000000100"
+                 [ngModel]="form().cnpj" (input)="updateSomenteNumeros('cnpj', cnpjInput, 14)">
         </div>
         <div class="fg">
           <label>E-mail</label>
@@ -35,9 +35,9 @@
 
       <div class="fg-row">
         <div class="fg">
-          <label>Telefone</label>
-          <input type="text" placeholder="+55 11 9 9999-8888"
-                 [ngModel]="form().tel" (ngModelChange)="update('tel', $event)">
+          <label>Telefone (somente números)</label>
+          <input #telInput type="text" inputmode="numeric" placeholder="5511999998888"
+                 [ngModel]="form().tel" (input)="updateSomenteNumeros('tel', telInput, 15)">
         </div>
         <div class="fg">
           <label>WhatsApp Business Account ID (WABA)</label>

@@ -26,17 +26,17 @@
     <div class="card-body">
       <div class="fg-row">
         <div class="fg" style="flex: 3;">
-          <label>Número de Telefone (Sem o código do país)</label>
-          <input type="text" placeholder="Ex: 16315551000" [ngModel]="form().telefone" (ngModelChange)="update('telefone', $event)">
+          <label>Número de Telefone (Sem o código do país, somente números)</label>
+          <input #telefoneInput type="text" inputmode="numeric" placeholder="Ex: 16315551000" [ngModel]="form().telefone" (input)="updateSomenteNumeros('telefone', telefoneInput, 13)">
         </div>
         <div class="fg" style="flex: 1;">
           <label>Cód. País</label>
-          <input type="text" placeholder="Ex: 55" [ngModel]="form().codigoPais" (ngModelChange)="update('codigoPais', $event)">
+          <input #codigoPaisInput type="text" inputmode="numeric" placeholder="Ex: 55" [ngModel]="form().codigoPais" (input)="updateSomenteNumeros('codigoPais', codigoPaisInput, 3)">
         </div>
       </div>
       <div class="fg">
         <label>Nome Comercial Verificado (Verified Name)</label>
-        <input type="text" placeholder="Ex: My Business Name" [ngModel]="form().nomeVerificado" (ngModelChange)="update('nomeVerificado', $event)">
+        <input type="text" placeholder="Ex: My Business Name" maxlength="100" [ngModel]="form().nomeVerificado" (ngModelChange)="update('nomeVerificado', $event)">
       </div>
 
       <div class="btn-grp">

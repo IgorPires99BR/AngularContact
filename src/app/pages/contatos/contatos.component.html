@@ -23,13 +23,13 @@
     <div class="card-body">
       <div class="fg">
         <label>Nome Completo</label>
-        <input type="text" placeholder="Ex: Maria Silva" [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
+        <input type="text" placeholder="Ex: Maria Silva" maxlength="100" [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
       </div>
 
       <div class="fg-row">
         <div class="fg">
-          <label>Telefone (DDI + DDD + Número)</label>
-          <input type="text" placeholder="Ex: 5511999999999" [ngModel]="form().telefone" (ngModelChange)="update('telefone', $event)">
+          <label>Telefone (DDI + DDD + Número, somente números)</label>
+          <input #telefoneInput type="text" inputmode="numeric" placeholder="Ex: 5511999999999" [ngModel]="form().telefone" (input)="updateSomenteNumeros('telefone', telefoneInput, 15)">
         </div>
         <div class="fg">
           <label>E-mail</label>

@@ -75,6 +75,14 @@ export class NumerosComponent implements OnInit {
     this.form.set({ ...this.form(), [field]: value });
   }
 
+  // Aceita só dígitos (telefone e código do país não têm letra/pontuação). Escreve
+  // direto no elemento pra não depender do timing do change detection do Angular.
+  updateSomenteNumeros(field: string, input: HTMLInputElement, maxDigitos: number) {
+    const apenasDigitos = input.value.replace(/\D/g, '').slice(0, maxDigitos);
+    input.value = apenasDigitos;
+    this.form.set({ ...this.form(), [field]: apenasDigitos });
+  }
+
   buscar() {
     const uid = this.userId();
     if (!uid) return;
