@@ -45,6 +45,12 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private hubConnection?: signalR.HubConnection;
   private shouldScrollToBottom = false;
+  private shouldRestoreScroll: number | null = null;
+
+  private readonly TAMANHO_PAGINA = 30;
+  private paginaAtual = 0;
+  temMaisMensagens = signal(true);
+  carregandoPagina = signal(false);
 
   search = signal('');
   selectedId = signal<string | null>(null);
@@ -70,6 +76,13 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (this.shouldScrollToBottom) {
       this.scrollToBottom();
       this.shouldScrollToBottom = false;
+    }
+    if (this.shouldRestoreScroll !== null) {
+      const el = this.scrollContainer?.nativeElement;
+      if (el) {
+        el.scrollTop = el.scrollHeight - this.shouldRestoreScroll;
+      }
+      this.shouldRestoreScroll = null;
     }
   }
 
@@ -167,18 +180,58 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
     const idEmpresa = this.empresaId();
     if (!idEmpresa) return;
 
-    this.http.get<{ value: Message[] }>(`${this.API_URL}/mensagens/${idEmpresa}/${contatoId}`)
+    this.paginaAtual = 0;
+    this.temMaisMensagens.set(true);
+
+    this.http.get<{ value: Message[] }>(`${this.API_URL}/mensagens/${idEmpresa}/${contatoId}?pagina=0&tamanho=${this.TAMANHO_PAGINA}`)
       .subscribe({
         next: (res) => {
-          const mensagensNormais = (res.value || []).map(m => ({
-            ...m,
-            from: m.from === 'recebida' ? 'user' : m.from === 'enviada' ? 'bot' : m.from
-          }));
+          const mensagensNormais = this.normalizar(res.value || []);
           this.activeMessages.set(mensagensNormais);
+          this.temMaisMensagens.set(mensagensNormais.length === this.TAMANHO_PAGINA);
           this.shouldScrollToBottom = true;
         },
         error: (err) => console.error('Erro ao buscar histórico', err)
       });
+  }
+
+  // Infinite scroll: chamado quando o usuario rola pro topo da janela de mensagens
+  onScrollTop() {
+    const el = this.scrollContainer?.nativeElement;
+    if (!el || el.scrollTop > 80 || !this.temMaisMensagens() || this.carregandoPagina()) return;
+
+    const idEmpresa = this.empresaId();
+    const idContato = this.selectedId();
+    if (!idEmpresa || !idContato) return;
+
+    this.carregandoPagina.set(true);
+    const proximaPagina = this.paginaAtual + 1;
+
+    this.http.get<{ value: Message[] }>(`${this.API_URL}/mensagens/${idEmpresa}/${idContato}?pagina=${proximaPagina}&tamanho=${this.TAMANHO_PAGINA}`)
+      .subscribe({
+        next: (res) => {
+          const antigas = this.normalizar(res.value || []);
+          this.temMaisMensagens.set(antigas.length === this.TAMANHO_PAGINA);
+          this.paginaAtual = proximaPagina;
+
+          if (antigas.length > 0) {
+            this.shouldRestoreScroll = el.scrollHeight; // restaura a posicao visual apos o prepend
+            this.activeMessages.update(msgs => [...antigas, ...msgs]);
+          }
+          this.carregandoPagina.set(false);
+        },
+        error: (err) => {
+          console.error('Erro ao carregar mensagens antigas', err);
+          this.carregandoPagina.set(false);
+        }
+      });
+  }
+
+  private normalizar(mensagens: Message[]): Message[] {
+    return mensagens.map(m => ({
+      ...m,
+      from: m.from === 'recebida' ? 'user' : m.from === 'enviada' ? 'bot' : m.from
+    }));
   }
 
   filtered = computed(() => {

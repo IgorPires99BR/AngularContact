@@ -70,7 +70,8 @@
       </div>
 
       <!-- Área de Mensagens (Com Rolagem Independente) -->
-      <div class="chat-messages" #scrollContainer>
+      <div class="chat-messages" #scrollContainer (scroll)="onScrollTop()">
+        <div class="chat-loading-mais" *ngIf="carregandoPagina()">Carregando mensagens anteriores…</div>
         <ng-container *ngFor="let m of selectedMessages()">
           <!-- Mensagem do sistema / Step do fluxo -->
           <div *ngIf="m.from === 'step'" class="msg-step">

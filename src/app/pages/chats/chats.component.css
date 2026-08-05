@@ -218,6 +218,13 @@
   gap: 10px;
 }
 
+.chat-loading-mais {
+  text-align: center;
+  font-size: .72rem;
+  color: var(--muted);
+  padding: 6px 0 10px;
+}
+
 .msg-row {
   display: flex;
   width: 100%;
