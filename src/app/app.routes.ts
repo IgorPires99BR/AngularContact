@@ -16,6 +16,7 @@ import { ContatosComponent } from './pages/contatos/contatos.component';
 import { NumerosComponent } from './pages/numeros/numeros.component';
 import { UsuariosComponent } from './pages/usuarios/usuarios.component';
 import { TemplatesComponent } from './pages/templates/templates'; // <--- IMPORTADO AQUI
+import { TemplatesMapaComponent } from './pages/templates-mapa/templates-mapa';
 
 export const routes: Routes = [
   // 1. Rota Pública: Landing Page (home) — porta de entrada comercial/pagamentos
@@ -39,6 +40,7 @@ export const routes: Routes = [
       { path: 'numeros', component: NumerosComponent },
       { path: 'usuarios', component: UsuariosComponent },
       { path: 'templates', component: TemplatesComponent }, // <--- INSERIDO DENTRO DO SHELL PROTEGIDO
+      { path: 'templates/mapa', component: TemplatesMapaComponent },
     ],
   },
 

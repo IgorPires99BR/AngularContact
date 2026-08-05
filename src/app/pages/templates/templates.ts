@@ -1,6 +1,7 @@
 import { Component, signal, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
@@ -30,7 +31,7 @@ const TIPO_BOTAO_POR_INDICE: TemplateBotao['tipo'][] = ['QUICK_REPLY', 'URL', 'P
 @Component({
   selector: 'app-templates',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './templates.html',
   styleUrls: ['../shared-crud.css', './templates.css']
 })

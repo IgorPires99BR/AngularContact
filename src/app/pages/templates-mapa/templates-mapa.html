@@ -1,0 +1,33 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">Mapa Mental 3D de Templates</h1>
+    <div class="ph-sub">Visualize e conecte seus templates HSM de forma visual em 3D</div>
+  </div>
+  <div style="display:flex; gap:6px;">
+    <button class="btn btn-ghost btn-sm" (click)="voltar()">⬅ Voltar para lista</button>
+    <button class="btn btn-sm" [class.btn-primary]="modoConectar()" [class.btn-ghost]="!modoConectar()" (click)="toggleModoConectar()">
+      {{ modoConectar() ? '🔗 Modo Conectar (ativo)' : '🔗 Modo Conectar' }}
+    </button>
+  </div>
+</div>
+
+<div class="mapa-mensagem" *ngIf="mensagem()">{{ mensagem() }}</div>
+
+<div class="mapa-wrap">
+  <div #graphContainer class="mapa-canvas" style="width:100%; height:600px;"></div>
+
+  <div class="mapa-loading" *ngIf="carregando()">Carregando templates...</div>
+
+  <div class="mapa-painel" *ngIf="templateSelecionado() as t">
+    <div class="mapa-painel-head">
+      <div class="crud-name">{{ t.nomeTemplate }}</div>
+      <button class="btn btn-ghost btn-xs" (click)="fecharPainel()">✕</button>
+    </div>
+    <div class="mapa-painel-body">
+      <div><strong>Categoria:</strong> {{ t.categoria }}</div>
+      <div><strong>Idioma:</strong> {{ t.idioma }}</div>
+      <div><strong>Status:</strong> {{ t.status }}</div>
+      <div class="mapa-painel-conteudo">{{ t.conteudo }}</div>
+    </div>
+  </div>
+</div>
