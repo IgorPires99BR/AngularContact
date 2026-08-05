@@ -82,7 +82,25 @@
           <div *ngIf="m.from !== 'step'" class="msg-row" [class.msg-right]="m.from === 'bot'" [class.msg-left]="m.from === 'user'">
             <div class="msg-bubble">
               {{ m.text | templateMessage }}
-              <div class="msg-time" *ngIf="m.time">{{ m.time }}</div>
+              <div class="msg-time" *ngIf="m.time">
+                {{ m.time }}
+                <ng-container *ngIf="m.from === 'bot'">
+                  <!-- Check simples cinza: sent (ou status ainda não informado) -->
+                  <svg *ngIf="!m.status || m.status === 'sent'" class="msg-status-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="4,12 9,17 20,6" />
+                  </svg>
+                  <!-- Check duplo cinza: delivered -->
+                  <svg *ngIf="m.status === 'delivered'" class="msg-status-icon" width="18" height="16" viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="1,12 6,17 17,6" />
+                    <polyline points="9,12 14,17 25,6" />
+                  </svg>
+                  <!-- Check duplo azul: read -->
+                  <svg *ngIf="m.status === 'read'" class="msg-status-icon msg-status-read" width="18" height="16" viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="1,12 6,17 17,6" />
+                    <polyline points="9,12 14,17 25,6" />
+                  </svg>
+                </ng-container>
+              </div>
             </div>
           </div>
         </ng-container>

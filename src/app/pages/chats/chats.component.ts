@@ -23,6 +23,8 @@ interface Message {
   text: string;
   time?: string;
   contatoId?: string;
+  wamid?: string;
+  status?: 'sent' | 'delivered' | 'read' | 'failed';
 }
 
 @Component({
@@ -110,6 +112,20 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.hubConnection.on('ReceberNovaMensagem', (mensagemRecebida: any) => {
       this.tratarMensagemEmTempoReal(mensagemRecebida);
     });
+
+    this.hubConnection.on('AtualizaStatusEntrega', (evt: any) => {
+      this.tratarStatusEntregaEmTempoReal(evt);
+    });
+  }
+
+  private tratarStatusEntregaEmTempoReal(evt: any) {
+    const wamid = evt?.wamid || evt?.Wamid;
+    const status = evt?.status || evt?.Status;
+    if (!wamid || !status) return;
+
+    this.activeMessages.update(msgs =>
+      msgs.map(m => m.wamid === wamid ? { ...m, status } : m)
+    );
   }
 
   private tratarMensagemEmTempoReal(msg: any) {
@@ -281,15 +297,19 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.draft.set('');
 
-    this.http.post(`${this.DISPARADOR_URL}/enviar-mensagem-meta`, payload)
+    this.http.post<any>(`${this.DISPARADOR_URL}/enviar-mensagem-meta`, payload)
       .subscribe({
-        next: () => {
+        next: (resposta) => {
           const now = new Date();
           const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
 
+          // O endpoint hoje não retorna o wamid da mensagem enviada; se algum dia passar a
+          // retornar, capturamos aqui para permitir o rastreio de status de entrega em tempo real.
+          const wamid = resposta?.wamid || resposta?.Wamid || resposta?.value?.wamid;
+
           this.activeMessages.update(msgs => [
             ...msgs,
-            { from: 'bot', text: text, time: timeStr }
+            { from: 'bot', text: text, time: timeStr, wamid, status: 'sent' }
           ]);
 
           this.chats.update(lista =>

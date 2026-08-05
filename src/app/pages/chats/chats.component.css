@@ -270,6 +270,16 @@
   color: rgba(255, 255, 255, 0.8);
 }
 
+.msg-status-icon {
+  vertical-align: middle;
+  margin-left: 4px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.msg-status-icon.msg-status-read {
+  color: #34B7F1;
+}
+
 .msg-step {
   align-self: center;
   background: var(--blue-light);
