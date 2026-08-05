@@ -209,12 +209,22 @@ export class NumerosComponent implements OnInit {
       return;
     }
 
+    // A Meta exige o PIN de verificação em 2 etapas cadastrado para este número
+    const pin = prompt('Digite o PIN de verificação em 2 etapas (6 dígitos) cadastrado para este número na Meta:');
+    if (!pin) {
+      return;
+    }
+    if (!/^\d{6}$/.test(pin)) {
+      this.response.set('❌ O PIN deve ter exatamente 6 dígitos numéricos.');
+      return;
+    }
+
     this.coexistenciaAtivandoId.set(numeroId);
     this.response.set('⏳ Ativando coexistência (WhatsApp Business App + Cloud API)...');
 
     const url = `${this.API_URL}/ativa-coexistencia?numeroId=${numeroId}&idEmpresa=${eid}`;
 
-    this.http.post(url, {}).subscribe({
+    this.http.post(url, { pin }).subscribe({
       next: () => {
         this.response.set('✅ Coexistência ativada com sucesso!');
         this.coexistenciaAtivandoId.set(null);
