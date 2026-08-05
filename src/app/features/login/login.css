@@ -37,21 +37,24 @@
   display: flex;
   min-height: 100vh;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: var(--bg2);
+  background:
+    radial-gradient(circle at 15% 20%, rgba(37, 99, 235, .25), transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(15, 23, 42, .6), transparent 50%),
+    linear-gradient(160deg, #0a1128 0%, #0f1a3c 45%, #0a1128 100%);
 }
 
 /* ============================================================
    Coluna esquerda — branding / proposta de valor
    ============================================================ */
 .login-left {
-  flex: 1.1;
+  flex: 1.4;
   position: relative;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
-  padding: 56px;
+  padding: 4rem clamp(2rem, 6vw, 6rem);
   overflow: hidden;
-  background: radial-gradient(circle at 20% 15%, rgba(79, 168, 255, 0.22), transparent 45%), radial-gradient(circle at 85% 75%, rgba(0, 230, 118, 0.14), transparent 50%), linear-gradient(150deg, #0a1628 0%, #0d2347 45%, #0a1a3a 100%);
+  min-height: 100vh;
 }
 
   /* grid sutil, dá textura sem poluir */
@@ -77,22 +80,17 @@
     pointer-events: none;
   }
 
-/* Globo 3D — ocupa o canto direito do painel, atrás do texto */
+/* Globo 3D — preenche toda a coluna esquerda, atrás do texto */
 .globe-stage {
   position: absolute;
-  top: 50%;
-  right: -8%;
-  width: min(640px, 60vw);
-  height: min(640px, 60vw);
-  transform: translateY(-50%);
-  opacity: 0.85;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
 }
 
 .login-left-inner {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   max-width: 480px;
   width: 100%;
 }
@@ -196,6 +194,8 @@
 }
 
 .left-stats {
+  position: relative;
+  z-index: 2;
   display: flex;
   gap: 36px;
   padding-top: 28px;
