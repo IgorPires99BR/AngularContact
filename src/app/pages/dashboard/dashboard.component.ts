@@ -1,6 +1,52 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../core/services/auth';
+import { environment } from '../../../environments/environment';
+
+interface DisparoRecente {
+  nome: string;
+  enviadas: number;
+  total: number;
+  status: string;
+}
+
+interface FlowAtivo {
+  nome: string;
+  disparosHoje: number;
+  ativo: boolean;
+}
+
+interface EvolucaoDisparo {
+  data: string;
+  total: number;
+}
+
+interface MetricasDashboard {
+  mensagensHoje: number;
+  mensagensSemana: number;
+  mensagensMes: number;
+  taxaEntrega: number;
+  leadsCapturados: number;
+  chatsAtivos: number;
+  numerosAtivos: number;
+  numerosPendentes: number;
+  numerosBloqueados: number;
+  flowsAtivos: number;
+  disparosRecentes: DisparoRecente[];
+  flowsComExecucoes: FlowAtivo[];
+  evolucaoDisparos: EvolucaoDisparo[];
+}
+
+interface ChatAtivo {
+  contatoId: string;
+  nomeContato: string;
+  telefone: string;
+  ultimaMensagem: string;
+  dataUltimaMensagem: string;
+  quantidadeNaoLidas: number;
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -9,40 +55,101 @@ import { RouterLink } from '@angular/router';
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css'],
 })
-export class DashboardComponent {
-  kpisMain = [
-    { icon: '📤', label: 'Msgs Enviadas Hoje', value: '1.847', delta: '▲ 18% vs ontem', deltaType: 'up' },
-    { icon: '✅', label: 'Taxa de Entrega',    value: '98.4%', delta: '▲ 2.1%',         deltaType: 'up' },
-    { icon: '🎯', label: 'Leads Capturados',   value: '342',   delta: '▲ 7 hoje',       deltaType: 'up' },
-    { icon: '💬', label: 'Chats Ativos',       value: '12',    delta: 'Em andamento',   deltaType: 'n'  },
-  ];
+export class DashboardComponent implements OnInit {
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
 
-  kpisStatus = [
-    { icon: '📱', label: 'Números Ativos',     value: '8',  delta: 'Operando normalmente',   deltaType: 'up',   tone: 'green'  },
-    { icon: '⏳', label: 'Números Pendentes',  value: '2',  delta: 'Aguardando verificação', deltaType: 'n',    tone: 'warn'   },
-    { icon: '🚫', label: 'Números Bloqueados', value: '1',  delta: 'Requer atenção',         deltaType: 'down', tone: 'danger' },
-  ];
+  private readonly API_URL = environment.apiUrl;
 
-  recentChats = [
-    { initials: 'JS', name: 'João Silva',     last: 'Quero saber mais sobre o plano…', status: 'Ativo',     statusType: 'green', time: '2m',  color: 'linear-gradient(135deg,#3D6EE8,#4B7BFF)' },
-    { initials: 'MR', name: 'Maria Rocha',    last: 'Obrigada pelo retorno!',          status: 'Aguardando', statusType: 'warn',  time: '14m', color: 'linear-gradient(135deg,#F59E0B,#FBBF24)' },
-    { initials: 'CA', name: 'Carlos Almeida', last: 'Posso fechar o pedido?',           status: 'Ativo',     statusType: 'green', time: '32m', color: 'linear-gradient(135deg,#22C55E,#4ADE80)' },
-    { initials: 'PL', name: 'Paula Lima',     last: 'Estou avaliando a proposta.',      status: 'Ativo',     statusType: 'blue',  time: '1h',  color: 'linear-gradient(135deg,#6366F1,#8B5CF6)' },
-    { initials: 'RF', name: 'Ricardo Fontes', last: 'Bom dia, tudo bem?',                status: 'Novo',      statusType: 'blue',  time: '2h',  color: 'linear-gradient(135deg,#EC4899,#F472B6)' },
-  ];
+  carregando = signal(true);
+  erro = signal('');
 
-  recentDisparos = [
-    { name: 'Black Friday 2025', sent: 1240, total: 1500, status: 'Em andamento', statusType: 'blue',  dot: 'on'  },
-    { name: 'Boas-vindas',       sent: 320,  total: 320,  status: 'Concluído',    statusType: 'green', dot: 'on'  },
-    { name: 'Reativação',        sent: 0,    total: 580,  status: 'Agendado',     statusType: 'warn',  dot: 'warn'},
-  ];
+  metricas = signal<MetricasDashboard | null>(null);
+  chats = signal<ChatAtivo[]>([]);
 
-  activeFlows = [
-    { name: 'Atendimento Inicial', triggers: 87, on: true  },
-    { name: 'Qualificação Lead',   triggers: 54, on: true  },
-    { name: 'Pós-Venda',           triggers: 12, on: true  },
-    { name: 'Carrinho Abandonado', triggers: 0,  on: false },
-  ];
+  kpisMain = computed(() => {
+    const m = this.metricas();
+    if (!m) return [];
+    return [
+      { icon: '📤', label: 'Msgs Enviadas (mês)', value: m.mensagensMes.toString(), delta: `${m.mensagensHoje} hoje`, deltaType: 'n' },
+      { icon: '✅', label: 'Taxa de Entrega', value: `${m.taxaEntrega}%`, delta: m.taxaEntrega >= 90 ? 'Excelente' : 'Acompanhar', deltaType: m.taxaEntrega >= 90 ? 'up' : 'warn' },
+      { icon: '🎯', label: 'Leads Capturados', value: m.leadsCapturados.toString(), delta: 'Últimos 30 dias', deltaType: 'n' },
+      { icon: '💬', label: 'Chats Ativos', value: m.chatsAtivos.toString(), delta: 'Últimos 7 dias', deltaType: 'n' },
+    ];
+  });
 
-  refresh() { console.log('Atualizando dashboard…'); }
+  kpisStatus = computed(() => {
+    const m = this.metricas();
+    if (!m) return [];
+    return [
+      { icon: '📱', label: 'Números Ativos', value: m.numerosAtivos.toString(), delta: 'Operando normalmente', deltaType: 'up', tone: 'green' },
+      { icon: '⏳', label: 'Números Pendentes', value: m.numerosPendentes.toString(), delta: 'Aguardando verificação', deltaType: 'n', tone: 'warn' },
+      { icon: '🚫', label: 'Números Bloqueados', value: m.numerosBloqueados.toString(), delta: 'Requer atenção', deltaType: 'down', tone: 'danger' },
+    ];
+  });
+
+  // Pontos do grafico de evolucao normalizados em % de altura (0-100) pro SVG
+  graficoEvolucao = computed(() => {
+    const m = this.metricas();
+    if (!m || m.evolucaoDisparos.length === 0) return [];
+    const max = Math.max(...m.evolucaoDisparos.map(d => d.total), 1);
+    return m.evolucaoDisparos.map(d => ({
+      ...d,
+      alturaPct: Math.round((d.total / max) * 100)
+    }));
+  });
+
+  ngOnInit() {
+    this.carregarDados();
+  }
+
+  carregarDados() {
+    const empresaId = this.authService.empresaIdSignal();
+    if (!empresaId) {
+      this.erro.set('Empresa não identificada.');
+      this.carregando.set(false);
+      return;
+    }
+
+    this.carregando.set(true);
+    this.erro.set('');
+
+    this.http.get<{ value: MetricasDashboard }>(`${this.API_URL}/dashboard/metricas/${empresaId}`)
+      .subscribe({
+        next: (res) => {
+          this.metricas.set(res.value);
+          this.carregando.set(false);
+        },
+        error: () => {
+          this.erro.set('Não foi possível carregar as métricas do dashboard.');
+          this.carregando.set(false);
+        }
+      });
+
+    this.http.get<{ value: { chats: ChatAtivo[] } }>(`${this.API_URL}/chat/conversas/${empresaId}`)
+      .subscribe({
+        next: (res) => this.chats.set((res.value?.chats || []).slice(0, 5)),
+        error: () => this.chats.set([])
+      });
+  }
+
+  refresh() {
+    this.carregarDados();
+  }
+
+  tempoRelativo(data: string): string {
+    const diffMs = Date.now() - new Date(data).getTime();
+    const min = Math.floor(diffMs / 60000);
+    if (min < 1) return 'agora';
+    if (min < 60) return `${min}m`;
+    const h = Math.floor(min / 60);
+    if (h < 24) return `${h}h`;
+    return `${Math.floor(h / 24)}d`;
+  }
+
+  iniciais(nome: string): string {
+    if (!nome) return '??';
+    const partes = nome.trim().split(' ');
+    return (partes[0]?.[0] ?? '') + (partes[1]?.[0] ?? '');
+  }
 }

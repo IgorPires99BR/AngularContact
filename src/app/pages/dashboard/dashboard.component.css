@@ -1,3 +1,80 @@
+.dash-loading, .dash-erro {
+  padding: 40px;
+  text-align: center;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.dash-erro { color: var(--warn); }
+
+.flow-empty {
+  padding: 24px 18px;
+  text-align: center;
+  color: var(--muted2);
+  font-size: .8rem;
+}
+
+/* Glow sutil nos cards de KPI, dando profundidade sem exigir 3D real */
+.kpi-glow {
+  position: relative;
+  overflow: hidden;
+}
+.kpi-glow::before {
+  content: '';
+  position: absolute;
+  top: -40%; right: -20%;
+  width: 120px; height: 120px;
+  background: radial-gradient(circle, var(--blue-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+.kpi-glow.green::before { background: radial-gradient(circle, var(--green-light) 0%, transparent 70%); }
+.kpi-glow.warn::before  { background: radial-gradient(circle, var(--warn-light) 0%, transparent 70%); }
+.kpi-glow.danger::before{ background: radial-gradient(circle, rgba(239,68,68,.25) 0%, transparent 70%); }
+
+/* Grafico de evolucao de disparos (barras em SVG-free, so CSS) */
+.chart-card { padding-bottom: 8px; }
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 160px;
+  padding: 20px 18px 8px;
+}
+.chart-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  gap: 6px;
+}
+.chart-bar-value {
+  font-size: .7rem;
+  color: var(--text2);
+  font-weight: 700;
+}
+.chart-bar-track {
+  flex: 1;
+  width: 100%;
+  max-width: 34px;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(255, 255, 255, .03);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.chart-bar-fill {
+  width: 100%;
+  background: linear-gradient(180deg, var(--blue3), var(--blue));
+  box-shadow: 0 0 12px var(--blue-glow);
+  border-radius: 6px 6px 0 0;
+  transition: height .4s ease;
+  min-height: 2px;
+}
+.chart-bar-label {
+  font-size: .65rem;
+  color: var(--muted);
+}
+
 .dash-grid {
   display: grid;
   grid-template-columns: 1fr 340px;
@@ -41,6 +118,7 @@
   display: flex; align-items: center; justify-content: center;
   font-size: .76rem; font-weight: 800; color: #fff;
   flex-shrink: 0;
+  background: linear-gradient(135deg, var(--blue), var(--blue3));
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 

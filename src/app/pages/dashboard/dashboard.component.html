@@ -3,15 +3,20 @@
     <h1 class="ph-title">Dashboard</h1>
     <div class="ph-sub">Visão geral em tempo real</div>
   </div>
-  <button class="btn btn-ghost btn-sm" (click)="refresh()">
+  <button class="btn btn-ghost btn-sm" (click)="refresh()" [disabled]="carregando()">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
     <span class="btn-label-long">Atualizar</span>
   </button>
 </div>
 
+<div class="dash-loading" *ngIf="carregando()">Carregando métricas…</div>
+<div class="dash-erro" *ngIf="erro()">{{ erro() }}</div>
+
+<ng-container *ngIf="!carregando() && !erro()">
+
 <!-- KPIs ROW 1 -->
 <div class="g4 mb-14">
-  <div class="kpi" *ngFor="let kpi of kpisMain">
+  <div class="kpi kpi-glow" *ngFor="let kpi of kpisMain()">
     <div class="kpi-icon">{{ kpi.icon }}</div>
     <div class="kpi-label">{{ kpi.label }}</div>
     <div class="kpi-value">{{ kpi.value }}</div>
@@ -21,11 +26,30 @@
 
 <!-- KPIs ROW 2 — Números -->
 <div class="g3 mb-22">
-  <div class="kpi" *ngFor="let kpi of kpisStatus" [ngClass]="kpi.tone">
+  <div class="kpi kpi-glow" *ngFor="let kpi of kpisStatus()" [ngClass]="kpi.tone">
     <div class="kpi-icon">{{ kpi.icon }}</div>
     <div class="kpi-label">{{ kpi.label }}</div>
     <div class="kpi-value" [ngClass]="kpi.tone">{{ kpi.value }}</div>
     <span class="delta" [ngClass]="'delta-' + kpi.deltaType">{{ kpi.delta }}</span>
+  </div>
+</div>
+
+<!-- GRAFICO: EVOLUCAO DE DISPAROS -->
+<div class="card mb-22 chart-card">
+  <div class="card-head">
+    <div>
+      <div class="card-title">📈 Evolução de Disparos</div>
+      <div class="card-sub">Últimos 8 dias</div>
+    </div>
+  </div>
+  <div class="chart-bars">
+    <div class="chart-bar-col" *ngFor="let ponto of graficoEvolucao()">
+      <div class="chart-bar-value">{{ ponto.total }}</div>
+      <div class="chart-bar-track">
+        <div class="chart-bar-fill" [style.height.%]="ponto.alturaPct || 2"></div>
+      </div>
+      <div class="chart-bar-label">{{ ponto.data }}</div>
+    </div>
   </div>
 </div>
 
@@ -41,15 +65,18 @@
       <a class="btn btn-primary btn-sm" routerLink="/chats">Ver todos →</a>
     </div>
     <div class="flow-list">
-      <div class="flow-bar" *ngFor="let chat of recentChats">
-        <div class="chat-avatar-sm" [style.background]="chat.color">{{ chat.initials }}</div>
+      <div class="flow-bar" *ngFor="let chat of chats()">
+        <div class="chat-avatar-sm">{{ iniciais(chat.nomeContato) }}</div>
         <div class="flow-info">
-          <div class="flow-title">{{ chat.name }}</div>
-          <div class="flow-sub">{{ chat.last }}</div>
+          <div class="flow-title">{{ chat.nomeContato }}</div>
+          <div class="flow-sub">{{ chat.ultimaMensagem }}</div>
         </div>
-        <span class="badge" [ngClass]="'badge-' + chat.statusType">{{ chat.status }}</span>
-        <span class="flow-time">{{ chat.time }}</span>
+        <span class="badge" [ngClass]="chat.quantidadeNaoLidas > 0 ? 'badge-blue' : 'badge-green'">
+          {{ chat.quantidadeNaoLidas > 0 ? chat.quantidadeNaoLidas + ' novas' : 'Em dia' }}
+        </span>
+        <span class="flow-time">{{ tempoRelativo(chat.dataUltimaMensagem) }}</span>
       </div>
+      <div class="flow-empty" *ngIf="chats().length === 0">Nenhuma conversa ativa nos últimos dias.</div>
     </div>
   </div>
 
@@ -58,19 +85,20 @@
       <div class="card-head">
         <div>
           <div class="card-title">📤 Disparos Recentes</div>
-          <div class="card-sub">Últimas campanhas</div>
+          <div class="card-sub">Últimos envios</div>
         </div>
         <a class="btn btn-ghost btn-sm" routerLink="/disparador">+ Novo</a>
       </div>
       <div class="flow-list">
-        <div class="flow-bar" *ngFor="let d of recentDisparos">
-          <span class="flow-dot" [ngClass]="d.dot"></span>
+        <div class="flow-bar" *ngFor="let d of metricas()?.disparosRecentes">
+          <span class="flow-dot" [ngClass]="d.status === 'Concluído' ? 'on' : 'warn'"></span>
           <div class="flow-info">
-            <div class="flow-title">{{ d.name }}</div>
-            <div class="flow-sub">{{ d.sent }} / {{ d.total }} enviadas</div>
+            <div class="flow-title">{{ d.nome }}</div>
+            <div class="flow-sub">{{ d.enviadas }} / {{ d.total }} enviadas</div>
           </div>
-          <span class="badge" [ngClass]="'badge-' + d.statusType">{{ d.status }}</span>
+          <span class="badge" [ngClass]="d.status === 'Concluído' ? 'badge-green' : 'badge-warn'">{{ d.status }}</span>
         </div>
+        <div class="flow-empty" *ngIf="!metricas()?.disparosRecentes?.length">Nenhum disparo recente.</div>
       </div>
     </div>
 
@@ -83,17 +111,20 @@
         <a class="btn btn-ghost btn-sm" routerLink="/flows">Gerenciar</a>
       </div>
       <div class="flow-list">
-        <div class="flow-bar" *ngFor="let f of activeFlows">
-          <span class="flow-dot" [ngClass]="f.on ? 'on' : 'off'"></span>
+        <div class="flow-bar" *ngFor="let f of metricas()?.flowsComExecucoes">
+          <span class="flow-dot" [ngClass]="f.ativo ? 'on' : 'off'"></span>
           <div class="flow-info">
-            <div class="flow-title">{{ f.name }}</div>
-            <div class="flow-sub">{{ f.triggers }} disparos hoje</div>
+            <div class="flow-title">{{ f.nome }}</div>
+            <div class="flow-sub">{{ f.disparosHoje }} disparos hoje</div>
           </div>
-          <span class="badge" [ngClass]="f.on ? 'badge-green' : 'badge-muted'">
-            {{ f.on ? 'Ativo' : 'Pausado' }}
+          <span class="badge" [ngClass]="f.ativo ? 'badge-green' : 'badge-muted'">
+            {{ f.ativo ? 'Ativo' : 'Pausado' }}
           </span>
         </div>
+        <div class="flow-empty" *ngIf="!metricas()?.flowsComExecucoes?.length">Nenhum flow cadastrado.</div>
       </div>
     </div>
   </div>
 </div>
+
+</ng-container>
