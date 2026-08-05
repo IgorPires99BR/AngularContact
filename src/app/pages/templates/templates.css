@@ -1,22 +1,228 @@
-textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 14px;
-  resize: vertical;
-  background: #fff;
-  transition: border-color 0.2s;
+/* ============================================================
+   EDITOR DE TEMPLATE — formulário + prévia lado a lado
+   ============================================================ */
+.tpl-editor {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 24px;
+  align-items: start;
 }
 
-  textarea:focus {
-    outline: none;
-    border-color: #0078ff;
+.tpl-form {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .tpl-editor {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   SELETOR DE BOTÕES
+   ============================================================ */
+.tpl-btn-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.tpl-btn-chip {
+  background: var(--blue-light);
+  border: 1px dashed var(--border2);
+  color: var(--blue3);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 7px 13px;
+  border-radius: 100px;
+  transition: all 0.15s;
+}
+
+  .tpl-btn-chip:hover {
+    background: rgba(61, 110, 232, 0.2);
+    border-style: solid;
   }
 
-.crud-info {
+.tpl-btn-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
+}
+
+.tpl-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 8px;
+}
+
+  .tpl-btn-row input {
+    flex: 1 1 140px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 11px;
+    color: var(--text);
+    font-size: 0.82rem;
+    outline: none;
+    min-width: 0;
+  }
+
+    .tpl-btn-row input:focus {
+      border-color: var(--blue2);
+    }
+
+.tpl-btn-tag {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.tpl-btn-remove {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--danger-light);
+  color: var(--danger);
+  border: none;
+  font-size: 0.75rem;
+}
+
+  .tpl-btn-remove:hover {
+    background: rgba(239, 68, 68, 0.22);
+  }
+
+/* ============================================================
+   PRÉVIA ESTILO WHATSAPP
+   ============================================================ */
+.tpl-preview-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.tpl-phone {
+  background:
+    radial-gradient(ellipse 120% 60% at 30% 0%, rgba(61, 110, 232, 0.15) 0%, transparent 60%),
+    var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 18px 14px;
+  position: sticky;
+  top: 0;
+}
+
+.tpl-bubble {
+  position: relative;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 12px 12px 12px 2px;
+  padding: 12px 14px;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.5);
+}
+
+.tpl-bubble-tail {
+  position: absolute;
+  bottom: 0;
+  left: -6px;
+  width: 12px;
+  height: 12px;
+  background: var(--bg-card2);
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+.tpl-bubble-empty {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.tpl-bubble-buttons {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tpl-bubble-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--blue3);
+  text-align: center;
+}
+
+.tpl-bubble-mini {
+  font-size: 0.78rem;
+  margin: 8px 0 4px;
+}
+
+/* ============================================================
+   LISTA DE TEMPLATES SINCRONIZADOS
+   ============================================================ */
+.tpl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tpl-item {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+  .tpl-item:last-child {
+    border-bottom: none;
+  }
+
+  .tpl-item:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+.tpl-item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.tpl-item-tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 5px;
+}
+
+.tpl-item-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+@media (max-width: 640px) {
+  .tpl-phone {
+    position: static;
+  }
 }

@@ -5,6 +5,13 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
 
+interface TemplateBotao {
+  tipo: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER';
+  texto: string;
+  url?: string;
+  numeroTelefone?: string;
+}
+
 interface Template {
   id: string;
   empresaId: string;
@@ -13,8 +20,12 @@ interface Template {
   categoria: string;
   idioma: string;
   status: string; // APPROVED, PENDING, REJECTED
+  componentesJson?: string;
   dataCriacao?: string;
 }
+
+// Mapeia o enum TipoBotaoTemplate (C#, serializado como número) de volta pro tipo legível
+const TIPO_BOTAO_POR_INDICE: TemplateBotao['tipo'][] = ['QUICK_REPLY', 'URL', 'PHONE_NUMBER'];
 
 @Component({
   selector: 'app-templates',
@@ -41,6 +52,8 @@ export class TemplatesComponent implements OnInit {
     conteudo: ''
   });
 
+  botoes = signal<TemplateBotao[]>([]);
+
   response = signal('');
   templates = signal<Template[]>([]);
   sincronizando = signal(false);
@@ -50,12 +63,52 @@ export class TemplatesComponent implements OnInit {
   pendentes = computed(() => this.templates().filter(t => t.status?.toUpperCase() === 'PENDING').length);
   rejeitados = computed(() => this.templates().filter(t => t.status?.toUpperCase() === 'REJECTED' || t.status?.toUpperCase() === 'REJECTED_META').length);
 
+  // Prévia do corpo da mensagem com variáveis {{1}}, {{2}} preenchidas por valores de exemplo,
+  // pra dar uma ideia real de como o template vai aparecer no WhatsApp
+  preview = computed(() => {
+    const conteudo = this.form().conteudo;
+    if (!conteudo) return '';
+    const exemplos = ['João', '48291', '15/08', 'R$ 129,90', '10%'];
+    let i = 0;
+    return conteudo.replace(/\{\{\d+\}\}/g, () => exemplos[i++ % exemplos.length]);
+  });
+
   ngOnInit() {
     this.buscar();
   }
 
   update(field: string, value: any) {
     this.form.set({ ...this.form(), [field]: value });
+  }
+
+  // --- Gestão dos botões do formulário de criação ---
+
+  adicionarBotao(tipo: TemplateBotao['tipo']) {
+    if (this.botoes().length >= 3) {
+      this.response.set('❌ A Meta permite no máximo 3 botões por template.');
+      return;
+    }
+    if (tipo === 'PHONE_NUMBER' && this.botoes().some(b => b.tipo === 'PHONE_NUMBER')) {
+      this.response.set('❌ Só é permitido 1 botão de telefone por template.');
+      return;
+    }
+    this.botoes.update(list => [...list, { tipo, texto: '' }]);
+  }
+
+  atualizarBotao(index: number, campo: keyof TemplateBotao, valor: string) {
+    this.botoes.update(list =>
+      list.map((b, i) => i === index ? { ...b, [campo]: valor } : b)
+    );
+  }
+
+  removerBotao(index: number) {
+    this.botoes.update(list => list.filter((_, i) => i !== index));
+  }
+
+  rotuloTipoBotao(tipo: TemplateBotao['tipo']) {
+    if (tipo === 'QUICK_REPLY') return 'Resposta Rápida';
+    if (tipo === 'URL') return 'Link';
+    return 'Telefone';
   }
 
   // 1. LISTAR TEMPLATES (Corrigido para api/template/Listar/{empresaId})
@@ -88,7 +141,8 @@ export class TemplatesComponent implements OnInit {
       nomeTemplate: nomeTratado,
       categoria: f.categoria,
       idioma: f.idioma,
-      conteudo: f.conteudo
+      conteudo: f.conteudo,
+      botoes: this.botoes().length > 0 ? this.botoes() : null
     };
 
     this.response.set('⏳ Registrando template no ecossistema da Meta...');
@@ -103,7 +157,10 @@ export class TemplatesComponent implements OnInit {
         this.limparForm();
         this.buscar();
       },
-      error: (err) => this.response.set(`❌ Erro: ${err.error?.message || 'Não foi possível salvar.'}`)
+      error: (err) => {
+        const erros = Array.isArray(err.error) ? err.error.join(', ') : (err.error?.message || 'Não foi possível salvar.');
+        this.response.set(`❌ Erro: ${erros}`);
+      }
     });
   }
 
@@ -130,7 +187,7 @@ export class TemplatesComponent implements OnInit {
     });
   }
 
-  // Opcional: Como não há endpoint de exclusão na Controller de Templates, 
+  // Opcional: Como não há endpoint de exclusão na Controller de Templates,
   // deixei o método preparado aqui para quando você implementar no C#.
   excluir(id: string) {
     alert('A exclusão física de templates deve ser realizada direto no painel do Facebook Business Suite para evitar multas de conformidade na Meta, ou adicione o endpoint HttpDelete correspondente na controller.');
@@ -143,6 +200,7 @@ export class TemplatesComponent implements OnInit {
       idioma: 'pt_BR',
       conteudo: ''
     });
+    this.botoes.set([]);
   }
 
   badgeClass(status?: string) {
@@ -151,5 +209,22 @@ export class TemplatesComponent implements OnInit {
     if (s === 'APPROVED' || s === 'APPROVED_META') return 'badge-green';
     if (s === 'PENDING') return 'badge-warn';
     return 'badge-danger'; // REJECTED
+  }
+
+  // Extrai os botões salvos (ComponentesJson) de um template da lista, pra exibir no preview
+  botoesDoTemplate(t: Template): TemplateBotao[] {
+    if (!t.componentesJson) return [];
+    try {
+      const componentes = JSON.parse(t.componentesJson);
+      const componenteBotoes = componentes?.find((c: any) => c.Tipo === 3 || c.tipo === 3);
+      const lista = componenteBotoes?.Botoes || componenteBotoes?.botoes || [];
+      return lista.map((b: any) => ({
+        tipo: TIPO_BOTAO_POR_INDICE[b.Tipo ?? b.tipo] ?? 'QUICK_REPLY',
+        texto: b.Texto ?? b.texto,
+        url: b.Url ?? b.url
+      }));
+    } catch {
+      return [];
+    }
   }
 }
