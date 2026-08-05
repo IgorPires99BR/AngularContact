@@ -303,9 +303,9 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
           const now = new Date();
           const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-          // O endpoint hoje não retorna o wamid da mensagem enviada; se algum dia passar a
-          // retornar, capturamos aqui para permitir o rastreio de status de entrega em tempo real.
-          const wamid = resposta?.wamid || resposta?.Wamid || resposta?.value?.wamid;
+          // Captura o wamid retornado pelo envio, usado pra casar com os eventos de
+          // status de entrega (sent/delivered/read) que chegam depois via SignalR.
+          const wamid = resposta?.value?.wamidMeta || resposta?.value?.wamid || resposta?.wamidMeta || resposta?.wamid;
 
           this.activeMessages.update(msgs => [
             ...msgs,
