@@ -1,6 +1,22 @@
 <div class="login-page">
+
+  <!-- Barra de branding compacta — visível apenas no mobile (login-left é ocultado) -->
+  <div class="mobile-brand-bar">
+    <div class="brand-logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4FA8FF" stroke-width="2.5">
+        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+      </svg>
+    </div>
+    <span class="brand-name">Contact Solution</span>
+  </div>
+
   <!-- LEFT: BRANDING & INFO -->
   <div class="login-left">
+    <!-- Globo 3D animado, rodando enquanto o sistema estiver online -->
+    <div class="globe-stage" aria-hidden="true">
+      <app-globe3d></app-globe3d>
+    </div>
+
     <div class="login-left-inner">
       <div class="brand">
         <div class="brand-logo">
@@ -10,12 +26,12 @@
         </div>
         <div class="brand-info">
           <div class="brand-name">Contact Solution</div>
-          <div class="brand-sub">SaaS PLATFORM</div>
+          <div class="brand-sub">SAAS PLATFORM</div>
         </div>
       </div>
 
       <div class="hero-text">
-        <h1>Potencialize suas<br><span>Conexões</span></h1>
+        <h1>Potencialize suas<br /><span>Conexões</span></h1>
         <p>A solução completa para automação de atendimento e gestão de leads em alta escala.</p>
       </div>
 
@@ -52,7 +68,7 @@
       </div>
 
       <!-- Caixa de Erro Reativa -->
-      <div class="lc-err" *ngIf="errorMsg">
+      <div class="lc-err" *ngIf="errorMsg" role="alert">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10" />
           <line x1="12" y1="8" x2="12" y2="12" />
@@ -63,18 +79,35 @@
 
       <form (ngSubmit)="onLogin()">
         <div class="fg">
-          <label class="check-label">E-mail Corporativo</label>
-          <input class="cs-input" type="email" name="email" [(ngModel)]="email"
-                 placeholder="seu@email.com" required [disabled]="loading">
+          <label for="email">E-mail Corporativo</label>
+          <input id="email"
+                 class="cs-input"
+                 type="email"
+                 name="email"
+                 [(ngModel)]="email"
+                 placeholder="seu@email.com"
+                 autocomplete="username"
+                 required
+                 [disabled]="loading" />
         </div>
 
         <div class="fg">
-          <label class="check-label">Senha</label>
+          <label for="password">Senha</label>
           <div class="input-pw-wrap">
-            <input class="cs-input" [type]="showPw ? 'text' : 'password'" name="password"
-                   [(ngModel)]="password" placeholder="••••••••" required [disabled]="loading">
+            <input id="password"
+                   class="cs-input"
+                   [type]="showPw ? 'text' : 'password'"
+                   name="password"
+                   [(ngModel)]="password"
+                   placeholder="••••••••"
+                   autocomplete="current-password"
+                   required
+                   [disabled]="loading" />
 
-            <button type="button" class="pw-toggle" (click)="showPw = !showPw">
+            <button type="button"
+                    class="pw-toggle"
+                    (click)="showPw = !showPw"
+                    [attr.aria-label]="showPw ? 'Ocultar senha' : 'Mostrar senha'">
               <svg *ngIf="!showPw" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12z" />
                 <circle cx="12" cy="12" r="3" />
@@ -94,7 +127,7 @@
       </form>
 
       <div class="lc-footer">
-        © 2026 Contact Solution SaaS.<br>
+        © 2026 Contact Solution SaaS.<br />
         Tecnologia para conversões reais.
       </div>
     </div>

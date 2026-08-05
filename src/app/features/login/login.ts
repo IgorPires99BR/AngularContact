@@ -6,11 +6,12 @@ import { firstValueFrom } from 'rxjs';
 
 import { ApiService } from '../../core/services/api';
 import { AuthService } from '../../core/services/auth';
+import { Globe3dComponent } from '../../shared/globe3d/globe3d';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, Globe3dComponent],
   templateUrl: './login.html',
   styleUrls: ['./login.css']
 })

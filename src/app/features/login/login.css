@@ -1,104 +1,99 @@
-/* Adicione isso ao topo do seu login.css ou styles.css */
-:root {
+/* ============================================================
+   Design tokens
+   Escopados em .login-page (não :root): estilos de componente Angular
+   são isolados por atributo e nunca chegam a casar com o <html> real,
+   então tokens em :root aqui nunca seriam aplicados.
+   ============================================================ */
+.login-page {
   --cs-blue: #3D6EE8;
+  --cs-blue-dark: #2952c4;
+  --cs-cyan: #4FA8FF;
+  --cs-green: #00E676;
   --bg: #FFFFFF;
-  --bg2: #F8FAFC;
+  --bg2: #F7F9FC;
   --text: #0F172A;
+  --text2: #334155;
   --muted: #64748B;
+  --muted2: #94A3B8;
   --border: #E2E8F0;
   --danger: #EF4444;
+  --danger-bg: #FEF2F2;
+  --danger-border: #FECACA;
+  --radius-lg: 20px;
+  --radius-md: 12px;
+  --radius-sm: 10px;
+  --shadow-card: 0 4px 40px rgba(13, 27, 46, 0.10), 0 1px 2px rgba(13, 27, 46, 0.06);
 }
 
-.cs-input {
-  width: 100%;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 0.9rem;
-  transition: all 0.2s;
-  outline: none;
+* {
+  box-sizing: border-box;
 }
 
-  .cs-input:focus {
-    border-color: var(--cs-blue);
-    box-shadow: 0 0 0 4px rgba(61, 110, 232, 0.1);
-  }
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-}
-
-.btn-primary {
-  background: var(--cs-blue);
-  color: #fff;
-}
-
-  .btn-primary:hover {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
-  }
-
-  .btn-primary:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-
-/* ... mantenha o restante do seu login.css original abaixo ... */
-
-
+/* ============================================================
+   Layout geral
+   ============================================================ */
 .login-page {
   display: flex;
   min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg2);
 }
 
-/* ── LEFT ── */
+/* ============================================================
+   Coluna esquerda — branding / proposta de valor
+   ============================================================ */
 .login-left {
   flex: 1.1;
-  background: linear-gradient(145deg, #0A1628 0%, #0D2347 40%, #0A1A3A 100%);
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px;
-  position: relative;
+  padding: 56px;
   overflow: hidden;
+  background: radial-gradient(circle at 20% 15%, rgba(79, 168, 255, 0.22), transparent 45%), radial-gradient(circle at 85% 75%, rgba(0, 230, 118, 0.14), transparent 50%), linear-gradient(150deg, #0a1628 0%, #0d2347 45%, #0a1a3a 100%);
 }
 
+  /* grid sutil, dá textura sem poluir */
   .login-left::before {
     content: '';
     position: absolute;
-    top: -120px;
-    right: -120px;
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(0,102,204,0.2) 0%, transparent 65%);
+    inset: 0;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: radial-gradient(ellipse at center, black 0%, transparent 75%);
     pointer-events: none;
   }
 
   .login-left::after {
     content: '';
     position: absolute;
-    bottom: -100px;
-    left: -80px;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(0,168,118,0.12) 0%, transparent 65%);
+    bottom: -140px;
+    left: -100px;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 168, 118, 0.16) 0%, transparent 65%);
     pointer-events: none;
   }
 
+/* Globo 3D — ocupa o canto direito do painel, atrás do texto */
+.globe-stage {
+  position: absolute;
+  top: 50%;
+  right: -8%;
+  width: min(640px, 60vw);
+  height: min(640px, 60vw);
+  transform: translateY(-50%);
+  opacity: 0.85;
+  z-index: 0;
+  pointer-events: none;
+}
+
 .login-left-inner {
-  max-width: 480px;
-  width: 100%;
   position: relative;
   z-index: 1;
+  max-width: 480px;
+  width: 100%;
 }
 
 .brand {
@@ -111,28 +106,34 @@
 .brand-logo {
   width: 52px;
   height: 52px;
+  flex-shrink: 0;
   border-radius: 14px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 24px rgba(0,102,204,0.4);
+  box-shadow: 0 0 28px rgba(79, 168, 255, 0.35);
+}
+
+.brand-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
 }
 
 .brand-name {
-  font-family: 'Syne', sans-serif;
   font-weight: 800;
-  font-size: 1.3rem;
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
   color: #fff;
-  line-height: 1.2;
 }
 
 .brand-sub {
-  font-size: 0.72rem;
-  color: #4FA8FF;
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--cs-cyan);
 }
 
 .hero-text {
@@ -140,90 +141,93 @@
 }
 
   .hero-text h1 {
-    font-family: 'Syne', sans-serif;
     font-weight: 800;
-    font-size: clamp(2rem, 3.5vw, 2.8rem);
-    color: #fff;
-    line-height: 1.1;
+    font-size: clamp(2.1rem, 3.6vw, 2.9rem);
+    line-height: 1.12;
     letter-spacing: -0.03em;
-    margin-bottom: 16px;
+    color: #fff;
+    margin: 0 0 18px;
   }
 
     .hero-text h1 span {
-      background: linear-gradient(135deg, #4FA8FF, #00E676);
+      background: linear-gradient(135deg, var(--cs-cyan), var(--cs-green));
       -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
       background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
     }
 
   .hero-text p {
     color: #A8BDD8;
     font-size: 1rem;
-    line-height: 1.65;
+    line-height: 1.7;
     max-width: 400px;
+    margin: 0;
   }
 
 .left-features {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 40px;
+  gap: 14px;
+  margin-bottom: 44px;
 }
 
 .lf-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 0.88rem;
-  color: #CBD8EA;
+  gap: 14px;
+  font-size: 0.9rem;
   font-weight: 500;
+  color: #CBD8EA;
 }
 
 .lf-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.1);
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
-  flex-shrink: 0;
+  font-size: 1.05rem;
 }
 
 .left-stats {
   display: flex;
-  gap: 32px;
-  padding-top: 32px;
-  border-top: 1px solid rgba(255,255,255,0.1);
-}
-
-.stat-item {
+  gap: 36px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .stat-val {
-  font-family: 'Syne', sans-serif;
   font-weight: 800;
-  font-size: 1.6rem;
-  color: #fff;
+  font-size: 1.7rem;
   line-height: 1;
+  color: #fff;
+  margin-bottom: 6px;
 }
 
 .stat-label {
   font-size: 0.72rem;
   color: #6B8CAD;
-  margin-top: 4px;
 }
 
-/* ── RIGHT ── */
+/* barra compacta exibida só em telas pequenas (substitui o painel esquerdo) */
+.mobile-brand-bar {
+  display: none;
+}
+
+/* ============================================================
+   Coluna direita — card de login
+   ============================================================ */
 .login-right {
   width: 480px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg2);
   padding: 40px 32px;
 }
 
@@ -232,10 +236,10 @@
   max-width: 400px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 36px 32px;
-  box-shadow: 0 4px 40px rgba(13,27,46,0.1);
-  animation: fadeUp .4s ease both;
+  border-radius: var(--radius-lg);
+  padding: 40px 34px;
+  box-shadow: var(--shadow-card);
+  animation: fadeUp .45s ease both;
 }
 
 @keyframes fadeUp {
@@ -252,111 +256,165 @@
 
 .lc-header {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 30px;
 }
 
   .lc-header h2 {
-    font-family: 'Syne', sans-serif;
     font-weight: 800;
-    font-size: 1.5rem;
+    font-size: 1.55rem;
     color: var(--text);
+    margin: 0 0 6px;
   }
 
   .lc-header p {
     color: var(--muted);
-    font-size: 0.85rem;
-    margin-top: 6px;
+    font-size: 0.87rem;
+    margin: 0;
   }
 
+/* Erro reativo */
 .lc-err {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #FEF2F2;
-  border: 1px solid #FECACA;
-  border-radius: 9px;
-  padding: 10px 14px;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
   color: var(--danger);
-  font-size: 0.82rem;
+  font-size: 0.83rem;
+  line-height: 1.4;
+  margin-bottom: 20px;
+  animation: fadeUp .25s ease both;
+}
+
+  .lc-err svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+/* Campos */
+.fg {
   margin-bottom: 18px;
 }
 
-.fg {
-  margin-bottom: 16px;
+  .fg label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+
+.cs-input {
+  width: 100%;
+  height: 46px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.92rem;
+  outline: none;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
 }
+
+  .cs-input::placeholder {
+    color: var(--muted2);
+  }
+
+  .cs-input:hover:not(:disabled) {
+    border-color: #cbd5e1;
+  }
+
+  .cs-input:focus {
+    border-color: var(--cs-blue);
+    box-shadow: 0 0 0 4px rgba(61, 110, 232, 0.12);
+  }
+
+  .cs-input:disabled {
+    background: var(--bg2);
+    color: var(--muted2);
+    cursor: not-allowed;
+  }
 
 .input-pw-wrap {
   position: relative;
 }
 
   .input-pw-wrap .cs-input {
-    padding-right: 42px;
+    padding-right: 44px;
   }
 
 .pw-toggle {
   position: absolute;
-  right: 12px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   background: none;
   border: none;
   color: var(--muted);
   cursor: pointer;
-  padding: 4px;
   display: flex;
   align-items: center;
-  transition: color .15s;
+  justify-content: center;
+  transition: color .15s ease, background .15s ease;
 }
 
   .pw-toggle:hover {
     color: var(--cs-blue);
+    background: rgba(61, 110, 232, 0.08);
   }
 
-.input-err {
-  border-color: var(--danger) !important;
-}
-
-.lc-row {
-  display: flex;
+/* Botão */
+.btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  margin: 6px 0 22px;
-}
-
-.check-label {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 0.82rem;
-  color: var(--text2);
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.95rem;
   cursor: pointer;
+  border: none;
+  transition: filter .2s ease, transform .12s ease, box-shadow .2s ease;
 }
 
-  .check-label input {
-    accent-color: var(--cs-blue);
+.btn-primary {
+  background: linear-gradient(135deg, var(--cs-blue), var(--cs-blue-dark));
+  color: #fff;
+  box-shadow: 0 8px 20px -6px rgba(61, 110, 232, 0.55);
+}
+
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
   }
 
-.lc-link {
-  font-size: 0.82rem;
-  color: var(--cs-blue);
-  text-decoration: none;
-}
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+  }
 
-  .lc-link:hover {
-    text-decoration: underline;
+  .btn-primary:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+    box-shadow: none;
   }
 
 .lc-submit {
   width: 100%;
-  padding: 13px;
-  justify-content: center;
-  font-size: 0.95rem;
+  height: 48px;
+  margin-top: 6px;
 }
 
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255, 255, 255, 0.35);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin .7s linear infinite;
@@ -369,23 +427,45 @@
 }
 
 .lc-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 22px;
+  text-align: center;
+  margin-top: 26px;
   font-size: 0.76rem;
   color: var(--muted2);
-  text-align: center;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
+/* ============================================================
+   Responsivo
+   ============================================================ */
 @media (max-width: 900px) {
+  .login-page {
+    flex-direction: column;
+  }
+
   .login-left {
     display: none;
   }
 
+  /* barra compacta no topo, substitui o painel esquerdo no mobile */
+  .mobile-brand-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #0a1628, #0d2347);
+  }
+
+    .mobile-brand-bar .brand-logo {
+      width: 40px;
+      height: 40px;
+    }
+
+    .mobile-brand-bar .brand-name {
+      font-size: 1.05rem;
+    }
+
   .login-right {
     width: 100%;
+    padding: 32px 20px;
   }
 }
