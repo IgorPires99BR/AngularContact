@@ -176,7 +176,11 @@ export class NumerosComponent implements OnInit {
       response_type: 'code',
       override_default_response_type: true,
       extras: {
-        feature: 'whatsapp_embedded_signup'
+        feature: 'whatsapp_embedded_signup',
+        // Configuracao de login criada em developers.facebook.com > WhatsApp > Configurador
+        // de cadastro incorporado > "Contact cadastro". Sem isso o popup nao abre o fluxo
+        // certo de selecao de WABA/numero.
+        config_id: '2444573049378034'
       }
     });
   }
