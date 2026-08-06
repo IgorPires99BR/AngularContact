@@ -331,7 +331,8 @@
     opacity: .6;
   }
 
-.chat-attach {
+.chat-attach,
+.chat-mic {
   width: 40px;
   height: 40px;
   border-radius: 9px;
@@ -340,6 +341,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.chat-mic-gravando {
+  background: rgba(239, 68, 68, .15);
+  animation: pulso-gravando 1.2s ease-in-out infinite;
+}
+
+@keyframes pulso-gravando {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, .4); }
+  50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
 }
 
 .msg-media-image {

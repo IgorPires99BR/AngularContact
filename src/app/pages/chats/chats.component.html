@@ -125,6 +125,13 @@
         <button class="btn btn-ghost btn-xs chat-attach" (click)="fileInput.click()" aria-label="Anexar arquivo" type="button">
           📎
         </button>
+        <button class="btn btn-ghost btn-xs chat-mic"
+                [class.chat-mic-gravando]="gravandoAudio()"
+                (click)="alternarGravacao()"
+                [attr.aria-label]="gravandoAudio() ? 'Parar gravação' : 'Gravar áudio'"
+                type="button">
+          {{ gravandoAudio() ? '⏹️' : '🎤' }}
+        </button>
         <textarea class="chat-input"
                   rows="1"
                   placeholder="Digite uma mensagem..."

@@ -272,20 +272,67 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
     const file = input.files?.[0];
     if (!file) return;
 
-    const idContato = this.selectedId();
-    const idEmpresa = this.empresaId();
-    const chatAtivo = this.selected();
-
-    if (!idContato || !idEmpresa || !chatAtivo) {
-      input.value = '';
-      return;
-    }
-
     const tipoMidia: 'image' | 'audio' | 'document' = file.type.startsWith('image/')
       ? 'image'
       : file.type.startsWith('audio/')
         ? 'audio'
         : 'document';
+
+    this.enviarMidia(file, tipoMidia);
+    input.value = '';
+  }
+
+  // --- GRAVAÇÃO DE ÁUDIO PELO MICROFONE ---
+  gravandoAudio = signal(false);
+  private mediaRecorder?: MediaRecorder;
+  private audioChunks: Blob[] = [];
+
+  async alternarGravacao() {
+    if (this.gravandoAudio()) {
+      this.mediaRecorder?.stop();
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      this.response.set('❌ Seu navegador não permite gravar áudio.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.audioChunks = [];
+      this.mediaRecorder = new MediaRecorder(stream);
+
+      this.mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) this.audioChunks.push(e.data);
+      };
+
+      this.mediaRecorder.onstop = () => {
+        stream.getTracks().forEach(track => track.stop());
+        this.gravandoAudio.set(false);
+
+        if (this.audioChunks.length === 0) return;
+
+        const blob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        const arquivo = new File([blob], `audio-${Date.now()}.webm`, { type: 'audio/webm' });
+        this.enviarMidia(arquivo, 'audio');
+      };
+
+      this.mediaRecorder.start();
+      this.gravandoAudio.set(true);
+    } catch (err) {
+      console.error('Erro ao acessar o microfone:', err);
+      this.response.set('❌ Não foi possível acessar o microfone. Verifique a permissão do navegador.');
+    }
+  }
+
+  // Compartilhado entre o anexo de arquivo e a gravação de áudio pelo microfone
+  private enviarMidia(file: File, tipoMidia: 'image' | 'audio' | 'document') {
+    const idContato = this.selectedId();
+    const idEmpresa = this.empresaId();
+    const chatAtivo = this.selected();
+
+    if (!idContato || !idEmpresa || !chatAtivo) return;
 
     const previewUrl = URL.createObjectURL(file);
 
@@ -330,8 +377,6 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.response.set('❌ Erro ao enviar o arquivo. Verifique a conexão.');
         }
       });
-
-    input.value = '';
   }
 
   filtered = computed(() => {
