@@ -259,12 +259,46 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
     }));
   }
 
-  // Monta a URL de proxy do backend pra baixar a mídia sem expor o token da Meta no front
+  // O endpoint de mídia exige o token JWT (Authorization: Bearer), mas uma tag <img>/<audio>
+  // com [src] direto pra URL não consegue mandar esse header -- o navegador faz a requisição
+  // sem autenticação e recebe 401, aparecendo como imagem quebrada. Por isso baixamos o
+  // arquivo via HttpClient (que já anexa o token pelo interceptor) e criamos uma blob URL
+  // local, cacheada por midiaId pra não baixar de novo toda vez que o Angular re-renderiza.
+  private mediaBlobUrls = signal<Record<string, string>>({});
+
   mediaUrl(midiaId?: string): string {
-    const idEmpresa = this.empresaId();
-    if (!midiaId || !idEmpresa) return '';
-    return `${this.API_URL}/midia/${midiaId}?empresaId=${idEmpresa}`;
+    if (!midiaId) return '';
+
+    const cache = this.mediaBlobUrls();
+    if (cache[midiaId]) return cache[midiaId];
+
+    this.carregarMidia(midiaId);
+    return '';
   }
+
+  private carregarMidia(midiaId: string) {
+    const idEmpresa = this.empresaId();
+    if (!idEmpresa) return;
+
+    // Evita disparar o download de novo enquanto a primeira chamada ainda não voltou
+    if ((midiaId in this.mediaBlobUrls()) || this.midiasCarregando.has(midiaId)) return;
+    this.midiasCarregando.add(midiaId);
+
+    this.http.get(`${this.API_URL}/midia/${midiaId}?empresaId=${idEmpresa}`, { responseType: 'blob' })
+      .subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          this.mediaBlobUrls.update(map => ({ ...map, [midiaId]: url }));
+          this.midiasCarregando.delete(midiaId);
+        },
+        error: (err) => {
+          console.error('Erro ao carregar mídia', midiaId, err);
+          this.midiasCarregando.delete(midiaId);
+        }
+      });
+  }
+
+  private midiasCarregando = new Set<string>();
 
   // Dispara pelo botão de anexo, envia o arquivo escolhido como mídia pra Meta
   enviarArquivo(event: Event) {
