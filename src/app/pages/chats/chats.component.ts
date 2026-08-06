@@ -136,6 +136,8 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
   private tratarMensagemEmTempoReal(msg: any) {
     const contatoIdMsg = msg.contatoId || msg.ContatoId;
     const conteudo = msg.conteudo || msg.Conteudo || msg.text || msg;
+    const midiaId = msg.midiaId || msg.MidiaId;
+    const tipoMidia = msg.tipoMidia || msg.TipoMidia;
     const now = new Date();
     const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
 
@@ -143,7 +145,7 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (this.selectedId() === contatoIdMsg) {
       this.activeMessages.update(msgs => [
         ...msgs,
-        { from: 'user', text: conteudo, time: timeStr }
+        { from: 'user', text: conteudo, time: timeStr, midiaId, tipoMidia }
       ]);
       this.shouldScrollToBottom = true;
     }
@@ -318,6 +320,7 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   // --- GRAVAÇÃO DE ÁUDIO PELO MICROFONE ---
   gravandoAudio = signal(false);
+  enviandoMidia = signal(false);
   private mediaRecorder?: MediaRecorder;
   private audioChunks: Blob[] = [];
 
@@ -368,6 +371,13 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
 
       this.mediaRecorder.start();
       this.gravandoAudio.set(true);
+
+      // Limite de seguranca: para sozinho depois de 3 minutos, pra nao gerar um
+      // arquivo gigante (e provavelmente acima do limite de 16MB de audio da Meta)
+      // se o usuario esquecer o microfone ligado.
+      setTimeout(() => {
+        if (this.gravandoAudio()) this.mediaRecorder?.stop();
+      }, 3 * 60 * 1000);
     } catch (err) {
       console.error('Erro ao acessar o microfone:', err);
       this.response.set('❌ Não foi possível acessar o microfone. Verifique a permissão do navegador.');
@@ -375,12 +385,28 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   // Compartilhado entre o anexo de arquivo e a gravação de áudio pelo microfone
+  // Limites de tamanho de midia da propria Meta (Cloud API) -- mandar acima disso
+  // sempre retorna "(#100) Invalid parameter / Arquivo muito grande", entao vale
+  // barrar aqui e mostrar o motivo na hora, sem gastar uma chamada pra Meta.
+  private readonly LIMITES_MIDIA_MB: Record<'image' | 'audio' | 'document', number> = {
+    image: 5,
+    audio: 16,
+    document: 100
+  };
+
   private enviarMidia(file: File, tipoMidia: 'image' | 'audio' | 'document') {
     const idContato = this.selectedId();
     const idEmpresa = this.empresaId();
     const chatAtivo = this.selected();
 
     if (!idContato || !idEmpresa || !chatAtivo) return;
+
+    const limiteMb = this.LIMITES_MIDIA_MB[tipoMidia];
+    const tamanhoMb = file.size / (1024 * 1024);
+    if (tamanhoMb > limiteMb) {
+      this.response.set(`❌ Arquivo muito grande (${tamanhoMb.toFixed(1)}MB). O WhatsApp aceita no máximo ${limiteMb}MB para esse tipo de mídia.`);
+      return;
+    }
 
     const previewUrl = URL.createObjectURL(file);
 
