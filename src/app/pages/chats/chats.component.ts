@@ -352,7 +352,10 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
       const mimeTypesAceitos = ['audio/mp4', 'audio/aac', 'audio/ogg;codecs=opus', 'audio/ogg'];
       const mimeType = mimeTypesAceitos.find(t => MediaRecorder.isTypeSupported(t)) ?? 'audio/webm';
 
-      this.mediaRecorder = new MediaRecorder(stream, { mimeType });
+      // Sem limitar o bitrate, o MediaRecorder grava em qualidade "musica" (ate 128kbps),
+      // o que deixa um audio de poucos segundos com varios MB. 32kbps e mais que suficiente
+      // pra voz (e o mesmo patamar que o proprio WhatsApp usa nos audios dele).
+      this.mediaRecorder = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 32000 });
 
       this.mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) this.audioChunks.push(e.data);
