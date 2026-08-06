@@ -425,7 +425,15 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
           // O backend manda o motivo real (ex: erro da propria Meta) em err.error.erros --
           // antes essa mensagem generica escondia o motivo, so aparecia expandindo o
           // objeto no console.
-          const motivo = err?.error?.erros?.[0] || err?.error?.erro || 'Verifique a conexão.';
+          // Cobre tanto o formato de erro custom do projeto ({erros:[...]}/{erro:...}) quanto
+          // o ProblemDetails automatico do ASP.NET Core ({errors:{campo:["msg"]}, title:...}),
+          // que aparece quando um campo do multipart nao bate com o tipo esperado no controller
+          // (isso acontecia ANTES do nosso codigo rodar, entao o formato de erro era diferente).
+          const errorsDoAspNet = err?.error?.errors
+            ? Object.values(err.error.errors).flat().join(', ')
+            : null;
+          const motivo = err?.error?.erros?.[0] || err?.error?.erro || errorsDoAspNet || err?.error?.title
+            || `${err?.status ?? ''} ${err?.statusText ?? ''}`.trim() || 'Verifique a conexão.';
           this.response.set(`❌ Erro ao enviar o arquivo: ${motivo}`);
         }
       });
