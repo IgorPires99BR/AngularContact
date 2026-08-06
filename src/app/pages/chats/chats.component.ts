@@ -422,7 +422,11 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
         },
         error: (err) => {
           console.error('Erro ao enviar mídia:', err);
-          this.response.set('❌ Erro ao enviar o arquivo. Verifique a conexão.');
+          // O backend manda o motivo real (ex: erro da propria Meta) em err.error.erros --
+          // antes essa mensagem generica escondia o motivo, so aparecia expandindo o
+          // objeto no console.
+          const motivo = err?.error?.erros?.[0] || err?.error?.erro || 'Verifique a conexão.';
+          this.response.set(`❌ Erro ao enviar o arquivo: ${motivo}`);
         }
       });
   }
