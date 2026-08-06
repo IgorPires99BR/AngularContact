@@ -301,7 +301,15 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       this.audioChunks = [];
-      this.mediaRecorder = new MediaRecorder(stream);
+
+      // A Meta so aceita audio/aac, audio/mp4, audio/mpeg, audio/amr ou audio/ogg (opus) --
+      // o mimeType padrao do MediaRecorder no Chrome/Edge e audio/webm, que a API rejeita
+      // (erro 400 "(#100) Param file must be a file with one of the following types...").
+      // Tenta os formatos aceitos na ordem, e so cai pro webm se nenhum estiver disponivel.
+      const mimeTypesAceitos = ['audio/mp4', 'audio/aac', 'audio/ogg;codecs=opus', 'audio/ogg'];
+      const mimeType = mimeTypesAceitos.find(t => MediaRecorder.isTypeSupported(t)) ?? 'audio/webm';
+
+      this.mediaRecorder = new MediaRecorder(stream, { mimeType });
 
       this.mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) this.audioChunks.push(e.data);
@@ -313,8 +321,14 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
 
         if (this.audioChunks.length === 0) return;
 
-        const blob = new Blob(this.audioChunks, { type: 'audio/webm' });
-        const arquivo = new File([blob], `audio-${Date.now()}.webm`, { type: 'audio/webm' });
+        if (mimeType === 'audio/webm') {
+          this.response.set('❌ Seu navegador só grava em um formato que o WhatsApp não aceita (webm). Tente pelo Safari/iPhone ou anexe um arquivo de áudio já gravado.');
+          return;
+        }
+
+        const extensao = mimeType.startsWith('audio/mp4') ? 'm4a' : mimeType.startsWith('audio/aac') ? 'aac' : 'ogg';
+        const blob = new Blob(this.audioChunks, { type: mimeType });
+        const arquivo = new File([blob], `audio-${Date.now()}.${extensao}`, { type: mimeType });
         this.enviarMidia(arquivo, 'audio');
       };
 
