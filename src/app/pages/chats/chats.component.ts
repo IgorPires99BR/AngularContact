@@ -364,8 +364,13 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
         }
 
         const extensao = mimeType.startsWith('audio/mp4') ? 'm4a' : mimeType.startsWith('audio/aac') ? 'aac' : 'ogg';
+        // A Meta so aceita o mimetype "puro" (ex: audio/ogg) no upload de midia -- o
+        // parametro ";codecs=opus" e necessario pro MediaRecorder escolher o encoder certo,
+        // mas mandado pra Meta no Content-Type faz o upload ser aceito e processado em
+        // silencio como falha (a mensagem nunca sai do status "pendente"/nunca chega).
+        const mimeTypeBase = mimeType.split(';')[0];
         const blob = new Blob(this.audioChunks, { type: mimeType });
-        const arquivo = new File([blob], `audio-${Date.now()}.${extensao}`, { type: mimeType });
+        const arquivo = new File([blob], `audio-${Date.now()}.${extensao}`, { type: mimeTypeBase });
         this.enviarMidia(arquivo, 'audio');
       };
 
