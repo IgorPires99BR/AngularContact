@@ -123,6 +123,37 @@
   margin-top: 6px; text-align: right;
 }
 
+/* Erros por contato após um disparo em lote parcialmente falho */
+.disparo-erros {
+  margin-top: 14px;
+  border: 1px solid var(--danger-border, rgba(239, 68, 68, .3));
+  background: var(--danger-light, rgba(239, 68, 68, .08));
+  border-radius: 10px;
+  padding: 12px 14px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.disparo-erros-titulo {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--danger);
+  margin-bottom: 8px;
+}
+.disparo-erro-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  padding: 5px 0;
+  border-top: 1px solid rgba(255, 255, 255, .06);
+  font-size: .78rem;
+}
+.disparo-erro-item:first-child { border-top: none; }
+.disparo-erro-msg {
+  color: var(--text2);
+  opacity: .85;
+}
+
 .hide-md { display: none; }
 @media (max-width: 1180px) {
   .disp-grid { grid-template-columns: 1fr; }

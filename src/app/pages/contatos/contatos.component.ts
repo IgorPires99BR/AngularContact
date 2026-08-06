@@ -1,9 +1,10 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, signal, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
+import { isEmailValido } from '../../shared/utils/validators';
 
 interface Contato {
   id?: string;
@@ -40,6 +41,16 @@ export class ContatosComponent implements OnInit {
   editingId = signal<string | null>(null);
   response = signal('');
   contatos = signal<Contato[]>([]);
+
+  contatosFiltrados = computed(() => {
+    const termo = this.search().toLowerCase().trim();
+    if (!termo) return this.contatos();
+    return this.contatos().filter(c =>
+      (c.nome && c.nome.toLowerCase().includes(termo)) ||
+      c.telefone.toLowerCase().includes(termo) ||
+      (c.email && c.email.toLowerCase().includes(termo))
+    );
+  });
 
   ngOnInit() {
     this.buscar();
@@ -81,8 +92,13 @@ export class ContatosComponent implements OnInit {
     const f = this.form();
     const currentUserId = this.userId();
 
-    if (!f.telefone) {
-      this.response.set('❌ O telefone é obrigatório');
+    if (!f.telefone || f.telefone.length < 10) {
+      this.response.set('❌ Telefone inválido. Informe DDI + DDD + número (mínimo 10 dígitos).');
+      return;
+    }
+
+    if (f.email && !isEmailValido(f.email)) {
+      this.response.set('❌ E-mail inválido.');
       return;
     }
 

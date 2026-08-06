@@ -98,6 +98,55 @@
   }
 
 /* ============================================================
+   CABEÇALHO (HEADER) DO TEMPLATE
+   ============================================================ */
+.tpl-header-upload-status {
+  margin-top: 6px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.tpl-header-upload-ok {
+  color: var(--green, #22C55E);
+}
+
+.tpl-header-upload-hint {
+  margin-top: 4px;
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.tpl-exemplo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+  .tpl-exemplo-row input {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 11px;
+    color: var(--text);
+    font-size: 0.82rem;
+    outline: none;
+  }
+
+    .tpl-exemplo-row input:focus {
+      border-color: var(--blue2);
+    }
+
+.tpl-header-preview {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 8px;
+}
+
+/* ============================================================
    PRÉVIA ESTILO WHATSAPP
    ============================================================ */
 .tpl-preview-label {

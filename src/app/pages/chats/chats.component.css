@@ -280,6 +280,10 @@
   color: #34B7F1;
 }
 
+.msg-status-icon.msg-status-failed {
+  color: #FCA5A5;
+}
+
 .msg-step {
   align-self: center;
   background: var(--blue-light);

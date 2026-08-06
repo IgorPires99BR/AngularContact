@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
+import { isEmailValido } from '../../shared/utils/validators';
 
 type Perfil = 'admin' | 'operador' | 'viewer';
 
@@ -41,6 +42,17 @@ export class UsuariosComponent implements OnInit {
   response = signal('');
   usuarios = signal<Usuario[]>([]);
   editingId = signal<number | null>(null);
+  search = signal('');
+
+  usuariosFiltrados = computed(() => {
+    const termo = this.search().toLowerCase().trim();
+    if (!termo) return this.usuarios();
+    return this.usuarios().filter(u =>
+      u.nome?.toLowerCase().includes(termo) ||
+      u.email?.toLowerCase().includes(termo) ||
+      u.perfil?.toLowerCase().includes(termo)
+    );
+  });
 
   ngOnInit() {
     this.listarPorEmpresa();
@@ -69,6 +81,16 @@ export class UsuariosComponent implements OnInit {
 
     if (!f.nome || !f.email || (!this.editingId() && !f.senhaHash)) {
       this.response.set('❌ Nome, E-mail e Senha são obrigatórios');
+      return;
+    }
+
+    if (!isEmailValido(f.email)) {
+      this.response.set('❌ E-mail inválido.');
+      return;
+    }
+
+    if (!this.editingId() && f.senhaHash.length < 6) {
+      this.response.set('❌ A senha deve ter ao menos 6 caracteres.');
       return;
     }
 

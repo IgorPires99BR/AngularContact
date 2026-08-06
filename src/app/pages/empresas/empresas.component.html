@@ -53,14 +53,20 @@
                  [ngModel]="form().phoneNumberId" (ngModelChange)="update('phoneNumberId', $event)">
         </div>
         <div class="fg">
-          <label>Plano</label>
-          <select [ngModel]="form().planoId" (ngModelChange)="update('planoId', $event)">
-            <option value="">Selecione um plano...</option>
-            <option value="1">1 - Básico</option>
-            <option value="2">2 - Completo</option>
-            <option value="3">3 - Demonstração</option>
-          </select>
+          <label>Meta App ID</label>
+          <input type="text" placeholder="Ex: 951197071189547"
+                 [ngModel]="form().appIdMeta" (ngModelChange)="update('appIdMeta', $event)">
         </div>
+      </div>
+
+      <div class="fg">
+        <label>Plano</label>
+        <select [ngModel]="form().planoId" (ngModelChange)="update('planoId', $event)">
+          <option value="">Selecione um plano...</option>
+          <option value="1">1 - Básico</option>
+          <option value="2">2 - Completo</option>
+          <option value="3">3 - Demonstração</option>
+        </select>
       </div>
 
       <div class="fg">
@@ -93,8 +99,18 @@
       </div>
       <button class="btn btn-ghost btn-sm" (click)="obterEmpresas()">🔄</button>
     </div>
+
+    <div class="crud-search-bar">
+      <span class="crud-search-icon">🔍</span>
+      <input class="crud-search-input"
+             placeholder="Buscar por nome, CNPJ ou e-mail..."
+             [ngModel]="search()"
+             (ngModelChange)="search.set($event)">
+      <span class="crud-search-count" *ngIf="search()">{{ empresasFiltradas().length }} de {{ empresas().length }}</span>
+    </div>
+
     <div class="crud-list">
-      <div class="crud-item" *ngFor="let e of empresas()">
+      <div class="crud-item" *ngFor="let e of empresasFiltradas()">
         <div class="crud-avatar" style="background: linear-gradient(135deg, #3D6EE8, #4B7BFF)">
           {{ e.nome ? e.nome.substring(0, 2).toUpperCase() : 'EP' }}
         </div>
@@ -121,6 +137,9 @@
       </div>
       <div class="crud-empty" *ngIf="empresas().length === 0">
         Nenhuma empresa cadastrada
+      </div>
+      <div class="crud-empty" *ngIf="empresas().length > 0 && empresasFiltradas().length === 0">
+        Nenhuma empresa encontrada para "{{ search() }}".
       </div>
     </div>
   </div>

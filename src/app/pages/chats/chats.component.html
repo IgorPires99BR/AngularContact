@@ -99,6 +99,12 @@
                     <polyline points="1,12 6,17 17,6" />
                     <polyline points="9,12 14,17 25,6" />
                   </svg>
+                  <!-- Alerta: falha no envio -->
+                  <svg *ngIf="m.status === 'failed'" class="msg-status-icon msg-status-failed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
                 </ng-container>
               </div>
             </div>

@@ -1,8 +1,9 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, signal, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { isEmailValido } from '../../shared/utils/validators';
 
 interface Empresa {
   id: string;
@@ -13,6 +14,7 @@ interface Empresa {
   accessToken?: string;   // Mapeado de MetaAccessToken
   wabaId?: string;        // Mapeado de WabaId
   phoneNumberId?: string; // Mapeado de PhoneNumberId
+  appIdMeta?: string;     // Mapeado de AppIdMeta (usado no upload de mídia de exemplo dos templates)
   dataCriacao: string;
   planoId?: string;
 }
@@ -38,10 +40,22 @@ export class EmpresasComponent implements OnInit {
     metaAccessToken: '',
     planoId: '',
     wabaId: '',
-    phoneNumberId: '' // <-- ADICIONE ESTA LINHA
+    phoneNumberId: '',
+    appIdMeta: ''
   });
   response = signal('');
   editingId = signal<string | null>(null);
+  search = signal('');
+
+  empresasFiltradas = computed(() => {
+    const termo = this.search().toLowerCase().trim();
+    if (!termo) return this.empresas();
+    return this.empresas().filter(e =>
+      e.nome?.toLowerCase().includes(termo) ||
+      e.cnpj?.toLowerCase().includes(termo) ||
+      e.email?.toLowerCase().includes(termo)
+    );
+  });
 
   ngOnInit() {
     this.obterEmpresas();
@@ -76,7 +90,8 @@ export class EmpresasComponent implements OnInit {
       metaAccessToken: empresa.accessToken || '', // Garanta que o mapeamento do token está batendo com o que vem da API
       planoId: empresa.planoId || '',
       wabaId: empresa.wabaId || '',
-      phoneNumberId: empresa.phoneNumberId || '' // <-- ADICIONE ESTA LINHA
+      phoneNumberId: empresa.phoneNumberId || '',
+      appIdMeta: empresa.appIdMeta || ''
     });
     this.response.set(`Editando: ${empresa.nome}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -84,7 +99,7 @@ export class EmpresasComponent implements OnInit {
 
   cancelarEdicao() {
     this.editingId.set(null);
-    this.form.set({ nome: '', cnpj: '', email: '', tel: '', metaAccessToken: '', planoId: '', wabaId: '', phoneNumberId: '' });
+    this.form.set({ nome: '', cnpj: '', email: '', tel: '', metaAccessToken: '', planoId: '', wabaId: '', phoneNumberId: '', appIdMeta: '' });
     this.response.set('');
   }
 
@@ -92,6 +107,21 @@ export class EmpresasComponent implements OnInit {
     const f = this.form();
     if (!f.nome || !f.cnpj) {
       this.response.set('❌ Nome e CNPJ são obrigatórios');
+      return;
+    }
+
+    if (f.cnpj.length !== 14) {
+      this.response.set('❌ CNPJ inválido. Deve conter 14 dígitos.');
+      return;
+    }
+
+    if (f.email && !isEmailValido(f.email)) {
+      this.response.set('❌ E-mail inválido.');
+      return;
+    }
+
+    if (f.tel && f.tel.length < 10) {
+      this.response.set('❌ Telefone inválido. Informe DDI + DDD + número (mínimo 10 dígitos).');
       return;
     }
 
@@ -103,7 +133,8 @@ export class EmpresasComponent implements OnInit {
       cnpj: f.cnpj,
       planoId: f.planoId,
       wabaId: f.wabaId,
-      phoneNumberId: f.phoneNumberId
+      phoneNumberId: f.phoneNumberId,
+      appIdMeta: f.appIdMeta
     };
 
     if (this.editingId()) {

@@ -27,7 +27,7 @@ const MENU_RAW: MenuSection[] = [
     label: 'Comunicação',
     items: [
       {
-        id: 'chats', label: 'Chats Ativos', route: '/chats', badge: 12,
+        id: 'chats', label: 'Chats Ativos', route: '/chats',
         icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>`,
       },
       {
@@ -37,6 +37,10 @@ const MENU_RAW: MenuSection[] = [
       {
         id: 'flows', label: 'Flows', route: '/flows',
         icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2"/><path d="M12 7v3"/><path d="M7 13H5a2 2 0 00-2 2v1"/><path d="M17 13h2a2 2 0 012 2v1"/><circle cx="3" cy="19" r="2"/><circle cx="21" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><path d="M12 16v1"/></svg>`,
+      },
+      {
+        id: 'relatorio', label: 'Relatório de Mensagens', route: '/relatorio',
+        icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>`,
       },
     ],
   },
@@ -98,4 +102,5 @@ export const PAGE_TITLES: Record<string, string> = {
   numeros: 'Números',
   templates: 'Templates',
   usuarios: 'Usuários',
+  relatorio: 'Relatório de Mensagens',
 };

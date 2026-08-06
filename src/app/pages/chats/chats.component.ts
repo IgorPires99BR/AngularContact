@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
+import { ChatNotificationService } from '../../core/services/chat-notification';
 import { environment } from '../../../environments/environment';
 import * as signalR from '@microsoft/signalr';
 import { TemplateMessagePipe } from '../../shared/pipes/template-message.pipe';
@@ -39,6 +40,7 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private http = inject(HttpClient);
   private authService = inject(AuthService);
+  private chatNotification = inject(ChatNotificationService);
 
   private empresaId = this.authService.empresaIdSignal;
 
@@ -158,6 +160,7 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
         return c;
       })
     );
+    this.chatNotification.setFromChats(this.chats());
   }
 
   private scrollToBottom(): void {
@@ -184,6 +187,7 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
             color: this.colors[index % this.colors.length]
           }));
           this.chats.set(dadosTratados);
+          this.chatNotification.setFromChats(dadosTratados);
         },
         error: (err) => {
           console.error(err);
@@ -268,6 +272,7 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chats.update(lista =>
       lista.map(c => c.contatoId === id ? { ...c, quantidadeNaoLidas: 0 } : c)
     );
+    this.chatNotification.setFromChats(this.chats());
 
     const idEmpresa = this.empresaId();
     if (idEmpresa) {

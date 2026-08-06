@@ -1,0 +1,101 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">📊 Relatório de Mensagens</h1>
+    <div class="ph-sub">Histórico unificado de mensagens enviadas e recebidas, por número</div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon blue">📤</div>
+    <div>
+      <div class="stat-label">Enviadas</div>
+      <div class="stat-value blue">{{ enviadas() }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">📥</div>
+    <div>
+      <div class="stat-label">Recebidas</div>
+      <div class="stat-value green">{{ recebidas() }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon warn">🗂️</div>
+    <div>
+      <div class="stat-label">Total no período</div>
+      <div class="stat-value warn">{{ mensagens().length }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-14">
+  <div class="card-head" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <div class="card-title">🗓️ Filtro por período</div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;">
+      <div class="fg" style="margin-bottom: 0;">
+        <label>De</label>
+        <input type="date" [ngModel]="dataInicio()" (ngModelChange)="dataInicio.set($event)">
+      </div>
+      <div class="fg" style="margin-bottom: 0;">
+        <label>Até</label>
+        <input type="date" [ngModel]="dataFim()" (ngModelChange)="dataFim.set($event)">
+      </div>
+      <button class="btn btn-primary btn-sm" (click)="buscar()" [disabled]="carregando()">
+        {{ carregando() ? '⏳' : '🔎' }} Filtrar
+      </button>
+      <button class="btn btn-ghost btn-sm" (click)="limparFiltroData()" [disabled]="carregando()">Limpar</button>
+    </div>
+  </div>
+
+  <div class="crud-search-bar">
+    <span class="crud-search-icon">🔍</span>
+    <input class="crud-search-input"
+           placeholder="Buscar por número ou conteúdo da mensagem..."
+           [ngModel]="search()"
+           (ngModelChange)="search.set($event)">
+    <span class="crud-search-count" *ngIf="search()">{{ mensagensFiltradas().length }} de {{ mensagens().length }}</span>
+  </div>
+
+  <div class="payload-display" *ngIf="response()" style="margin: 0 18px 14px">{{ response() }}</div>
+
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width: 90px;">Direção</th>
+          <th>Número Origem</th>
+          <th>Número Destino</th>
+          <th>Conteúdo</th>
+          <th style="width: 150px;">Data/Hora</th>
+          <th style="width: 100px;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let m of mensagensFiltradas()">
+          <td>
+            <span class="badge" [ngClass]="m.direcao === 'Enviada' ? 'badge-blue' : 'badge-green'">
+              {{ m.direcao === 'Enviada' ? '📤 Enviada' : '📥 Recebida' }}
+            </span>
+          </td>
+          <td class="mono">{{ m.numeroOrigem || '—' }}</td>
+          <td class="mono">{{ m.numeroDestino || '—' }}</td>
+          <td class="rel-conteudo">{{ m.conteudo }}</td>
+          <td class="mono">{{ m.dataHora | date:'dd/MM/yy HH:mm' }}</td>
+          <td>
+            <span class="badge" [ngClass]="statusBadgeClass(m.status)">{{ statusLabel(m.status) }}</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="crud-empty" *ngIf="!carregando() && mensagens().length === 0">
+      Nenhuma mensagem encontrada para o período selecionado.
+    </div>
+    <div class="crud-empty" *ngIf="mensagens().length > 0 && mensagensFiltradas().length === 0">
+      Nenhuma mensagem encontrada para "{{ search() }}".
+    </div>
+  </div>
+</div>

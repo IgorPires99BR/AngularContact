@@ -64,8 +64,17 @@
       </div>
     </div>
 
+    <div class="crud-search-bar">
+      <span class="crud-search-icon">🔍</span>
+      <input class="crud-search-input"
+             placeholder="Buscar por telefone, descrição ou status..."
+             [ngModel]="search()"
+             (ngModelChange)="search.set($event)">
+      <span class="crud-search-count" *ngIf="search()">{{ numerosFiltrados().length }} de {{ numeros().length }}</span>
+    </div>
+
     <div class="crud-list">
-      <div class="crud-item" *ngFor="let n of numeros()">
+      <div class="crud-item" *ngFor="let n of numerosFiltrados()">
         <div class="num-icon" [ngClass]="n.statusMeta || 'CONNECTED'">📱</div>
         <div class="crud-info">
           <div class="crud-name">{{ n.descricao || 'WhatsApp Enterprise' }}</div>
@@ -91,6 +100,7 @@
       </div>
 
       <div class="crud-empty" *ngIf="numeros().length === 0">Nenhum número importado ou cadastrado na base local.</div>
+      <div class="crud-empty" *ngIf="numeros().length > 0 && numerosFiltrados().length === 0">Nenhum número encontrado para "{{ search() }}".</div>
     </div>
   </div>
 </div>

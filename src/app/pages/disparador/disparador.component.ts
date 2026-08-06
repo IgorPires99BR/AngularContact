@@ -85,6 +85,7 @@ export class DisparadorComponent implements OnInit {
   headerMediaUrl = signal('');
   temMediaHeader = signal(false);
   response = signal('');
+  errosLote = signal<{ telefone: string; erro: string }[]>([]);
 
   // Computeds
   contatosFiltrados = computed(() => {
@@ -298,13 +299,27 @@ export class DisparadorComponent implements OnInit {
     };
 
     this.response.set('⏳ Iniciando envio em lote...');
+    this.errosLote.set([]);
 
-    this.http.post(`${this.API_DISPARO}/EnviarMensagemTemplateLote`, payload).subscribe({
+    this.http.post<any>(`${this.API_DISPARO}/EnviarMensagemTemplateLote`, payload).subscribe({
       next: (res: any) => {
-        const total = res?.data?.totalProcessado ?? payload.telefones.length;
-        const sucesso = res?.data?.totalSucesso ?? total;
+        // O endpoint retorna o envelope Response<T> cru (sem passar por ValidateResponse),
+        // então o resultado real vem em res.value, não em res.data.
+        const relatorioDisparos: Record<string, boolean> = res?.value?.relatorioDisparos || {};
+        const relatorioErros: Record<string, string> = res?.value?.relatorioErros || {};
+        const telefones = Object.keys(relatorioDisparos);
+        const total = telefones.length;
+        const sucesso = telefones.filter(t => relatorioDisparos[t]).length;
 
-        this.response.set(`✅ Disparo concluído! Sucesso: ${sucesso} de ${total}.`);
+        this.errosLote.set(Object.entries(relatorioErros).map(([telefone, erro]) => ({ telefone, erro })));
+
+        if (total === 0) {
+          this.response.set('⚠ O disparo terminou, mas a API não retornou nenhum resultado por telefone.');
+        } else if (sucesso === total) {
+          this.response.set(`✅ Disparo concluído! Sucesso: ${sucesso} de ${total}.`);
+        } else {
+          this.response.set(`⚠ Disparo concluído com falhas. Sucesso: ${sucesso} de ${total} — veja os erros abaixo.`);
+        }
 
         this.params.set([]);
         this.buttonParams.set([]);

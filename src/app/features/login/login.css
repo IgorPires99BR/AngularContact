@@ -342,6 +342,33 @@
     cursor: not-allowed;
   }
 
+  .cs-input-invalid {
+    border-color: var(--danger) !important;
+  }
+
+    .cs-input-invalid:focus {
+      box-shadow: 0 0 0 3px var(--danger-bg);
+    }
+
+/* Erro inline por campo */
+.fg-err {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: var(--danger);
+  line-height: 1.4;
+}
+
+/* Aviso de Caps Lock */
+.caps-lock-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: #FBBF24;
+  animation: fadeUp .2s ease both;
+}
+
 .input-pw-wrap {
   position: relative;
 }
@@ -373,11 +400,32 @@
     background: rgba(0, 229, 255, 0.08);
   }
 
-/* Link "esqueci minha senha" */
+/* Linha com "Lembrar-me" + link "esqueci minha senha" */
+.fg-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text2);
+  cursor: pointer;
+  user-select: none;
+}
+
+  .remember-me input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--cs-cyan);
+    cursor: pointer;
+  }
+
 .forgot-password-link {
-  display: block;
-  text-align: right;
-  margin-top: 8px;
   font-size: 0.8rem;
   color: var(--muted);
   text-decoration: none;

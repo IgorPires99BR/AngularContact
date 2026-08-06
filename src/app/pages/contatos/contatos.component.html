@@ -56,6 +56,16 @@
       <div class="card-sub">{{ contatos().length }} contatos carregados</div>
     </div>
   </div>
+
+  <div class="crud-search-bar">
+    <span class="crud-search-icon">🔍</span>
+    <input class="crud-search-input"
+           placeholder="Buscar por nome, telefone ou e-mail..."
+           [ngModel]="search()"
+           (ngModelChange)="search.set($event)">
+    <span class="crud-search-count" *ngIf="search()">{{ contatosFiltrados().length }} de {{ contatos().length }}</span>
+  </div>
+
   <div class="tbl-wrap">
     <table class="tbl">
       <thead>
@@ -67,7 +77,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let c of contatos()">
+        <tr *ngFor="let c of contatosFiltrados()">
           <td><strong>{{ c.nome || 'Sem nome' }}</strong></td>
           <td class="mono">{{ c.telefone }}</td>
           <td>{{ c.email }}</td>
@@ -83,6 +93,9 @@
 
     <div class="crud-empty" *ngIf="contatos().length === 0">
       Nenhum contato encontrado para o seu usuário.
+    </div>
+    <div class="crud-empty" *ngIf="contatos().length > 0 && contatosFiltrados().length === 0">
+      Nenhum contato encontrado para "{{ search() }}".
     </div>
   </div>
 </div>

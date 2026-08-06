@@ -55,23 +55,48 @@ export class TemplatesComponent implements OnInit {
 
   botoes = signal<TemplateBotao[]>([]);
 
+  // --- Cabeçalho (HEADER) opcional ---
+  headerTipo = signal<'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'>('NONE');
+  headerTexto = signal('');
+  headerExemploHandle = signal('');
+  headerExemploNomeArquivo = signal('');
+  uploadingHeader = signal(false);
+
+  // --- Exemplos exigidos pela Meta para cada {{n}} do corpo ---
+  exemplosBody = signal<{ value: string }[]>([]);
+
   response = signal('');
   templates = signal<Template[]>([]);
   sincronizando = signal(false);
+  search = signal('');
+
+  templatesFiltrados = computed(() => {
+    const termo = this.search().toLowerCase().trim();
+    if (!termo) return this.templates();
+    return this.templates().filter(t =>
+      t.nomeTemplate?.toLowerCase().includes(termo) ||
+      t.categoria?.toLowerCase().includes(termo) ||
+      t.status?.toLowerCase().includes(termo)
+    );
+  });
 
   // Contadores inteligentes baseados no status retornado pelo banco
   aprovados = computed(() => this.templates().filter(t => t.status?.toUpperCase() === 'APPROVED').length);
   pendentes = computed(() => this.templates().filter(t => t.status?.toUpperCase() === 'PENDING').length);
   rejeitados = computed(() => this.templates().filter(t => t.status?.toUpperCase() === 'REJECTED' || t.status?.toUpperCase() === 'REJECTED_META').length);
 
-  // Prévia do corpo da mensagem com variáveis {{1}}, {{2}} preenchidas por valores de exemplo,
-  // pra dar uma ideia real de como o template vai aparecer no WhatsApp
+  // Prévia do corpo da mensagem com variáveis {{1}}, {{2}} preenchidas pelos exemplos
+  // digitados (ou um placeholder enquanto o exemplo não é preenchido)
   preview = computed(() => {
     const conteudo = this.form().conteudo;
     if (!conteudo) return '';
-    const exemplos = ['João', '48291', '15/08', 'R$ 129,90', '10%'];
+    const exemplos = this.exemplosBody();
     let i = 0;
-    return conteudo.replace(/\{\{\d+\}\}/g, () => exemplos[i++ % exemplos.length]);
+    return conteudo.replace(/\{\{\d+\}\}/g, () => {
+      const valor = exemplos[i]?.value?.trim();
+      i++;
+      return valor || `[Exemplo ${i}]`;
+    });
   });
 
   ngOnInit() {
@@ -80,6 +105,70 @@ export class TemplatesComponent implements OnInit {
 
   update(field: string, value: any) {
     this.form.set({ ...this.form(), [field]: value });
+  }
+
+  // Chamado a cada alteração do corpo: mantém a lista de exemplos do mesmo
+  // tamanho da quantidade de variáveis {{n}} encontradas, preservando o que já
+  // foi digitado nas posições que continuam existindo
+  onConteudoChange(valor: string) {
+    this.update('conteudo', valor);
+    const quantidade = (valor.match(/\{\{\d+\}\}/g) || []).length;
+    const atuais = this.exemplosBody();
+    this.exemplosBody.set(Array.from({ length: quantidade }, (_, i) => atuais[i] ?? { value: '' }));
+  }
+
+  updateExemploBody(index: number, valor: string) {
+    const arr = [...this.exemplosBody()];
+    arr[index] = { value: valor };
+    this.exemplosBody.set(arr);
+  }
+
+  // --- Cabeçalho (HEADER) ---
+
+  onHeaderTipoChange(tipo: string) {
+    this.headerTipo.set(tipo as any);
+    this.headerTexto.set('');
+    this.headerExemploHandle.set('');
+    this.headerExemploNomeArquivo.set('');
+  }
+
+  onHeaderArquivoSelecionado(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const arquivo = input.files?.[0];
+    if (!arquivo) return;
+
+    const empId = this.empresaId();
+    if (!empId) {
+      this.response.set('❌ Empresa não identificada na sessão.');
+      return;
+    }
+
+    this.uploadingHeader.set(true);
+    this.headerExemploHandle.set('');
+    this.response.set('⏳ Enviando arquivo de exemplo para a Meta...');
+
+    const formData = new FormData();
+    formData.append('empresaId', empId);
+    formData.append('arquivo', arquivo);
+
+    this.http.post<{ handle: string }>(`${this.API_URL}/upload-midia-exemplo`, formData).subscribe({
+      next: (res) => {
+        this.uploadingHeader.set(false);
+        if (!res?.handle) {
+          this.response.set('❌ Upload concluído, mas a Meta não retornou o identificador do arquivo.');
+          return;
+        }
+        this.headerExemploHandle.set(res.handle);
+        this.headerExemploNomeArquivo.set(arquivo.name);
+        this.response.set('✅ Arquivo de exemplo enviado. Já pode cadastrar o template.');
+      },
+      error: (err) => {
+        this.uploadingHeader.set(false);
+        const erro = Array.isArray(err.error) ? err.error.join(', ') : (err.error?.erro || 'Falha ao enviar o arquivo.');
+        this.response.set(`❌ Erro no upload: ${erro}`);
+        input.value = '';
+      }
+    });
   }
 
   // --- Gestão dos botões do formulário de criação ---
@@ -100,6 +189,16 @@ export class TemplatesComponent implements OnInit {
     this.botoes.update(list =>
       list.map((b, i) => i === index ? { ...b, [campo]: valor } : b)
     );
+  }
+
+  // Botão do tipo Telefone: aceita só dígitos e um "+" opcional no início (formato
+  // esperado pela Meta), diferente do texto livre dos demais campos de botão.
+  atualizarTelefoneBotao(index: number, input: HTMLInputElement) {
+    const comSinal = input.value.trim().startsWith('+') ? '+' : '';
+    const digitos = input.value.replace(/\D/g, '').slice(0, 15);
+    const telefone = comSinal + digitos;
+    input.value = telefone;
+    this.atualizarBotao(index, 'numeroTelefone', telefone);
   }
 
   removerBotao(index: number) {
@@ -134,6 +233,22 @@ export class TemplatesComponent implements OnInit {
       return;
     }
 
+    const headerTipo = this.headerTipo();
+    if (headerTipo === 'TEXT' && !this.headerTexto().trim()) {
+      this.response.set('❌ Informe o texto do cabeçalho.');
+      return;
+    }
+    if ((headerTipo === 'IMAGE' || headerTipo === 'VIDEO' || headerTipo === 'DOCUMENT') && !this.headerExemploHandle()) {
+      this.response.set('❌ Envie o arquivo de exemplo do cabeçalho antes de cadastrar o template.');
+      return;
+    }
+
+    const exemplos = this.exemplosBody().map(e => e.value.trim());
+    if (exemplos.length > 0 && exemplos.some(e => !e)) {
+      this.response.set('❌ Preencha um valor de exemplo para cada variável {{n}} do corpo.');
+      return;
+    }
+
     // Força o nome a seguir o padrão estrito de snake_case exigido pela Meta
     const nomeTratado = f.nomeTemplate.trim().toLowerCase().replace(/\s+/g, '_');
 
@@ -143,7 +258,11 @@ export class TemplatesComponent implements OnInit {
       categoria: f.categoria,
       idioma: f.idioma,
       conteudo: f.conteudo,
-      botoes: this.botoes().length > 0 ? this.botoes() : null
+      botoes: this.botoes().length > 0 ? this.botoes() : null,
+      headerTipo: headerTipo === 'NONE' ? null : headerTipo,
+      headerTexto: headerTipo === 'TEXT' ? this.headerTexto().trim() : null,
+      headerExemploHandle: (headerTipo === 'IMAGE' || headerTipo === 'VIDEO' || headerTipo === 'DOCUMENT') ? this.headerExemploHandle() : null,
+      exemplosBody: exemplos.length > 0 ? exemplos : null
     };
 
     this.response.set('⏳ Registrando template no ecossistema da Meta...');
@@ -202,6 +321,11 @@ export class TemplatesComponent implements OnInit {
       conteudo: ''
     });
     this.botoes.set([]);
+    this.headerTipo.set('NONE');
+    this.headerTexto.set('');
+    this.headerExemploHandle.set('');
+    this.headerExemploNomeArquivo.set('');
+    this.exemplosBody.set([]);
   }
 
   badgeClass(status?: string) {

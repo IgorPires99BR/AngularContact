@@ -74,6 +74,14 @@
       <div class="payload-display" *ngIf="response()" style="margin-top: 14px">
         {{ response() }}
       </div>
+
+      <div class="disparo-erros" *ngIf="errosLote().length > 0">
+        <div class="disparo-erros-titulo">❌ {{ errosLote().length }} contato(s) com falha no disparo</div>
+        <div class="disparo-erro-item" *ngFor="let e of errosLote()">
+          <span class="mono">{{ e.telefone }}</span>
+          <span class="disparo-erro-msg">{{ e.erro }}</span>
+        </div>
+      </div>
     </div>
   </div>
 

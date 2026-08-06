@@ -48,6 +48,17 @@ export class NumerosComponent implements OnInit {
   response = signal('');
   numeros = signal<Numero[]>([]);
   sincronizando = signal(false);
+  search = signal('');
+
+  numerosFiltrados = computed(() => {
+    const termo = this.search().toLowerCase().trim();
+    if (!termo) return this.numeros();
+    return this.numeros().filter(n =>
+      n.telefone?.toLowerCase().includes(termo) ||
+      n.descricao?.toLowerCase().includes(termo) ||
+      n.statusMeta?.toLowerCase().includes(termo)
+    );
+  });
 
   ativos = computed(() => this.numeros().filter(n =>
     n.statusMeta?.toUpperCase() === 'CONNECTED' ||
@@ -102,6 +113,11 @@ export class NumerosComponent implements OnInit {
 
     if (!f.telefone || !f.nomeVerificado || !f.codigoPais || !uid) {
       this.response.set('❌ Preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    if (f.telefone.length < 8) {
+      this.response.set('❌ Telefone inválido. Informe o número completo, sem o código do país.');
       return;
     }
 

@@ -46,6 +46,72 @@
   font-size: .85rem;
 }
 
+/* ============================================================
+   Barra de busca/filtro compartilhada (Contatos, Números, Empresas,
+   Templates, Usuários) — ícone "pula" ao focar, contador aparece animado
+   ============================================================ */
+.crud-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 14px;
+  margin: 0 18px 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+  .crud-search-bar:focus-within {
+    border-color: var(--blue2);
+    box-shadow: 0 0 0 3px var(--blue-light);
+  }
+
+.crud-search-icon {
+  font-size: .95rem;
+  flex-shrink: 0;
+  transform-origin: 60% 90%;
+}
+
+  .crud-search-bar:focus-within .crud-search-icon {
+    animation: crud-search-hop .5s ease;
+  }
+
+@keyframes crud-search-hop {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  30% { transform: translateY(-3px) rotate(-10deg); }
+  60% { transform: translateY(0) rotate(8deg); }
+}
+
+.crud-search-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: .85rem;
+}
+
+  .crud-search-input::placeholder { color: var(--muted); }
+
+.crud-search-count {
+  flex-shrink: 0;
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--blue3);
+  background: var(--blue-light);
+  padding: 3px 9px;
+  border-radius: 100px;
+  white-space: nowrap;
+  animation: crud-search-count-in .2s ease both;
+}
+
+@keyframes crud-search-count-in {
+  from { opacity: 0; transform: scale(.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 /* Stats blocks (números, usuários) */
 .stats-grid {
   display: grid;

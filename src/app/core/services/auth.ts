@@ -27,10 +27,14 @@ export class AuthService {
   readonly empresaIdSignal = computed(() => this.userState()?.idEmpresa);
 
   getToken(): string | null {
-    return this.userState()?.token ?? localStorage.getItem('token');
+    return this.userState()?.token ?? localStorage.getItem('token') ?? sessionStorage.getItem('token');
   }
 
-  setSession(apiResponse: any) {
+  /**
+   * @param remember Quando true, a sessão sobrevive ao fechar o navegador (localStorage).
+   * Quando false, some ao fechar a aba/navegador (sessionStorage) — opção "Lembrar-me".
+   */
+  setSession(apiResponse: any, remember = true) {
     // Garante que a resposta contém os dados necessários antes de persistir
     if (apiResponse && typeof apiResponse === 'object') {
       const data: UserData = {
@@ -43,12 +47,23 @@ export class AuthService {
         token: apiResponse.token
       };
 
-      // Salva no localStorage para manter a sessão ao atualizar a página (F5)
-      localStorage.setItem('userData', JSON.stringify(data));
-      localStorage.setItem('usuarioId', data.idUsuario);
-      localStorage.setItem('empresaId', data.idEmpresa);
+      // Limpa os dois storages antes de gravar, evitando sessão "fantasma" de um login anterior
+      // com a outra escolha de "Lembrar-me"
+      localStorage.removeItem('userData');
+      localStorage.removeItem('usuarioId');
+      localStorage.removeItem('empresaId');
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('userData');
+      sessionStorage.removeItem('usuarioId');
+      sessionStorage.removeItem('empresaId');
+      sessionStorage.removeItem('token');
+
+      const store = remember ? localStorage : sessionStorage;
+      store.setItem('userData', JSON.stringify(data));
+      store.setItem('usuarioId', data.idUsuario);
+      store.setItem('empresaId', data.idEmpresa);
       if (data.token) {
-        localStorage.setItem('token', data.token);
+        store.setItem('token', data.token);
       }
 
       // Atualiza o Signal global de forma reativa
@@ -57,7 +72,7 @@ export class AuthService {
   }
 
   private getUserFromStorage(): UserData | null {
-    const data = localStorage.getItem('userData');
+    const data = localStorage.getItem('userData') ?? sessionStorage.getItem('userData');
     return data ? JSON.parse(data) as UserData : null;
   }
 

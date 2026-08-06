@@ -1,7 +1,7 @@
-﻿import { Component, inject, NgZone } from '@angular/core';
+import { Component, inject, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { ApiService } from '../../core/services/api';
@@ -11,7 +11,7 @@ import { Globe3dComponent } from '../../shared/globe3d/globe3d';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, Globe3dComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, Globe3dComponent],
   templateUrl: './login.html',
   styleUrls: ['./login.css']
 })
@@ -20,31 +20,48 @@ export class LoginComponent {
   private auth = inject(AuthService);
   private router = inject(Router);
   private zone = inject(NgZone);
+  private fb = inject(FormBuilder);
 
-  // Propriedades do Formulário
-  email = '';
-  password = '';
+  // Formulário reativo: cada campo valida a si mesmo e expõe seu próprio estado de erro
+  form = this.fb.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]],
+    rememberMe: [true]
+  });
 
   // Estado da UI
   loading = false;
   showPw = false;
   errorMsg = '';
+  capsLockOn = false;
+
+  get emailCtrl() {
+    return this.form.controls.email;
+  }
+
+  get passwordCtrl() {
+    return this.form.controls.password;
+  }
+
+  checkCapsLock(event: KeyboardEvent) {
+    this.capsLockOn = event.getModifierState?.('CapsLock') ?? false;
+  }
 
   async onLogin() {
-    if (!this.email || !this.password) {
-      this.errorMsg = 'Por favor, preencha todos os campos.';
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.errorMsg = 'Verifique os campos destacados antes de continuar.';
       return;
     }
 
     this.loading = true;
     this.errorMsg = '';
 
+    const { email, password, rememberMe } = this.form.getRawValue();
+
     try {
       // Chamada para a API .NET Core
-      const res = await firstValueFrom(this.api.login({
-        email: this.email,
-        password: this.password
-      }));
+      const res = await firstValueFrom(this.api.login({ email, password }));
 
       // 1. Tratamento caso o seu backend use o padrão Response wrapper (com propriedade success/errors)
       // Se a requisição voltou com sucesso HTTP, mas o banco rejeitou as credenciais:
@@ -60,8 +77,8 @@ export class LoginComponent {
         // Extrai os dados se eles vierem encapsulados em uma propriedade 'data', ou usa o objeto direto
         const userData = res.data ? res.data : res;
 
-        // Salva a sessão ativa de forma segura
-        this.auth.setSession(userData);
+        // Salva a sessão ativa de forma segura, respeitando a escolha de "Lembrar-me"
+        this.auth.setSession(userData, !!rememberMe);
 
         // Redireciona estritamente para o Dashboard
         this.zone.run(() => {

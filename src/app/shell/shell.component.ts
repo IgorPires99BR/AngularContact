@@ -2,6 +2,7 @@ import { Component, inject, computed, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../core/services/auth';
+import { ChatNotificationService } from '../core/services/chat-notification';
 import { getMenuByRole } from '../shared/menu';
 
 @Component({
@@ -14,12 +15,28 @@ import { getMenuByRole } from '../shared/menu';
 export class ShellComponent {
   private router = inject(Router);
   public auth = inject(AuthService);
+  private chatNotification = inject(ChatNotificationService);
 
-  // Estado do Menu e Títulos
+  // Estado do Menu e Títulos. O badge de "Chats Ativos" é sobrescrito com o total
+  // real de não lidas (ver ChatNotificationService) em vez de um valor fixo.
   menu = computed(() => {
     const userData = this.auth.user();
-    return getMenuByRole(userData?.role);
+    const secoes = getMenuByRole(userData?.role);
+    const totalNaoLidas = this.chatNotification.totalNaoLidas();
+
+    return secoes.map(secao => ({
+      ...secao,
+      items: secao.items.map(item =>
+        item.id === 'chats'
+          ? { ...item, badge: totalNaoLidas > 0 ? totalNaoLidas : undefined }
+          : item
+      )
+    }));
   });
+
+  constructor() {
+    this.chatNotification.carregarTotalNaoLidas();
+  }
   drawerOpen = signal(false);
   topTitle = signal('Dashboard');
   crumb = signal('Contact Solution / Principal');

@@ -14,6 +14,11 @@ export class ApiService {
     return this.http.post(`${this.baseUrl}/auth/login`, credenciais);
   }
 
+  // Solicita o envio de uma nova senha por e-mail para o usuário
+  forgotPassword(email: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/auth/forgot-password`, { email });
+  }
+
   // Seus métodos de contatos permanecem abaixo...
   getContatosPorUsuario(usuarioId: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/contato/obter-por-usuario/${usuarioId}`);

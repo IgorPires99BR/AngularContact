@@ -53,8 +53,49 @@
           </div>
 
           <div class="fg">
+            <label>Cabeçalho (opcional)</label>
+            <select [ngModel]="headerTipo()" (ngModelChange)="onHeaderTipoChange($event)">
+              <option value="NONE">Nenhum</option>
+              <option value="TEXT">Texto</option>
+              <option value="IMAGE">Imagem</option>
+              <option value="VIDEO">Vídeo</option>
+              <option value="DOCUMENT">Documento</option>
+            </select>
+
+            <input *ngIf="headerTipo() === 'TEXT'"
+                   type="text"
+                   style="margin-top: 8px;"
+                   placeholder="Texto fixo do cabeçalho"
+                   maxlength="60"
+                   [ngModel]="headerTexto()"
+                   (ngModelChange)="headerTexto.set($event)">
+
+            <div *ngIf="headerTipo() === 'IMAGE' || headerTipo() === 'VIDEO' || headerTipo() === 'DOCUMENT'" style="margin-top: 8px;">
+              <input type="file"
+                     [accept]="headerTipo() === 'IMAGE' ? 'image/*' : headerTipo() === 'VIDEO' ? 'video/*' : '.pdf,.doc,.docx'"
+                     [disabled]="uploadingHeader()"
+                     (change)="onHeaderArquivoSelecionado($event)">
+              <div class="tpl-header-upload-status" *ngIf="uploadingHeader()">⏳ Enviando pra Meta...</div>
+              <div class="tpl-header-upload-status tpl-header-upload-ok" *ngIf="!uploadingHeader() && headerExemploNomeArquivo()">
+                ✅ {{ headerExemploNomeArquivo() }} enviado como exemplo
+              </div>
+              <div class="tpl-header-upload-hint">
+                Esse arquivo é só o exemplo exigido pela Meta pra aprovar o template — na hora de disparar, cada envio pode usar uma mídia diferente (ver tela Disparos).
+              </div>
+            </div>
+          </div>
+
+          <div class="fg">
             <label>Conteúdo do Corpo (BODY)</label>
-            <textarea rows="5" placeholder="Use {{ '{{1}}' }}, {{ '{{2}}' }} para variáveis. Ex: Olá {{ '{{1}}' }}, seu pedido {{ '{{2}}' }} foi enviado!" [ngModel]="form().conteudo" (ngModelChange)="update('conteudo', $event)"></textarea>
+            <textarea rows="5" placeholder="Use {{ '{{1}}' }}, {{ '{{2}}' }} para variáveis. Ex: Olá {{ '{{1}}' }}, seu pedido {{ '{{2}}' }} foi enviado!" [ngModel]="form().conteudo" (ngModelChange)="onConteudoChange($event)"></textarea>
+          </div>
+
+          <div class="fg" *ngIf="exemplosBody().length > 0">
+            <label>Valores de exemplo (exigidos pela Meta para aprovar o template)</label>
+            <div class="tpl-exemplo-row" *ngFor="let ex of exemplosBody(); let i = index">
+              <span class="badge badge-muted">{{ '{{' + (i + 1) + '}}' }}</span>
+              <input type="text" [placeholder]="'Exemplo para a variável ' + (i + 1)" [ngModel]="ex.value" (ngModelChange)="updateExemploBody(i, $event)">
+            </div>
           </div>
 
           <div class="fg">
@@ -70,13 +111,13 @@
                 <span class="badge badge-blue tpl-btn-tag">{{ rotuloTipoBotao(b.tipo) }}</span>
                 <input type="text" placeholder="Texto do botão" [ngModel]="b.texto" (ngModelChange)="atualizarBotao(i, 'texto', $event)">
                 <input type="text" *ngIf="b.tipo === 'URL'" placeholder="https://..." [ngModel]="b.url" (ngModelChange)="atualizarBotao(i, 'url', $event)">
-                <input type="text" *ngIf="b.tipo === 'PHONE_NUMBER'" placeholder="+55 11 99999-9999" [ngModel]="b.numeroTelefone" (ngModelChange)="atualizarBotao(i, 'numeroTelefone', $event)">
+                <input #telefoneBotaoInput type="text" inputmode="tel" *ngIf="b.tipo === 'PHONE_NUMBER'" placeholder="+5511999999999" [ngModel]="b.numeroTelefone" (input)="atualizarTelefoneBotao(i, telefoneBotaoInput)">
                 <button type="button" class="tpl-btn-remove" (click)="removerBotao(i)" title="Remover botão">✕</button>
               </div>
             </div>
           </div>
 
-          <button class="btn btn-primary" (click)="incluir()">🚀 Enviar para Meta e Cadastrar</button>
+          <button class="btn btn-primary" (click)="incluir()" [disabled]="uploadingHeader()">🚀 Enviar para Meta e Cadastrar</button>
           <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
         </div>
 
@@ -84,6 +125,11 @@
         <div class="tpl-preview-col">
           <div class="tpl-preview-label">Prévia</div>
           <div class="tpl-phone">
+            <div class="tpl-header-preview" *ngIf="headerTipo() === 'TEXT' && headerTexto()">{{ headerTexto() }}</div>
+            <div class="tpl-header-preview" *ngIf="headerTipo() === 'IMAGE'">🖼️ Cabeçalho de imagem{{ headerExemploNomeArquivo() ? ': ' + headerExemploNomeArquivo() : '' }}</div>
+            <div class="tpl-header-preview" *ngIf="headerTipo() === 'VIDEO'">🎬 Cabeçalho de vídeo{{ headerExemploNomeArquivo() ? ': ' + headerExemploNomeArquivo() : '' }}</div>
+            <div class="tpl-header-preview" *ngIf="headerTipo() === 'DOCUMENT'">📄 Cabeçalho de documento{{ headerExemploNomeArquivo() ? ': ' + headerExemploNomeArquivo() : '' }}</div>
+
             <div class="tpl-bubble" *ngIf="preview(); else previewVazio">
               {{ preview() }}
               <div class="tpl-bubble-tail"></div>
@@ -123,8 +169,17 @@
       </div>
     </div>
 
+    <div class="crud-search-bar">
+      <span class="crud-search-icon">🔍</span>
+      <input class="crud-search-input"
+             placeholder="Buscar por nome, categoria ou status..."
+             [ngModel]="search()"
+             (ngModelChange)="search.set($event)">
+      <span class="crud-search-count" *ngIf="search()">{{ templatesFiltrados().length }} de {{ templates().length }}</span>
+    </div>
+
     <div class="crud-list tpl-list">
-      <div class="tpl-item" *ngFor="let t of templates()">
+      <div class="tpl-item" *ngFor="let t of templatesFiltrados()">
         <div class="tpl-item-head">
           <div class="tpl-item-info">
             <div class="crud-name">{{ t.nomeTemplate }}</div>
@@ -155,6 +210,7 @@
       </div>
 
       <div class="crud-empty" *ngIf="templates().length === 0">Nenhum template retornado do servidor. Clique em "Sincronizar Meta" para carregar.</div>
+      <div class="crud-empty" *ngIf="templates().length > 0 && templatesFiltrados().length === 0">Nenhum template encontrado para "{{ search() }}".</div>
     </div>
   </div>
 </div>

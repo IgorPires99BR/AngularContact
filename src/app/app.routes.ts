@@ -4,6 +4,7 @@ import { authGuard } from './auth-guard'; // Certifique-se de que o caminho est�
 // Layout, Landing e Login
 import { ShellComponent } from './shell/shell.component';
 import { LoginComponent } from './features/login/login';
+import { ForgotPasswordComponent } from './features/forgot-password/forgot-password';
 import { LandingComponent } from './features/landing/landing';
 
 // Componentes das Páginas (Eager Loading para evitar erros de chunk)
@@ -18,6 +19,7 @@ import { UsuariosComponent } from './pages/usuarios/usuarios.component';
 import { TemplatesComponent } from './pages/templates/templates'; // <--- IMPORTADO AQUI
 import { TemplatesMapaComponent } from './pages/templates-mapa/templates-mapa';
 import { FlowsMapaComponent } from './pages/flows-mapa/flows-mapa';
+import { RelatorioMensagensComponent } from './pages/relatorio-mensagens/relatorio-mensagens.component';
 
 export const routes: Routes = [
   // 1. Rota Pública: Landing Page (home) — porta de entrada comercial/pagamentos
@@ -25,6 +27,7 @@ export const routes: Routes = [
 
   // 2. Rota Pública: O Login precisa estar fora do Guard para o usuário conseguir entrar
   { path: 'login', component: LoginComponent },
+  { path: 'esqueci-senha', component: ForgotPasswordComponent },
 
   // 3. Rotas Protegidas: O Shell e todos os seus filhos agora exigem autenticação
   {
@@ -43,6 +46,7 @@ export const routes: Routes = [
       { path: 'usuarios', component: UsuariosComponent },
       { path: 'templates', component: TemplatesComponent }, // <--- INSERIDO DENTRO DO SHELL PROTEGIDO
       { path: 'templates/mapa', component: TemplatesMapaComponent },
+      { path: 'relatorio', component: RelatorioMensagensComponent },
     ],
   },
 

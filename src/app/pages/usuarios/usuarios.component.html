@@ -63,6 +63,16 @@
     </div>
     <button class="btn btn-ghost btn-sm" (click)="listarPorEmpresa()">🔄</button>
   </div>
+
+  <div class="crud-search-bar">
+    <span class="crud-search-icon">🔍</span>
+    <input class="crud-search-input"
+           placeholder="Buscar por nome, e-mail ou perfil..."
+           [ngModel]="search()"
+           (ngModelChange)="search.set($event)">
+    <span class="crud-search-count" *ngIf="search()">{{ usuariosFiltrados().length }} de {{ usuarios().length }}</span>
+  </div>
+
   <div class="tbl-wrap">
     <table class="tbl">
       <thead>
@@ -75,7 +85,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let u of usuarios()">
+        <tr *ngFor="let u of usuariosFiltrados()">
           <td class="mono">#{{ u.id }}</td>
           <td><strong>{{ u.nome }}</strong></td>
           <td class="mono">{{ u.email }}</td>
@@ -96,6 +106,9 @@
 
     <div class="crud-empty" *ngIf="usuarios().length === 0">
       Nenhum usuário encontrado para sua empresa.
+    </div>
+    <div class="crud-empty" *ngIf="usuarios().length > 0 && usuariosFiltrados().length === 0">
+      Nenhum usuário encontrado para "{{ search() }}".
     </div>
   </div>
 </div>

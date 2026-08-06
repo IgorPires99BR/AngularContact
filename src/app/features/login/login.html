@@ -77,18 +77,22 @@
         <span>{{ errorMsg }}</span>
       </div>
 
-      <form (ngSubmit)="onLogin()">
+      <form [formGroup]="form" (ngSubmit)="onLogin()" novalidate>
         <div class="fg">
           <label for="email">E-mail Corporativo</label>
           <input id="email"
                  class="cs-input"
                  type="email"
-                 name="email"
-                 [(ngModel)]="email"
+                 formControlName="email"
                  placeholder="seu@email.com"
                  autocomplete="username"
-                 required
+                 [class.cs-input-invalid]="emailCtrl.invalid && emailCtrl.touched"
+                 [attr.aria-invalid]="emailCtrl.invalid && emailCtrl.touched"
                  [disabled]="loading" />
+          <div class="fg-err" *ngIf="emailCtrl.invalid && emailCtrl.touched">
+            <span *ngIf="emailCtrl.errors?.['required']">O e-mail é obrigatório.</span>
+            <span *ngIf="emailCtrl.errors?.['email']">Informe um e-mail válido.</span>
+          </div>
         </div>
 
         <div class="fg">
@@ -97,12 +101,14 @@
             <input id="password"
                    class="cs-input"
                    [type]="showPw ? 'text' : 'password'"
-                   name="password"
-                   [(ngModel)]="password"
+                   formControlName="password"
                    placeholder="••••••••"
                    autocomplete="current-password"
-                   required
-                   [disabled]="loading" />
+                   [class.cs-input-invalid]="passwordCtrl.invalid && passwordCtrl.touched"
+                   [attr.aria-invalid]="passwordCtrl.invalid && passwordCtrl.touched"
+                   [disabled]="loading"
+                   (keydown)="checkCapsLock($event)"
+                   (keyup)="checkCapsLock($event)" />
 
             <button type="button"
                     class="pw-toggle"
@@ -118,7 +124,24 @@
               </svg>
             </button>
           </div>
-          <a class="forgot-password-link" href="javascript:void(0)">Esqueci minha senha</a>
+          <div class="fg-err" *ngIf="passwordCtrl.invalid && passwordCtrl.touched">
+            <span *ngIf="passwordCtrl.errors?.['required']">A senha é obrigatória.</span>
+            <span *ngIf="passwordCtrl.errors?.['minlength']">A senha deve ter ao menos 6 caracteres.</span>
+          </div>
+          <div class="caps-lock-warning" *ngIf="capsLockOn" role="status">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2l9 9h-6v9H9v-9H3z" />
+            </svg>
+            <span>Caps Lock ativado</span>
+          </div>
+
+          <div class="fg-row">
+            <label class="remember-me">
+              <input type="checkbox" formControlName="rememberMe" [disabled]="loading" />
+              <span>Lembrar-me</span>
+            </label>
+            <a class="forgot-password-link" routerLink="/esqueci-senha">Esqueci minha senha</a>
+          </div>
         </div>
 
         <button type="submit" class="btn btn-primary lc-submit" [disabled]="loading">
