@@ -81,7 +81,14 @@
           <!-- Mensagens normais do chat -->
           <div *ngIf="m.from !== 'step'" class="msg-row" [class.msg-right]="m.from === 'bot'" [class.msg-left]="m.from === 'user'">
             <div class="msg-bubble">
-              {{ m.text | templateMessage }}
+              <ng-container [ngSwitch]="m.tipoMidia">
+                <img *ngSwitchCase="'image'" class="msg-media-image" [src]="m.previewUrl || mediaUrl(m.midiaId)" alt="Imagem" />
+                <audio *ngSwitchCase="'audio'" controls class="msg-media-audio" [src]="m.previewUrl || mediaUrl(m.midiaId)"></audio>
+                <a *ngSwitchCase="'document'" class="msg-media-document" [href]="m.previewUrl || mediaUrl(m.midiaId)" target="_blank" rel="noopener">
+                  📄 Documento
+                </a>
+                <ng-container *ngSwitchDefault>{{ m.text | templateMessage }}</ng-container>
+              </ng-container>
               <div class="msg-time" *ngIf="m.time">
                 {{ m.time }}
                 <ng-container *ngIf="m.from === 'bot'">
@@ -114,6 +121,10 @@
 
       <!-- Barra de Input de Mensagem (Fixa no Rodapé) -->
       <div class="chat-input-bar">
+        <input type="file" accept="image/*,audio/*" hidden #fileInput (change)="enviarArquivo($event)">
+        <button class="btn btn-ghost btn-xs chat-attach" (click)="fileInput.click()" aria-label="Anexar arquivo" type="button">
+          📎
+        </button>
         <textarea class="chat-input"
                   rows="1"
                   placeholder="Digite uma mensagem..."

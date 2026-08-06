@@ -26,6 +26,9 @@ interface Message {
   contatoId?: string;
   wamid?: string;
   status?: 'sent' | 'delivered' | 'read' | 'failed';
+  midiaId?: string;
+  tipoMidia?: 'image' | 'audio' | 'document';
+  previewUrl?: string;
 }
 
 @Component({
@@ -250,8 +253,85 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
   private normalizar(mensagens: Message[]): Message[] {
     return mensagens.map(m => ({
       ...m,
-      from: m.from === 'recebida' ? 'user' : m.from === 'enviada' ? 'bot' : m.from
+      from: m.from === 'recebida' ? 'user' : m.from === 'enviada' ? 'bot' : m.from,
+      midiaId: m.midiaId,
+      tipoMidia: m.tipoMidia
     }));
+  }
+
+  // Monta a URL de proxy do backend pra baixar a mídia sem expor o token da Meta no front
+  mediaUrl(midiaId?: string): string {
+    const idEmpresa = this.empresaId();
+    if (!midiaId || !idEmpresa) return '';
+    return `${this.API_URL}/midia/${midiaId}?empresaId=${idEmpresa}`;
+  }
+
+  // Dispara pelo botão de anexo, envia o arquivo escolhido como mídia pra Meta
+  enviarArquivo(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const idContato = this.selectedId();
+    const idEmpresa = this.empresaId();
+    const chatAtivo = this.selected();
+
+    if (!idContato || !idEmpresa || !chatAtivo) {
+      input.value = '';
+      return;
+    }
+
+    const tipoMidia: 'image' | 'audio' | 'document' = file.type.startsWith('image/')
+      ? 'image'
+      : file.type.startsWith('audio/')
+        ? 'audio'
+        : 'document';
+
+    const previewUrl = URL.createObjectURL(file);
+
+    const formData = new FormData();
+    formData.append('arquivo', file);
+    formData.append('celular', chatAtivo.telefone);
+    formData.append('empresaId', idEmpresa);
+    formData.append('contatoId', idContato);
+    formData.append('tipoMidia', tipoMidia);
+
+    this.http.post<any>(`${this.DISPARADOR_URL}/enviar-midia-meta`, formData)
+      .subscribe({
+        next: (resposta) => {
+          const now = new Date();
+          const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+          const wamid = resposta?.value?.wamidMeta || resposta?.value?.wamid || resposta?.wamidMeta || resposta?.wamid;
+
+          this.activeMessages.update(msgs => [
+            ...msgs,
+            {
+              from: 'bot',
+              text: `[${tipoMidia}]`,
+              time: timeStr,
+              wamid,
+              status: 'sent',
+              tipoMidia,
+              previewUrl
+            }
+          ]);
+
+          this.chats.update(lista =>
+            lista.map(c => c.contatoId === idContato
+              ? { ...c, ultimaMensagem: `[${tipoMidia}]`, dataUltimaMensagem: now.toISOString() }
+              : c
+            )
+          );
+
+          this.shouldScrollToBottom = true;
+        },
+        error: (err) => {
+          console.error('Erro ao enviar mídia:', err);
+          this.response.set('❌ Erro ao enviar o arquivo. Verifique a conexão.');
+        }
+      });
+
+    input.value = '';
   }
 
   filtered = computed(() => {

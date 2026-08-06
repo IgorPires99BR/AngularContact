@@ -331,6 +331,34 @@
     opacity: .6;
   }
 
+.chat-attach {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.msg-media-image {
+  max-width: 240px;
+  max-height: 240px;
+  border-radius: 8px;
+  display: block;
+}
+
+.msg-media-audio {
+  max-width: 240px;
+}
+
+.msg-media-document {
+  display: inline-block;
+  color: inherit;
+  text-decoration: underline;
+}
+
 .chat-send {
   width: 40px;
   height: 40px;
