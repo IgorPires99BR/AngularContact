@@ -29,6 +29,7 @@ interface Message {
   midiaId?: string;
   tipoMidia?: 'image' | 'audio' | 'document';
   previewUrl?: string;
+  erro?: string;
 }
 
 @Component({
@@ -126,11 +127,16 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
   private tratarStatusEntregaEmTempoReal(evt: any) {
     const wamid = evt?.wamid || evt?.Wamid;
     const status = evt?.status || evt?.Status;
+    const erro = evt?.erro || evt?.Erro;
     if (!wamid || !status) return;
 
     this.activeMessages.update(msgs =>
-      msgs.map(m => m.wamid === wamid ? { ...m, status } : m)
+      msgs.map(m => m.wamid === wamid ? { ...m, status, erro } : m)
     );
+
+    if (status === 'failed' && erro) {
+      this.response.set(`❌ Mensagem não entregue: ${erro}`);
+    }
   }
 
   private tratarMensagemEmTempoReal(msg: any) {
