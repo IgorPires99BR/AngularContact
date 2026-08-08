@@ -36,6 +36,20 @@ export function extrairErrosApi(erro: unknown): ErroApi[] {
     return [{ mensagem: corpo.message, tipo: 'Negocio' }];
   }
 
+  // ProblemDetails automatico do ASP.NET Core ({ errors: { campo: ["msg"] }, title: "..." }):
+  // aparece quando o [ApiController] rejeita o multipart/model binding ANTES do nosso codigo
+  // rodar (ex: campo obrigatorio faltando), formato diferente do erro customizado do projeto.
+  if (corpo?.errors && typeof corpo.errors === 'object') {
+    const mensagens = Object.values(corpo.errors as Record<string, string[]>).flat();
+    if (mensagens.length > 0) {
+      return mensagens.map((m) => ({ mensagem: m, tipo: 'Negocio' as TipoErroApi }));
+    }
+  }
+
+  if (corpo?.title) {
+    return [{ mensagem: corpo.title, tipo: 'Negocio' }];
+  }
+
   return [];
 }
 
