@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
+import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
 interface RelatorioMensagem {
   direcao: 'Enviada' | 'Recebida';
@@ -77,9 +78,8 @@ export class RelatorioMensagensComponent implements OnInit {
           }
         },
         error: (err) => {
-          console.error(err);
           this.carregando.set(false);
-          this.response.set('❌ Erro ao carregar o relatório de mensagens.');
+          this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao carregar o relatório de mensagens.')}`);
         }
       });
   }

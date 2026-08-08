@@ -7,6 +7,7 @@ import { ChatNotificationService } from '../../core/services/chat-notification';
 import { environment } from '../../../environments/environment';
 import * as signalR from '@microsoft/signalr';
 import { TemplateMessagePipe } from '../../shared/pipes/template-message.pipe';
+import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
 interface ChatItem {
   contatoId: string;
@@ -190,8 +191,7 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.chatNotification.setFromChats(dadosTratados);
         },
         error: (err) => {
-          console.error(err);
-          this.response.set('❌ Erro ao carregar chats ativos.');
+          this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao carregar chats ativos.')}`);
         }
       });
   }
@@ -211,7 +211,7 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.temMaisMensagens.set(mensagensNormais.length === this.TAMANHO_PAGINA);
           this.shouldScrollToBottom = true;
         },
-        error: (err) => console.error('Erro ao buscar histórico', err)
+        error: (err) => this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao buscar histórico de mensagens.')}`)
       });
   }
 
@@ -327,8 +327,7 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.shouldScrollToBottom = true;
         },
         error: (err) => {
-          console.error('Erro ao disparar mensagem:', err);
-          this.response.set('❌ Erro ao enviar a mensagem. Verifique a conexão.');
+          this.response.set(`❌ Erro ao enviar a mensagem: ${extrairMensagemErro(err, 'Verifique a conexão.')}`);
         }
       });
   }

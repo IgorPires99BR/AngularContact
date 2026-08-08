@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
 import { isEmailValido } from '../../shared/utils/validators';
+import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
 type Perfil = 'admin' | 'operador' | 'viewer';
 
@@ -71,7 +72,7 @@ export class UsuariosComponent implements OnInit {
     // Ajustado para o endpoint que filtra por empresa
     this.http.get<Usuario[]>(`${this.BASE_URL}/obter-por-empresa/${eid}`).subscribe({
       next: (dados) => this.usuarios.set(dados),
-      error: () => this.response.set('❌ Erro ao listar usuários da empresa.')
+      error: (err) => this.response.set('❌ ' + extrairMensagemErro(err, 'Erro ao listar usuários da empresa.'))
     });
   }
 
@@ -107,7 +108,7 @@ export class UsuariosComponent implements OnInit {
           this.cancelarEdicao();
           this.listarPorEmpresa();
         },
-        error: () => this.response.set('❌ Erro ao atualizar.')
+        error: (err) => this.response.set('❌ ' + extrairMensagemErro(err, 'Erro ao atualizar.'))
       });
     } else {
       this.http.post(`${this.BASE_URL}/incluir`, payload).subscribe({
@@ -116,7 +117,7 @@ export class UsuariosComponent implements OnInit {
           this.limparFormulario();
           this.listarPorEmpresa();
         },
-        error: () => this.response.set('❌ Erro ao criar usuário.')
+        error: (err) => this.response.set('❌ ' + extrairMensagemErro(err, 'Erro ao criar usuário.'))
       });
     }
   }
@@ -153,7 +154,7 @@ export class UsuariosComponent implements OnInit {
           this.response.set('🗑️ Usuário removido.');
           this.listarPorEmpresa();
         },
-        error: () => this.response.set('❌ Erro ao excluir.')
+        error: (err) => this.response.set('❌ ' + extrairMensagemErro(err, 'Erro ao excluir.'))
       });
     }
   }

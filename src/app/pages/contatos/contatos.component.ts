@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
 import { isEmailValido } from '../../shared/utils/validators';
+import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
 interface Contato {
   id?: string;
@@ -82,8 +83,7 @@ export class ContatosComponent implements OnInit {
           this.response.set(res.length > 0 ? `✅ ${res.length} contatos encontrados` : '⚠ Nenhum contato.');
         },
         error: (err) => {
-          console.error(err);
-          this.response.set('❌ Erro na requisição. Verifique o console.');
+          this.response.set(`❌ ${extrairMensagemErro(err, 'Erro na requisição. Verifique o console.')}`);
         }
       });
   }
@@ -122,7 +122,7 @@ export class ContatosComponent implements OnInit {
         this.cancelarEdicao();
         this.buscar();
       },
-      error: (err) => this.response.set('❌ Erro: ' + err.message)
+      error: (err) => this.response.set(`❌ Erro: ${extrairMensagemErro(err)}`)
     });
   }
 
@@ -194,8 +194,7 @@ export class ContatosComponent implements OnInit {
             target.value = ''; // Reseta o input file
           },
           error: (err) => {
-            console.error(err);
-            this.response.set(`❌ Falha na api: ${err.error?.message || 'Erro ao salvar o lote.'}`);
+            this.response.set(`❌ Falha na api: ${extrairMensagemErro(err, 'Erro ao salvar o lote.')}`);
             target.value = '';
           }
         });
@@ -233,7 +232,7 @@ export class ContatosComponent implements OnInit {
         this.contatos.update(lista => lista.filter(c => c.id !== id));
         this.response.set('✅ Contato excluído.');
       },
-      error: (err) => this.response.set('❌ Erro ao excluir: ' + err.message)
+      error: (err) => this.response.set(`❌ Erro ao excluir: ${extrairMensagemErro(err)}`)
     });
   }
 }

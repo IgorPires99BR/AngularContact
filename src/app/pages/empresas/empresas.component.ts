@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { isEmailValido } from '../../shared/utils/validators';
+import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
 interface Empresa {
   id: string;
@@ -76,7 +77,7 @@ export class EmpresasComponent implements OnInit {
   obterEmpresas() {
     this.http.get<Empresa[]>(`${this.BASE_URL}/obter`).subscribe({
       next: (dados) => this.empresas.set(dados),
-      error: () => this.response.set('❌ Erro ao carregar empresas.')
+      error: (err) => this.response.set('❌ ' + extrairMensagemErro(err, 'Erro ao carregar empresas.'))
     });
   }
 
@@ -147,7 +148,7 @@ export class EmpresasComponent implements OnInit {
           this.cancelarEdicao();
           this.obterEmpresas();
         },
-        error: () => this.response.set('❌ Erro ao atualizar empresa.')
+        error: (err) => this.response.set('❌ ' + extrairMensagemErro(err, 'Erro ao atualizar empresa.'))
       });
     } else { // <-- AGORA SIM! Adicionado o else correto
       payload.accessToken = f.metaAccessToken; // Mapeia Corretamente para incluir
@@ -158,7 +159,7 @@ export class EmpresasComponent implements OnInit {
           this.cancelarEdicao();
           this.obterEmpresas();
         },
-        error: () => this.response.set('❌ Falha ao salvar empresa.')
+        error: (err) => this.response.set('❌ ' + extrairMensagemErro(err, 'Falha ao salvar empresa.'))
       });
     }
   }
@@ -170,7 +171,7 @@ export class EmpresasComponent implements OnInit {
           this.response.set('🗑️ Empresa removida.');
           this.obterEmpresas();
         },
-        error: () => this.response.set('❌ Erro ao excluir.')
+        error: (err) => this.response.set('❌ ' + extrairMensagemErro(err, 'Erro ao excluir.'))
       });
     }
   }

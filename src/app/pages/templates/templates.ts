@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
+import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
 interface TemplateBotao {
   tipo: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER';
@@ -164,8 +165,7 @@ export class TemplatesComponent implements OnInit {
       },
       error: (err) => {
         this.uploadingHeader.set(false);
-        const erro = Array.isArray(err.error) ? err.error.join(', ') : (err.error?.erro || 'Falha ao enviar o arquivo.');
-        this.response.set(`❌ Erro no upload: ${erro}`);
+        this.response.set(`❌ Erro no upload: ${extrairMensagemErro(err, 'Falha ao enviar o arquivo.')}`);
         input.value = '';
       }
     });
@@ -219,7 +219,7 @@ export class TemplatesComponent implements OnInit {
     this.http.get<Template[]>(`${this.API_URL}/Listar/${empId}`)
       .subscribe({
         next: (res) => this.templates.set(res),
-        error: () => this.response.set('❌ Erro ao buscar templates locais.')
+        error: (err) => this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao buscar templates locais.')}`)
       });
   }
 
@@ -268,18 +268,13 @@ export class TemplatesComponent implements OnInit {
     this.response.set('⏳ Registrando template no ecossistema da Meta...');
 
     this.http.post(`${this.API_URL}/incluir`, payload).subscribe({
-      next: (res: any) => {
-        if (res && res.success === false) {
-          this.response.set(`❌ Erro: ${res.errors?.[0]?.message || 'Falha ao processar.'}`);
-          return;
-        }
+      next: () => {
         this.response.set('✅ Template enviado com sucesso para análise da Meta e salvo localmente!');
         this.limparForm();
         this.buscar();
       },
       error: (err) => {
-        const erros = Array.isArray(err.error) ? err.error.join(', ') : (err.error?.message || 'Não foi possível salvar.');
-        this.response.set(`❌ Erro: ${erros}`);
+        this.response.set(`❌ Erro: ${extrairMensagemErro(err, 'Não foi possível salvar.')}`);
       }
     });
   }
@@ -300,8 +295,7 @@ export class TemplatesComponent implements OnInit {
         this.buscar(); // Recarrega a grade
       },
       error: (err) => {
-        console.error(err);
-        this.response.set('❌ Falha ao processar sincronização via PUT.');
+        this.response.set(`❌ Falha ao sincronizar: ${extrairMensagemErro(err, 'Falha ao processar sincronização via PUT.')}`);
         this.sincronizando.set(false);
       }
     });

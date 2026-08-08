@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
+import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
 export interface Step {
   id: string;
@@ -136,8 +137,7 @@ export class FlowsComponent implements OnInit {
         }
       },
       error: (err) => {
-        console.error('Erro ao buscar flows:', err);
-        this.response.set('❌ Erro ao carregar fluxos do servidor para esta empresa.');
+        this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao carregar fluxos do servidor para esta empresa.')}`);
       }
     });
   }
@@ -212,7 +212,7 @@ export class FlowsComponent implements OnInit {
           this.selectedId.set(this.flows()[0].id);
         }
       },
-      error: () => this.response.set('❌ Erro ao tentar excluir o fluxo do servidor.')
+      error: (err) => this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao tentar excluir o fluxo do servidor.')}`)
     });
   }
 
@@ -310,8 +310,7 @@ export class FlowsComponent implements OnInit {
   }
 
   private processarErro(err: any, msgPadrao: string) {
-    console.error(err);
-    this.response.set(`❌ ${err.error?.message || msgPadrao}`);
+    this.response.set(`❌ ${extrairMensagemErro(err, msgPadrao)}`);
     this.sincronizando.set(false);
   }
 }

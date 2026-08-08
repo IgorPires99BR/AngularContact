@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/services/api';
 import { AuthService } from '../../core/services/auth';
 import { Globe3dComponent } from '../../shared/globe3d/globe3d';
+import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
 @Component({
   selector: 'app-login',
@@ -60,20 +61,11 @@ export class LoginComponent {
     const { email, password, rememberMe } = this.form.getRawValue();
 
     try {
-      // Chamada para a API .NET Core
+      // Chamada para a API .NET Core. Login com sucesso sempre volta com o usuario no corpo
+      // (a API responde erro de credencial invalida como HTTP 400, nunca como 200 "success:false").
       const res = await firstValueFrom(this.api.login({ email, password }));
 
-      // 1. Tratamento caso o seu backend use o padrão Response wrapper (com propriedade success/errors)
-      // Se a requisição voltou com sucesso HTTP, mas o banco rejeitou as credenciais:
-      if (res && res.success === false) {
-        this.errorMsg = 'Credenciais incorretas.';
-        this.loading = false;
-        return;
-      }
-
-      // 2. Validação se o objeto do usuário foi realmente retornado com sucesso
       if (res && (res.idUsuario || res.IdUsuario || res.data?.idUsuario)) {
-
         // Extrai os dados se eles vierem encapsulados em uma propriedade 'data', ou usa o objeto direto
         const userData = res.data ? res.data : res;
 
@@ -92,13 +84,13 @@ export class LoginComponent {
     } catch (err: any) {
       this.loading = false;
 
-      // 3. Tratamento de erros HTTP disparados pelo servidor (Ex: 401 Unauthorized, 400 Bad Request, ou API offline)
+      // Tratamento de erros HTTP disparados pelo servidor (Ex: 401 Unauthorized, 400 Bad Request, ou API offline)
       if (err.status === 0) {
         this.errorMsg = 'Não foi possível conectar ao servidor de autenticação.';
       } else if (err.status === 401 || err.status === 400) {
         this.errorMsg = 'Credenciais incorretas.';
       } else {
-        this.errorMsg = err.error?.message || 'Erro ao realizar login. Tente novamente mais tarde.';
+        this.errorMsg = extrairMensagemErro(err, 'Erro ao realizar login. Tente novamente mais tarde.');
       }
     }
   }

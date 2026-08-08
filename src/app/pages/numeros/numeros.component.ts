@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
+import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
 declare var FB: any;
 
@@ -132,16 +133,12 @@ export class NumerosComponent implements OnInit {
     this.response.set('⏳ Solicitando criação na Meta e registrando...');
 
     this.http.post(`${this.API_URL}/incluir`, payload).subscribe({
-      next: (res: any) => {
-        if (res && res.success === false) {
-          this.response.set(`❌ Erro: ${res.errors?.[0]?.message || 'Falha ao registrar.'}`);
-          return;
-        }
+      next: () => {
         this.response.set('✅ Número enviado para validação do nome e incluído com sucesso!');
         this.limparForm();
         this.buscar();
       },
-      error: (err) => this.response.set(`❌ Erro no servidor: ${err.error?.message || 'Falha na comunicação.'}`)
+      error: (err) => this.response.set(`❌ Erro: ${extrairMensagemErro(err, 'Falha ao registrar.')}`)
     });
   }
 
@@ -214,8 +211,7 @@ export class NumerosComponent implements OnInit {
         this.buscar();
       },
       error: (err) => {
-        const erros = Array.isArray(err.error) ? err.error.join(', ') : (err.error?.message || 'Falha na comunicação.');
-        this.response.set(`❌ Erro no Embedded Signup: ${erros}`);
+        this.response.set(`❌ Erro no Embedded Signup: ${extrairMensagemErro(err)}`);
         this.embeddedSignupCarregando.set(false);
       }
     });
@@ -251,8 +247,7 @@ export class NumerosComponent implements OnInit {
         this.buscar();
       },
       error: (err) => {
-        const erros = Array.isArray(err.error) ? err.error.join(', ') : (err.error?.message || 'Falha na comunicação.');
-        this.response.set(`❌ Erro ao ativar coexistência: ${erros}`);
+        this.response.set(`❌ Erro ao ativar coexistência: ${extrairMensagemErro(err)}`);
         this.coexistenciaAtivandoId.set(null);
       }
     });
@@ -279,8 +274,7 @@ export class NumerosComponent implements OnInit {
         this.buscar();
       },
       error: (err) => {
-        console.error(err);
-        this.response.set('❌ Falha ao processar sincronização na API do servidor.');
+        this.response.set(`❌ Falha ao sincronizar: ${extrairMensagemErro(err, 'Falha ao processar sincronização na API do servidor.')}`);
         this.sincronizando.set(false);
       }
     });

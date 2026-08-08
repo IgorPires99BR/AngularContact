@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
+import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
 interface Contato {
   id: string;
@@ -329,8 +330,7 @@ export class DisparadorComponent implements OnInit {
         this.contatos.update(list => list.map(c => ({ ...c, checked: false })));
       },
       error: (err) => {
-        console.error(err);
-        this.response.set(`❌ Falha: ${err.error?.message || 'Erro ao processar lote na API'}`);
+        this.response.set(`❌ Falha: ${extrairMensagemErro(err, 'Erro ao processar lote na API')}`);
       }
     });
   }
