@@ -99,8 +99,11 @@
             </div>
             <div class="step-fg">
               <label>Mensagem / Pergunta</label>
+              <!-- Sem o (ngModelChange) o texto digitado nunca voltava para o modelo,
+                   e o conteúdo da etapa era impossível de escrever ou corrigir. -->
               <textarea rows="2"
                         [ngModel]="step.mensagemPergunta"
+                        (ngModelChange)="updateStep(step.id, { mensagemPergunta: $event })"
                         placeholder="O que o bot diz neste step..."></textarea>
             </div>
             <div class="step-fg" *ngIf="step.tipoStep === 'Capturar Input'">

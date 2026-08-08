@@ -27,6 +27,10 @@ interface Message {
   contatoId?: string;
   wamid?: string;
   status?: 'sent' | 'delivered' | 'read' | 'failed';
+  midiaId?: string;
+  tipoMidia?: 'image' | 'audio' | 'document';
+  previewUrl?: string;
+  erro?: string;
 }
 
 @Component({
@@ -124,16 +128,23 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
   private tratarStatusEntregaEmTempoReal(evt: any) {
     const wamid = evt?.wamid || evt?.Wamid;
     const status = evt?.status || evt?.Status;
+    const erro = evt?.erro || evt?.Erro;
     if (!wamid || !status) return;
 
     this.activeMessages.update(msgs =>
-      msgs.map(m => m.wamid === wamid ? { ...m, status } : m)
+      msgs.map(m => m.wamid === wamid ? { ...m, status, erro } : m)
     );
+
+    if (status === 'failed' && erro) {
+      this.response.set(`❌ Mensagem não entregue: ${erro}`);
+    }
   }
 
   private tratarMensagemEmTempoReal(msg: any) {
     const contatoIdMsg = msg.contatoId || msg.ContatoId;
     const conteudo = msg.conteudo || msg.Conteudo || msg.text || msg;
+    const midiaId = msg.midiaId || msg.MidiaId;
+    const tipoMidia = msg.tipoMidia || msg.TipoMidia;
     const now = new Date();
     const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
 
@@ -141,7 +152,7 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (this.selectedId() === contatoIdMsg) {
       this.activeMessages.update(msgs => [
         ...msgs,
-        { from: 'user', text: conteudo, time: timeStr }
+        { from: 'user', text: conteudo, time: timeStr, midiaId, tipoMidia }
       ]);
       this.shouldScrollToBottom = true;
     }
@@ -250,8 +261,236 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
   private normalizar(mensagens: Message[]): Message[] {
     return mensagens.map(m => ({
       ...m,
-      from: m.from === 'recebida' ? 'user' : m.from === 'enviada' ? 'bot' : m.from
+      from: m.from === 'recebida' ? 'user' : m.from === 'enviada' ? 'bot' : m.from,
+      midiaId: m.midiaId,
+      tipoMidia: m.tipoMidia
     }));
+  }
+
+  // O endpoint de mídia exige o token JWT (Authorization: Bearer), mas uma tag <img>/<audio>
+  // com [src] direto pra URL não consegue mandar esse header -- o navegador faz a requisição
+  // sem autenticação e recebe 401, aparecendo como imagem quebrada. Por isso baixamos o
+  // arquivo via HttpClient (que já anexa o token pelo interceptor) e criamos uma blob URL
+  // local, cacheada por midiaId pra não baixar de novo toda vez que o Angular re-renderiza.
+  private mediaBlobUrls = signal<Record<string, string>>({});
+
+  mediaUrl(midiaId?: string): string {
+    if (!midiaId) return '';
+
+    const cache = this.mediaBlobUrls();
+    if (cache[midiaId]) return cache[midiaId];
+
+    this.carregarMidia(midiaId);
+    return '';
+  }
+
+  private carregarMidia(midiaId: string) {
+    const idEmpresa = this.empresaId();
+    if (!idEmpresa) return;
+
+    // Evita disparar o download de novo enquanto a primeira chamada ainda não voltou.
+    // O `midiasComFalha` é igualmente importante: sem ele, mídia que falha nunca entra no
+    // cache, então cada ciclo de detecção de mudanças chamava mediaUrl() -> carregarMidia()
+    // de novo, num laço infinito (~16 requisições por segundo por mídia quebrada), e cada
+    // uma dessas fazia o backend bater na Graph API da Meta e queimar o limite de taxa.
+    if ((midiaId in this.mediaBlobUrls())
+      || this.midiasCarregando.has(midiaId)
+      || this.midiasComFalha.has(midiaId)) return;
+    this.midiasCarregando.add(midiaId);
+
+    this.http.get(`${this.API_URL}/midia/${midiaId}?empresaId=${idEmpresa}`, { responseType: 'blob' })
+      .subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          this.mediaBlobUrls.update(map => ({ ...map, [midiaId]: url }));
+          this.midiasCarregando.delete(midiaId);
+        },
+        error: (err) => {
+          console.error('Erro ao carregar mídia', midiaId, err);
+          this.midiasCarregando.delete(midiaId);
+          this.midiasComFalha.add(midiaId);
+        }
+      });
+  }
+
+  private midiasCarregando = new Set<string>();
+  private midiasComFalha = new Set<string>();
+
+  // Usado no template pra mostrar um aviso no lugar da mídia que não carregou,
+  // em vez de deixar o ícone quebrado sem explicação.
+  midiaFalhou(midiaId?: string): boolean {
+    return !!midiaId && this.midiasComFalha.has(midiaId);
+  }
+
+  // Dispara pelo botão de anexo, envia o arquivo escolhido como mídia pra Meta
+  enviarArquivo(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const tipoMidia: 'image' | 'audio' | 'document' = file.type.startsWith('image/')
+      ? 'image'
+      : file.type.startsWith('audio/')
+        ? 'audio'
+        : 'document';
+
+    this.enviarMidia(file, tipoMidia);
+    input.value = '';
+  }
+
+  // --- GRAVAÇÃO DE ÁUDIO PELO MICROFONE ---
+  gravandoAudio = signal(false);
+  enviandoMidia = signal(false);
+  private mediaRecorder?: MediaRecorder;
+  private audioChunks: Blob[] = [];
+
+  async alternarGravacao() {
+    if (this.gravandoAudio()) {
+      this.mediaRecorder?.stop();
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      this.response.set('❌ Seu navegador não permite gravar áudio.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.audioChunks = [];
+
+      // A Meta so aceita audio/aac, audio/mp4, audio/mpeg, audio/amr ou audio/ogg (opus) --
+      // o mimeType padrao do MediaRecorder no Chrome/Edge e audio/webm, que a API rejeita
+      // (erro 400 "(#100) Param file must be a file with one of the following types...").
+      // Tenta os formatos aceitos na ordem, e so cai pro webm se nenhum estiver disponivel.
+      const mimeTypesAceitos = ['audio/mp4', 'audio/aac', 'audio/ogg;codecs=opus', 'audio/ogg'];
+      const mimeType = mimeTypesAceitos.find(t => MediaRecorder.isTypeSupported(t)) ?? 'audio/webm';
+
+      // Sem limitar o bitrate, o MediaRecorder grava em qualidade "musica" (ate 128kbps),
+      // o que deixa um audio de poucos segundos com varios MB. 32kbps e mais que suficiente
+      // pra voz (e o mesmo patamar que o proprio WhatsApp usa nos audios dele).
+      this.mediaRecorder = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 32000 });
+
+      this.mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) this.audioChunks.push(e.data);
+      };
+
+      this.mediaRecorder.onstop = () => {
+        stream.getTracks().forEach(track => track.stop());
+        this.gravandoAudio.set(false);
+
+        if (this.audioChunks.length === 0) return;
+
+        if (mimeType === 'audio/webm') {
+          this.response.set('❌ Seu navegador só grava em um formato que o WhatsApp não aceita (webm). Tente pelo Safari/iPhone ou anexe um arquivo de áudio já gravado.');
+          return;
+        }
+
+        const extensao = mimeType.startsWith('audio/mp4') ? 'm4a' : mimeType.startsWith('audio/aac') ? 'aac' : 'ogg';
+        // A Meta so aceita o mimetype "puro" (ex: audio/ogg) no upload de midia -- o
+        // parametro ";codecs=opus" e necessario pro MediaRecorder escolher o encoder certo,
+        // mas mandado pra Meta no Content-Type faz o upload ser aceito e processado em
+        // silencio como falha (a mensagem nunca sai do status "pendente"/nunca chega).
+        const mimeTypeBase = mimeType.split(';')[0];
+        const blob = new Blob(this.audioChunks, { type: mimeType });
+        const arquivo = new File([blob], `audio-${Date.now()}.${extensao}`, { type: mimeTypeBase });
+        this.enviarMidia(arquivo, 'audio');
+      };
+
+      this.mediaRecorder.start();
+      this.gravandoAudio.set(true);
+
+      // Limite de seguranca: para sozinho depois de 3 minutos, pra nao gerar um
+      // arquivo gigante (e provavelmente acima do limite de 16MB de audio da Meta)
+      // se o usuario esquecer o microfone ligado.
+      setTimeout(() => {
+        if (this.gravandoAudio()) this.mediaRecorder?.stop();
+      }, 3 * 60 * 1000);
+    } catch (err) {
+      console.error('Erro ao acessar o microfone:', err);
+      this.response.set('❌ Não foi possível acessar o microfone. Verifique a permissão do navegador.');
+    }
+  }
+
+  // Compartilhado entre o anexo de arquivo e a gravação de áudio pelo microfone
+  // Limites de tamanho de midia da propria Meta (Cloud API) -- mandar acima disso
+  // sempre retorna "(#100) Invalid parameter / Arquivo muito grande", entao vale
+  // barrar aqui e mostrar o motivo na hora, sem gastar uma chamada pra Meta.
+  private readonly LIMITES_MIDIA_MB: Record<'image' | 'audio' | 'document', number> = {
+    image: 5,
+    audio: 16,
+    document: 100
+  };
+
+  private enviarMidia(file: File, tipoMidia: 'image' | 'audio' | 'document') {
+    const idContato = this.selectedId();
+    const idEmpresa = this.empresaId();
+    const chatAtivo = this.selected();
+
+    if (!idContato || !idEmpresa || !chatAtivo) return;
+
+    const limiteMb = this.LIMITES_MIDIA_MB[tipoMidia];
+    const tamanhoMb = file.size / (1024 * 1024);
+    if (tamanhoMb > limiteMb) {
+      this.response.set(`❌ Arquivo muito grande (${tamanhoMb.toFixed(1)}MB). O WhatsApp aceita no máximo ${limiteMb}MB para esse tipo de mídia.`);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+
+    const formData = new FormData();
+    formData.append('arquivo', file);
+    formData.append('celular', chatAtivo.telefone);
+    formData.append('empresaId', idEmpresa);
+    formData.append('contatoId', idContato);
+    formData.append('tipoMidia', tipoMidia);
+
+    this.http.post<any>(`${this.DISPARADOR_URL}/enviar-midia-meta`, formData)
+      .subscribe({
+        next: (resposta) => {
+          const now = new Date();
+          const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+          const wamid = resposta?.value?.wamidMeta || resposta?.value?.wamid || resposta?.wamidMeta || resposta?.wamid;
+
+          this.activeMessages.update(msgs => [
+            ...msgs,
+            {
+              from: 'bot',
+              text: `[${tipoMidia}]`,
+              time: timeStr,
+              wamid,
+              status: 'sent',
+              tipoMidia,
+              previewUrl
+            }
+          ]);
+
+          this.chats.update(lista =>
+            lista.map(c => c.contatoId === idContato
+              ? { ...c, ultimaMensagem: `[${tipoMidia}]`, dataUltimaMensagem: now.toISOString() }
+              : c
+            )
+          );
+
+          this.shouldScrollToBottom = true;
+        },
+        error: (err) => {
+          console.error('Erro ao enviar mídia:', err);
+          // O backend manda o motivo real (ex: erro da propria Meta) em err.error.erros --
+          // antes essa mensagem generica escondia o motivo, so aparecia expandindo o
+          // objeto no console.
+          // Cobre tanto o formato de erro custom do projeto ({erros:[...]}/{erro:...}) quanto
+          // o ProblemDetails automatico do ASP.NET Core ({errors:{campo:["msg"]}, title:...}),
+          // que aparece quando um campo do multipart nao bate com o tipo esperado no controller
+          // (isso acontecia ANTES do nosso codigo rodar, entao o formato de erro era diferente).
+          const errorsDoAspNet = err?.error?.errors
+            ? Object.values(err.error.errors).flat().join(', ')
+            : null;
+          const motivo = err?.error?.erros?.[0] || err?.error?.erro || errorsDoAspNet || err?.error?.title
+            || `${err?.status ?? ''} ${err?.statusText ?? ''}`.trim() || 'Verifique a conexão.';
+          this.response.set(`❌ Erro ao enviar o arquivo: ${motivo}`);
+        }
+      });
   }
 
   filtered = computed(() => {

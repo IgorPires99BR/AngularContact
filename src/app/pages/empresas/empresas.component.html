@@ -73,6 +73,12 @@
         <label>Meta Access Token</label>
         <input type="text" placeholder="Token de acesso permanente (EAANhG...)"
                [ngModel]="form().metaAccessToken" (ngModelChange)="update('metaAccessToken', $event)">
+        <!-- Por segurança o token não é devolvido pela API: a listagem traz só os últimos
+             dígitos. Deixar o campo como veio mantém o token atual. -->
+        <small class="dica" *ngIf="editingId()">
+          Por segurança, o token cadastrado não é exibido por inteiro. Deixe como está para
+          mantê-lo, ou cole um token novo para substituí-lo.
+        </small>
       </div>
 
       <div class="btn-grp">

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './auth-guard'; // Certifique-se de que o caminho está correto
+import { authGuard, adminGuard } from './auth-guard'; // Certifique-se de que o caminho está correto
 
 // Layout, Landing e Login
 import { ShellComponent } from './shell/shell.component';
@@ -40,10 +40,10 @@ export const routes: Routes = [
       { path: 'disparador', component: DisparadorComponent },
       { path: 'flows', component: FlowsComponent },
       { path: 'flows/mapa', component: FlowsMapaComponent },
-      { path: 'empresas', component: EmpresasComponent },
+      { path: 'empresas', component: EmpresasComponent, canActivate: [adminGuard] },
       { path: 'contatos', component: ContatosComponent },
       { path: 'numeros', component: NumerosComponent },
-      { path: 'usuarios', component: UsuariosComponent },
+      { path: 'usuarios', component: UsuariosComponent, canActivate: [adminGuard] },
       { path: 'templates', component: TemplatesComponent }, // <--- INSERIDO DENTRO DO SHELL PROTEGIDO
       { path: 'templates/mapa', component: TemplatesMapaComponent },
       { path: 'relatorio', component: RelatorioMensagensComponent },

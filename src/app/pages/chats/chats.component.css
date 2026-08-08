@@ -331,6 +331,45 @@
     opacity: .6;
   }
 
+.chat-attach,
+.chat-mic {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-mic-gravando {
+  background: rgba(239, 68, 68, .15);
+  animation: pulso-gravando 1.2s ease-in-out infinite;
+}
+
+@keyframes pulso-gravando {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, .4); }
+  50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+
+.msg-media-image {
+  max-width: 240px;
+  max-height: 240px;
+  border-radius: 8px;
+  display: block;
+}
+
+.msg-media-audio {
+  max-width: 240px;
+}
+
+.msg-media-document {
+  display: inline-block;
+  color: inherit;
+  text-decoration: underline;
+}
+
 .chat-send {
   width: 40px;
   height: 40px;
