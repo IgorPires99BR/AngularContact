@@ -288,8 +288,14 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
     const idEmpresa = this.empresaId();
     if (!idEmpresa) return;
 
-    // Evita disparar o download de novo enquanto a primeira chamada ainda não voltou
-    if ((midiaId in this.mediaBlobUrls()) || this.midiasCarregando.has(midiaId)) return;
+    // Evita disparar o download de novo enquanto a primeira chamada ainda não voltou.
+    // O `midiasComFalha` é igualmente importante: sem ele, mídia que falha nunca entra no
+    // cache, então cada ciclo de detecção de mudanças chamava mediaUrl() -> carregarMidia()
+    // de novo, num laço infinito (~16 requisições por segundo por mídia quebrada), e cada
+    // uma dessas fazia o backend bater na Graph API da Meta e queimar o limite de taxa.
+    if ((midiaId in this.mediaBlobUrls())
+      || this.midiasCarregando.has(midiaId)
+      || this.midiasComFalha.has(midiaId)) return;
     this.midiasCarregando.add(midiaId);
 
     this.http.get(`${this.API_URL}/midia/${midiaId}?empresaId=${idEmpresa}`, { responseType: 'blob' })
@@ -302,11 +308,19 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
         error: (err) => {
           console.error('Erro ao carregar mídia', midiaId, err);
           this.midiasCarregando.delete(midiaId);
+          this.midiasComFalha.add(midiaId);
         }
       });
   }
 
   private midiasCarregando = new Set<string>();
+  private midiasComFalha = new Set<string>();
+
+  // Usado no template pra mostrar um aviso no lugar da mídia que não carregou,
+  // em vez de deixar o ícone quebrado sem explicação.
+  midiaFalhou(midiaId?: string): boolean {
+    return !!midiaId && this.midiasComFalha.has(midiaId);
+  }
 
   // Dispara pelo botão de anexo, envia o arquivo escolhido como mídia pra Meta
   enviarArquivo(event: Event) {

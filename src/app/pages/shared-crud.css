@@ -158,3 +158,13 @@
   .crud-item { padding: 10px 14px; }
   .crud-meta { font-size: .68rem; }
 }
+
+/* Aviso curto abaixo de um campo, usado quando o valor exibido nao e o valor real
+   (ex: token da Meta, que a API devolve mascarado por seguranca). */
+.dica {
+  display: block;
+  margin-top: 6px;
+  font-size: .72rem;
+  line-height: 1.4;
+  color: #8ba0bd;
+}

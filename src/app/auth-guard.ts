@@ -20,3 +20,23 @@ export const authGuard: CanActivateFn = (route, state) => {
     return false;
   }
 };
+
+// Protege as telas de administração (empresas, usuários). Antes qualquer usuário logado
+// abria essas telas e via todas as empresas cadastradas, inclusive o token da Meta de cada uma.
+// O backend já bloqueia por conta própria (403); isso aqui evita mostrar uma tela quebrada.
+export const adminGuard: CanActivateFn = (route, state) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (!authService.usuarioIdSignal() && !localStorage.getItem('usuarioId') && !sessionStorage.getItem('usuarioId')) {
+    router.navigate(['/login']);
+    return false;
+  }
+
+  if (authService.ehAdminSignal()) {
+    return true;
+  }
+
+  router.navigate(['/dashboard']);
+  return false;
+};

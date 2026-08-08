@@ -26,6 +26,10 @@ export class AuthService {
   // Atalho reativo para o ID da Empresa (usado na tela de Templates e isolamento multi-tenant)
   readonly empresaIdSignal = computed(() => this.userState()?.idEmpresa);
 
+  // Usado pelo adminGuard pra esconder as telas de administração de quem não é admin.
+  // É só experiência de uso: quem manda de verdade é o backend, que devolve 403.
+  readonly ehAdminSignal = computed(() => (this.userState()?.role ?? '').toLowerCase() === 'admin');
+
   getToken(): string | null {
     return this.userState()?.token ?? localStorage.getItem('token') ?? sessionStorage.getItem('token');
   }
@@ -82,8 +86,10 @@ export class AuthService {
   }
 
   logout() {
-    // Limpa todas as chaves do storage e reseta o Signal
+    // Limpa os dois storages: quando o login foi feito sem "Lembrar-me", a sessão fica no
+    // sessionStorage, e limpar só o localStorage deixava o usuário logado depois do logout.
     localStorage.clear();
+    sessionStorage.clear();
     this.userState.set(null);
   }
 }

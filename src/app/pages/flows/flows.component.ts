@@ -98,7 +98,7 @@ export class FlowsComponent implements OnInit {
           // Trata o array de etapas interno do fluxo
           const etapasRaw = f.etapas || f.Etapas || [];
 
-          const etapasOrdenadas = etapasRaw.map((e: any) => ({
+          const etapasMapeadas = etapasRaw.map((e: any) => ({
             id: e.id || e.Id,
             ordem: e.ordem !== undefined ? e.ordem : e.Ordem,
             tipoStep: e.tipoStep || e.TipoStep || e.nomeEtapa || e.NomeEtapa, // Fallback seguro
@@ -108,7 +108,13 @@ export class FlowsComponent implements OnInit {
             proximaEtapaId: e.proximaEtapaId || e.ProximaEtapaId,
             ehEtapaInicial: e.ehEtapaInicial !== undefined ? e.ehEtapaInicial : e.EhEtapaInicial,
             templateId: e.templateId || e.TemplateId
-          })).sort((a: any, b: any) => a.ordem - b.ordem);
+          }));
+
+          // A ordem real das etapas é a corrente de ProximaEtapaId, mantida pelo backend --
+          // não existe coluna "Ordem" no banco, então o antigo sort por `a.ordem - b.ordem`
+          // comparava undefined, dava NaN e devolvia a lista em ordem imprevisível a cada
+          // leitura (chegava a trocar qual era a etapa inicial).
+          const etapasOrdenadas = this.ordenarPelaCorrente(etapasMapeadas);
 
           // Retorna o objeto Flow mapeado estritamente para o padrão do seu Front-end
           return {
@@ -183,18 +189,20 @@ export class FlowsComponent implements OnInit {
 
     const { isNew } = fluxoAtual as any;
 
-    if (isNew === false || !isNew) {
-      this.http.put(this.API_URL, payloadToPost).subscribe({
-        next: () => this.processarSucesso('✅ Fluxo atualizado com sucesso!'),
-        error: (err) => this.processarErro(err, 'Erro ao atualizar fluxo.')
-      });
-    } {
+    // O bloco do POST era um bloco solto, sem `else`: ao editar um fluxo existente
+    // o PUT e o POST saíam juntos, e cada gravação criava uma cópia inteira do fluxo.
+    if (isNew) {
       this.http.post(this.API_URL, payloadToPost).subscribe({
         next: () => {
           (fluxoAtual as any).isNew = false;
           this.processarSucesso('✅ Novo fluxo registrado com sucesso!');
         },
         error: (err) => this.processarErro(err, 'Erro ao criar fluxo.')
+      });
+    } else {
+      this.http.put(this.API_URL, payloadToPost).subscribe({
+        next: () => this.processarSucesso('✅ Fluxo atualizado com sucesso!'),
+        error: (err) => this.processarErro(err, 'Erro ao atualizar fluxo.')
       });
     }
   }
@@ -214,6 +222,34 @@ export class FlowsComponent implements OnInit {
       },
       error: () => this.response.set('❌ Erro ao tentar excluir o fluxo do servidor.')
     });
+  }
+
+  // Coloca as etapas na ordem de execução seguindo ProximaEtapaId a partir da etapa inicial.
+  // Etapas fora da corrente (ponteiro quebrado, ou órfãs de uma edição antiga) entram no fim,
+  // pra nunca sumirem da tela sem o usuário perceber.
+  private ordenarPelaCorrente(etapas: any[]): any[] {
+    if (etapas.length <= 1) return etapas;
+
+    const porId = new Map(etapas.map(e => [e.id, e]));
+    const inicial = etapas.find(e => e.ehEtapaInicial) ?? etapas[0];
+
+    const ordenadas: any[] = [];
+    const visitados = new Set<string>();
+
+    let atual = inicial;
+    // O `visitados` também protege contra flow com referência circular (A -> B -> A),
+    // que sem isso travaria o navegador num laço infinito.
+    while (atual && !visitados.has(atual.id)) {
+      visitados.add(atual.id);
+      ordenadas.push(atual);
+      atual = atual.proximaEtapaId ? porId.get(atual.proximaEtapaId) : undefined;
+    }
+
+    for (const etapa of etapas) {
+      if (!visitados.has(etapa.id)) ordenadas.push(etapa);
+    }
+
+    return ordenadas;
   }
 
   // Métodos Auxiliares de Gerenciamento Local
