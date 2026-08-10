@@ -1,0 +1,29 @@
+<div class="tpl-preview-label">Prévia</div>
+<div class="tpl-phone">
+  <div class="tpl-header-preview" *ngIf="header().tipo === 'TEXT' && header().texto">{{ header().texto }}</div>
+  <div class="tpl-header-preview" *ngIf="header().tipo === 'IMAGE'">🖼️ Cabeçalho de imagem{{ header().exemploNomeArquivo ? ': ' + header().exemploNomeArquivo : '' }}</div>
+  <div class="tpl-header-preview" *ngIf="header().tipo === 'VIDEO'">🎬 Cabeçalho de vídeo{{ header().exemploNomeArquivo ? ': ' + header().exemploNomeArquivo : '' }}</div>
+  <div class="tpl-header-preview" *ngIf="header().tipo === 'DOCUMENT'">📄 Cabeçalho de documento{{ header().exemploNomeArquivo ? ': ' + header().exemploNomeArquivo : '' }}</div>
+
+  <div class="tpl-bubble" *ngIf="textoPreview(); else previewVazio">
+    {{ textoPreview() }}
+    <div class="tpl-footer-preview" *ngIf="footerTexto()">{{ footerTexto() }}</div>
+    <div class="tpl-bubble-tail"></div>
+  </div>
+  <ng-template #previewVazio>
+    <div class="tpl-bubble tpl-bubble-empty">
+      Digite o conteúdo do corpo pra ver a prévia aqui.
+      <div class="tpl-bubble-tail"></div>
+    </div>
+  </ng-template>
+
+  <div class="tpl-bubble-buttons" *ngIf="botoes().length > 0">
+    <div class="tpl-bubble-btn" *ngFor="let b of botoes()">
+      <span *ngIf="b.tipo === 'URL'">🔗</span>
+      <span *ngIf="b.tipo === 'PHONE_NUMBER'">📞</span>
+      <span *ngIf="b.tipo === 'QUICK_REPLY'">↩️</span>
+      <span *ngIf="b.tipo === 'COPY_CODE'">🎟️</span>
+      {{ b.tipo === 'COPY_CODE' ? 'Copiar código' : (b.texto || rotulo(b.tipo)) }}
+    </div>
+  </div>
+</div>

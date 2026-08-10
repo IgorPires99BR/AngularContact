@@ -5,6 +5,8 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
+import { TemplateService } from '../templates/template.service';
+import { Template, TemplateComponente, parseComponentes } from '../templates/template.models';
 
 interface Contato {
   id: string;
@@ -25,29 +27,7 @@ interface NumeroMeta {
   dataCriacao: string;
 }
 
-// 1. Interfaces mapeadas com as regras de negócio limpas do C#
-export interface TemplateBotao {
-  Tipo: number;       // Antes era 'tipo'
-  Texto: string;      // Antes era 'texto'
-  Url?: string;       // Antes era 'url'
-}
-
-export interface TemplateComponente {
-  Tipo: number;       // Antes era 'tipo' (0 = Header, 1 = Body, 2 = Footer, 3 = Buttons)
-  FormatMidia: number; // Antes era 'formatMidia' (0 = None, 1 = Text, 2 = Image, 3 = Video, 4 = Document)
-  Texto?: string;
-  Botoes?: TemplateBotao[];
-}
-
-interface TemplateMeta {
-  id: string;
-  empresaId: string;
-  nomeTemplate: string;
-  conteudo: string;
-  categoria: string;
-  idioma: string;
-  status: string;
-  componentesJson: string; // String JSON vinda do Banco de dados
+interface TemplateMeta extends Template {
   componentesParsed?: TemplateComponente[]; // Cache local pós-parse
 }
 
@@ -61,11 +41,11 @@ interface TemplateMeta {
 export class DisparadorComponent implements OnInit {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
+  private templateService = inject(TemplateService);
 
   private readonly API_CONTATO = `${environment.apiUrl}/contato`;
   private readonly API_NUMERO = `${environment.apiUrl}/numero`;
   private readonly API_DISPARO = `${environment.apiUrl}/disparador`;
-  private readonly API_TEMPLATE = `${environment.apiUrl}/template`;
 
   private empresaId = this.authService.empresaIdSignal;
   private userId = this.authService.usuarioIdSignal;
@@ -113,13 +93,8 @@ export class DisparadorComponent implements OnInit {
     const tpl = this.templates().find(t => t.id === tplId);
     if (!tpl) return null;
 
-    if (!tpl.componentesParsed && tpl.componentesJson) {
-      try {
-        tpl.componentesParsed = JSON.parse(tpl.componentesJson) as TemplateComponente[];
-      } catch (e) {
-        console.error('Erro ao realizar parse dos componentes do template comercial', e);
-        tpl.componentesParsed = [];
-      }
+    if (!tpl.componentesParsed) {
+      tpl.componentesParsed = parseComponentes(tpl.componentesJson);
     }
     return tpl;
   });
@@ -166,10 +141,10 @@ export class DisparadorComponent implements OnInit {
     const empId = this.empresaId();
     if (!empId) return;
 
-    this.http.get<TemplateMeta[]>(`${this.API_TEMPLATE}/Listar/${empId}`)
+    this.templateService.listar(empId)
       .subscribe({
         next: (res) => {
-          const aprovados = res.filter(t => t.status?.toUpperCase() === 'APPROVED');
+          const aprovados = (res as TemplateMeta[]).filter(t => t.status?.toUpperCase() === 'APPROVED');
           this.templates.set(aprovados);
         },
         error: () => this.response.set('❌ Erro ao carregar templates.')

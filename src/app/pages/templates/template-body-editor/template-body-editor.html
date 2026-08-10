@@ -1,0 +1,16 @@
+<div class="fg">
+  <label>Conteúdo do Corpo (BODY)</label>
+  <textarea rows="5"
+            placeholder="Use {{ '{{1}}' }}, {{ '{{2}}' }} para variáveis. Ex: Olá {{ '{{1}}' }}, seu pedido {{ '{{2}}' }} foi enviado!"
+            [ngModel]="conteudo()"
+            (ngModelChange)="onConteudoChange($event)"
+            [disabled]="disabled()"></textarea>
+</div>
+
+<div class="fg" *ngIf="exemplos().length > 0">
+  <label>Valores de exemplo (exigidos pela Meta para aprovar o template)</label>
+  <div class="tpl-exemplo-row" *ngFor="let ex of exemplos(); let i = index">
+    <span class="badge badge-muted">{{ '{{' + (i + 1) + '}}' }}</span>
+    <input type="text" [placeholder]="'Exemplo para a variável ' + (i + 1)" [ngModel]="ex.value" (ngModelChange)="updateExemplo(i, $event)" [disabled]="disabled()">
+  </div>
+</div>

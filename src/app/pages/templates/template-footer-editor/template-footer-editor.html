@@ -1,0 +1,10 @@
+<div class="fg">
+  <label>Rodapé (opcional)</label>
+  <input type="text"
+         maxlength="60"
+         placeholder="Ex: Esta é uma mensagem automática"
+         [ngModel]="texto()"
+         (ngModelChange)="textoChange.emit($event)"
+         [disabled]="disabled()">
+  <div class="tpl-header-upload-hint">{{ texto().length }}/60 caracteres</div>
+</div>

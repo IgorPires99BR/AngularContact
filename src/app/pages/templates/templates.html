@@ -23,14 +23,18 @@
 
 <div class="g2">
   <div class="card">
-    <div class="card-head"><div class="card-title">📝 Novo Template HSM</div></div>
+    <div class="card-head">
+      <div class="card-title">{{ modoEdicao() ? '✏️ Editando Template: ' + modoEdicao()!.nomeTemplate : '📝 Novo Template HSM' }}</div>
+      <button class="btn btn-ghost btn-sm" *ngIf="modoEdicao()" (click)="cancelarEdicao()">Cancelar edição</button>
+    </div>
     <div class="card-body">
       <div class="tpl-editor">
         <!-- Formulário -->
         <div class="tpl-form">
           <div class="fg">
             <label>Nome do Template (Minúsculas sem espaço)</label>
-            <input type="text" placeholder="Ex: atualizacao_pedido_cliente" [ngModel]="form().nomeTemplate" (ngModelChange)="update('nomeTemplate', $event)">
+            <input type="text" placeholder="Ex: atualizacao_pedido_cliente" [ngModel]="form().nomeTemplate" (ngModelChange)="update('nomeTemplate', $event)" [disabled]="!!modoEdicao()">
+            <div class="tpl-header-upload-hint" *ngIf="modoEdicao()">O nome e o idioma não podem ser alterados numa edição — crie um novo template pra isso.</div>
           </div>
 
           <div class="fg-row">
@@ -44,112 +48,50 @@
             </div>
             <div class="fg">
               <label>Idioma</label>
-              <select [ngModel]="form().idioma" (ngModelChange)="update('idioma', $event)">
-                <option value="pt_BR">Português (Brasil)</option>
-                <option value="en_US">Inglês (EUA)</option>
-                <option value="es_ES">Espanhol</option>
+              <select [ngModel]="form().idioma" (ngModelChange)="update('idioma', $event)" [disabled]="!!modoEdicao()">
+                <option *ngFor="let idioma of idiomas" [value]="idioma.codigo">{{ idioma.rotulo }}</option>
               </select>
             </div>
           </div>
 
-          <div class="fg">
-            <label>Cabeçalho (opcional)</label>
-            <select [ngModel]="headerTipo()" (ngModelChange)="onHeaderTipoChange($event)">
-              <option value="NONE">Nenhum</option>
-              <option value="TEXT">Texto</option>
-              <option value="IMAGE">Imagem</option>
-              <option value="VIDEO">Vídeo</option>
-              <option value="DOCUMENT">Documento</option>
-            </select>
+          <app-template-header-editor
+            [value]="headerState()"
+            (valueChange)="headerState.set($event)"
+            [empresaId]="empresaIdAtual()"
+            (uploadingChange)="uploadingHeader.set($event)">
+          </app-template-header-editor>
 
-            <input *ngIf="headerTipo() === 'TEXT'"
-                   type="text"
-                   style="margin-top: 8px;"
-                   placeholder="Texto fixo do cabeçalho"
-                   maxlength="60"
-                   [ngModel]="headerTexto()"
-                   (ngModelChange)="headerTexto.set($event)">
+          <app-template-body-editor
+            [conteudo]="form().conteudo"
+            (conteudoChange)="update('conteudo', $event)"
+            [exemplos]="exemplosBody()"
+            (exemplosChange)="exemplosBody.set($event)">
+          </app-template-body-editor>
 
-            <div *ngIf="headerTipo() === 'IMAGE' || headerTipo() === 'VIDEO' || headerTipo() === 'DOCUMENT'" style="margin-top: 8px;">
-              <input type="file"
-                     [accept]="headerTipo() === 'IMAGE' ? 'image/*' : headerTipo() === 'VIDEO' ? 'video/*' : '.pdf,.doc,.docx'"
-                     [disabled]="uploadingHeader()"
-                     (change)="onHeaderArquivoSelecionado($event)">
-              <div class="tpl-header-upload-status" *ngIf="uploadingHeader()">⏳ Enviando pra Meta...</div>
-              <div class="tpl-header-upload-status tpl-header-upload-ok" *ngIf="!uploadingHeader() && headerExemploNomeArquivo()">
-                ✅ {{ headerExemploNomeArquivo() }} enviado como exemplo
-              </div>
-              <div class="tpl-header-upload-hint">
-                Esse arquivo é só o exemplo exigido pela Meta pra aprovar o template — na hora de disparar, cada envio pode usar uma mídia diferente (ver tela Disparos).
-              </div>
-            </div>
-          </div>
+          <app-template-footer-editor
+            [texto]="footerTexto()"
+            (textoChange)="footerTexto.set($event)">
+          </app-template-footer-editor>
 
-          <div class="fg">
-            <label>Conteúdo do Corpo (BODY)</label>
-            <textarea rows="5" placeholder="Use {{ '{{1}}' }}, {{ '{{2}}' }} para variáveis. Ex: Olá {{ '{{1}}' }}, seu pedido {{ '{{2}}' }} foi enviado!" [ngModel]="form().conteudo" (ngModelChange)="onConteudoChange($event)"></textarea>
-          </div>
+          <app-template-botoes-editor
+            [botoes]="botoes()"
+            (botoesChange)="botoes.set($event)">
+          </app-template-botoes-editor>
 
-          <div class="fg" *ngIf="exemplosBody().length > 0">
-            <label>Valores de exemplo (exigidos pela Meta para aprovar o template)</label>
-            <div class="tpl-exemplo-row" *ngFor="let ex of exemplosBody(); let i = index">
-              <span class="badge badge-muted">{{ '{{' + (i + 1) + '}}' }}</span>
-              <input type="text" [placeholder]="'Exemplo para a variável ' + (i + 1)" [ngModel]="ex.value" (ngModelChange)="updateExemploBody(i, $event)">
-            </div>
-          </div>
-
-          <div class="fg">
-            <label>Botões (opcional, até 3)</label>
-            <div class="tpl-btn-picker">
-              <button type="button" class="tpl-btn-chip" (click)="adicionarBotao('QUICK_REPLY')">+ Resposta Rápida</button>
-              <button type="button" class="tpl-btn-chip" (click)="adicionarBotao('URL')">+ Link</button>
-              <button type="button" class="tpl-btn-chip" (click)="adicionarBotao('PHONE_NUMBER')">+ Telefone</button>
-            </div>
-
-            <div class="tpl-btn-list" *ngIf="botoes().length > 0">
-              <div class="tpl-btn-row" *ngFor="let b of botoes(); let i = index">
-                <span class="badge badge-blue tpl-btn-tag">{{ rotuloTipoBotao(b.tipo) }}</span>
-                <input type="text" placeholder="Texto do botão" [ngModel]="b.texto" (ngModelChange)="atualizarBotao(i, 'texto', $event)">
-                <input type="text" *ngIf="b.tipo === 'URL'" placeholder="https://..." [ngModel]="b.url" (ngModelChange)="atualizarBotao(i, 'url', $event)">
-                <input #telefoneBotaoInput type="text" inputmode="tel" *ngIf="b.tipo === 'PHONE_NUMBER'" placeholder="+5511999999999" [ngModel]="b.numeroTelefone" (input)="atualizarTelefoneBotao(i, telefoneBotaoInput)">
-                <button type="button" class="tpl-btn-remove" (click)="removerBotao(i)" title="Remover botão">✕</button>
-              </div>
-            </div>
-          </div>
-
-          <button class="btn btn-primary" (click)="incluir()" [disabled]="uploadingHeader()">🚀 Enviar para Meta e Cadastrar</button>
+          <button class="btn btn-primary" (click)="salvar()" [disabled]="uploadingHeader()">
+            {{ modoEdicao() ? '💾 Salvar alterações' : '🚀 Enviar para Meta e Cadastrar' }}
+          </button>
           <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
         </div>
 
         <!-- Prévia estilo WhatsApp -->
         <div class="tpl-preview-col">
-          <div class="tpl-preview-label">Prévia</div>
-          <div class="tpl-phone">
-            <div class="tpl-header-preview" *ngIf="headerTipo() === 'TEXT' && headerTexto()">{{ headerTexto() }}</div>
-            <div class="tpl-header-preview" *ngIf="headerTipo() === 'IMAGE'">🖼️ Cabeçalho de imagem{{ headerExemploNomeArquivo() ? ': ' + headerExemploNomeArquivo() : '' }}</div>
-            <div class="tpl-header-preview" *ngIf="headerTipo() === 'VIDEO'">🎬 Cabeçalho de vídeo{{ headerExemploNomeArquivo() ? ': ' + headerExemploNomeArquivo() : '' }}</div>
-            <div class="tpl-header-preview" *ngIf="headerTipo() === 'DOCUMENT'">📄 Cabeçalho de documento{{ headerExemploNomeArquivo() ? ': ' + headerExemploNomeArquivo() : '' }}</div>
-
-            <div class="tpl-bubble" *ngIf="preview(); else previewVazio">
-              {{ preview() }}
-              <div class="tpl-bubble-tail"></div>
-            </div>
-            <ng-template #previewVazio>
-              <div class="tpl-bubble tpl-bubble-empty">
-                Digite o conteúdo do corpo pra ver a prévia aqui.
-                <div class="tpl-bubble-tail"></div>
-              </div>
-            </ng-template>
-
-            <div class="tpl-bubble-buttons" *ngIf="botoes().length > 0">
-              <div class="tpl-bubble-btn" *ngFor="let b of botoes()">
-                <span *ngIf="b.tipo === 'URL'">🔗</span>
-                <span *ngIf="b.tipo === 'PHONE_NUMBER'">📞</span>
-                <span *ngIf="b.tipo === 'QUICK_REPLY'">↩️</span>
-                {{ b.texto || rotuloTipoBotao(b.tipo) }}
-              </div>
-            </div>
-          </div>
+          <app-template-preview
+            [header]="headerState()"
+            [textoPreview]="preview()"
+            [footerTexto]="footerTexto()"
+            [botoes]="botoes()">
+          </app-template-preview>
         </div>
       </div>
     </div>
@@ -200,12 +142,17 @@
             <span *ngIf="b.tipo === 'URL'">🔗</span>
             <span *ngIf="b.tipo === 'PHONE_NUMBER'">📞</span>
             <span *ngIf="b.tipo === 'QUICK_REPLY'">↩️</span>
-            {{ b.texto }}
+            <span *ngIf="b.tipo === 'COPY_CODE'">🎟️</span>
+            {{ b.tipo === 'COPY_CODE' ? 'Copiar código' : b.texto }}
           </div>
         </div>
 
         <div class="tpl-item-actions">
-          <button class="btn btn-ghost btn-xs" style="opacity: 0.3; cursor: not-allowed;" (click)="excluir(t.id)" title="Exclusão física indisponível">🗑 Excluir</button>
+          <button class="btn btn-ghost btn-xs"
+                  [disabled]="!podeEditar(t)"
+                  [title]="podeEditar(t) ? 'Editar template' : 'Só templates pendentes ou rejeitados podem ser editados'"
+                  (click)="iniciarEdicao(t)">✏️ Editar</button>
+          <button class="btn btn-ghost btn-xs" title="Excluir template" (click)="excluir(t.id)">🗑 Excluir</button>
         </div>
       </div>
 

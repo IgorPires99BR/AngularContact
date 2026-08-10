@@ -2,50 +2,49 @@ import { Component, signal, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
-import { environment } from '../../../environments/environment';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
-
-interface TemplateBotao {
-  tipo: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER';
-  texto: string;
-  url?: string;
-  numeroTelefone?: string;
-}
-
-interface Template {
-  id: string;
-  empresaId: string;
-  nomeTemplate: string;
-  conteudo: string;
-  categoria: string;
-  idioma: string;
-  status: string; // APPROVED, PENDING, REJECTED
-  componentesJson?: string;
-  dataCriacao?: string;
-}
-
-// Mapeia o enum TipoBotaoTemplate (C#, serializado como número) de volta pro tipo legível
-const TIPO_BOTAO_POR_INDICE: TemplateBotao['tipo'][] = ['QUICK_REPLY', 'URL', 'PHONE_NUMBER'];
+import { TemplateService } from './template.service';
+import { TemplateHeaderEditorComponent } from './template-header-editor/template-header-editor';
+import { TemplateBodyEditorComponent } from './template-body-editor/template-body-editor';
+import { TemplateFooterEditorComponent } from './template-footer-editor/template-footer-editor';
+import { TemplateBotoesEditorComponent } from './template-botoes-editor/template-botoes-editor';
+import { TemplatePreviewComponent } from './template-preview/template-preview';
+import {
+  Template,
+  TemplateBotaoForm,
+  HeaderState,
+  headerStateVazio,
+  parseComponentes,
+  IDIOMAS_META,
+  STATUS_EDITAVEIS,
+  TIPO_BOTAO_POR_INDICE,
+} from './template.models';
 
 @Component({
   selector: 'app-templates',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    TemplateHeaderEditorComponent,
+    TemplateBodyEditorComponent,
+    TemplateFooterEditorComponent,
+    TemplateBotoesEditorComponent,
+    TemplatePreviewComponent,
+  ],
   templateUrl: './templates.html',
   styleUrls: ['../shared-crud.css', './templates.css']
 })
 export class TemplatesComponent implements OnInit {
-  private http = inject(HttpClient);
+  private templateService = inject(TemplateService);
   private authService = inject(AuthService);
 
-  // URL Base mapeada exatamente conforme a convenção da sua controller
-  private readonly API_URL = `${environment.apiUrl}/template`;
-
-  // Resgatando o Id da Empresa logada do AuthService
   private empresaId = this.authService.empresaIdSignal;
-  private usuarioId = this.authService.usuarioIdSignal;
+  empresaIdAtual = computed(() => this.empresaId());
+
+  idiomas = IDIOMAS_META;
 
   form = signal({
     nomeTemplate: '',
@@ -54,22 +53,19 @@ export class TemplatesComponent implements OnInit {
     conteudo: ''
   });
 
-  botoes = signal<TemplateBotao[]>([]);
-
-  // --- Cabeçalho (HEADER) opcional ---
-  headerTipo = signal<'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'>('NONE');
-  headerTexto = signal('');
-  headerExemploHandle = signal('');
-  headerExemploNomeArquivo = signal('');
-  uploadingHeader = signal(false);
-
-  // --- Exemplos exigidos pela Meta para cada {{n}} do corpo ---
+  botoes = signal<TemplateBotaoForm[]>([]);
+  headerState = signal<HeaderState>(headerStateVazio());
+  footerTexto = signal('');
   exemplosBody = signal<{ value: string }[]>([]);
+  uploadingHeader = signal(false);
 
   response = signal('');
   templates = signal<Template[]>([]);
   sincronizando = signal(false);
   search = signal('');
+
+  // Template em edição (null = formulário está em modo criação)
+  modoEdicao = signal<Template | null>(null);
 
   templatesFiltrados = computed(() => {
     const termo = this.search().toLowerCase().trim();
@@ -81,13 +77,11 @@ export class TemplatesComponent implements OnInit {
     );
   });
 
-  // Contadores inteligentes baseados no status retornado pelo banco
   aprovados = computed(() => this.templates().filter(t => t.status?.toUpperCase() === 'APPROVED').length);
   pendentes = computed(() => this.templates().filter(t => t.status?.toUpperCase() === 'PENDING').length);
   rejeitados = computed(() => this.templates().filter(t => t.status?.toUpperCase() === 'REJECTED' || t.status?.toUpperCase() === 'REJECTED_META').length);
 
-  // Prévia do corpo da mensagem com variáveis {{1}}, {{2}} preenchidas pelos exemplos
-  // digitados (ou um placeholder enquanto o exemplo não é preenchido)
+  // Prévia do corpo da mensagem com variáveis {{1}}, {{2}} preenchidas pelos exemplos digitados
   preview = computed(() => {
     const conteudo = this.form().conteudo;
     if (!conteudo) return '';
@@ -108,137 +102,32 @@ export class TemplatesComponent implements OnInit {
     this.form.set({ ...this.form(), [field]: value });
   }
 
-  // Chamado a cada alteração do corpo: mantém a lista de exemplos do mesmo
-  // tamanho da quantidade de variáveis {{n}} encontradas, preservando o que já
-  // foi digitado nas posições que continuam existindo
-  onConteudoChange(valor: string) {
-    this.update('conteudo', valor);
-    const quantidade = (valor.match(/\{\{\d+\}\}/g) || []).length;
-    const atuais = this.exemplosBody();
-    this.exemplosBody.set(Array.from({ length: quantidade }, (_, i) => atuais[i] ?? { value: '' }));
-  }
-
-  updateExemploBody(index: number, valor: string) {
-    const arr = [...this.exemplosBody()];
-    arr[index] = { value: valor };
-    this.exemplosBody.set(arr);
-  }
-
-  // --- Cabeçalho (HEADER) ---
-
-  onHeaderTipoChange(tipo: string) {
-    this.headerTipo.set(tipo as any);
-    this.headerTexto.set('');
-    this.headerExemploHandle.set('');
-    this.headerExemploNomeArquivo.set('');
-  }
-
-  onHeaderArquivoSelecionado(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const arquivo = input.files?.[0];
-    if (!arquivo) return;
-
-    const empId = this.empresaId();
-    if (!empId) {
-      this.response.set('❌ Empresa não identificada na sessão.');
-      return;
-    }
-
-    this.uploadingHeader.set(true);
-    this.headerExemploHandle.set('');
-    this.response.set('⏳ Enviando arquivo de exemplo para a Meta...');
-
-    const formData = new FormData();
-    formData.append('empresaId', empId);
-    formData.append('arquivo', arquivo);
-
-    this.http.post<{ handle: string }>(`${this.API_URL}/upload-midia-exemplo`, formData).subscribe({
-      next: (res) => {
-        this.uploadingHeader.set(false);
-        if (!res?.handle) {
-          this.response.set('❌ Upload concluído, mas a Meta não retornou o identificador do arquivo.');
-          return;
-        }
-        this.headerExemploHandle.set(res.handle);
-        this.headerExemploNomeArquivo.set(arquivo.name);
-        this.response.set('✅ Arquivo de exemplo enviado. Já pode cadastrar o template.');
-      },
-      error: (err) => {
-        this.uploadingHeader.set(false);
-        this.response.set(`❌ Erro no upload: ${extrairMensagemErro(err, 'Falha ao enviar o arquivo.')}`);
-        input.value = '';
-      }
-    });
-  }
-
-  // --- Gestão dos botões do formulário de criação ---
-
-  adicionarBotao(tipo: TemplateBotao['tipo']) {
-    if (this.botoes().length >= 3) {
-      this.response.set('❌ A Meta permite no máximo 3 botões por template.');
-      return;
-    }
-    if (tipo === 'PHONE_NUMBER' && this.botoes().some(b => b.tipo === 'PHONE_NUMBER')) {
-      this.response.set('❌ Só é permitido 1 botão de telefone por template.');
-      return;
-    }
-    this.botoes.update(list => [...list, { tipo, texto: '' }]);
-  }
-
-  atualizarBotao(index: number, campo: keyof TemplateBotao, valor: string) {
-    this.botoes.update(list =>
-      list.map((b, i) => i === index ? { ...b, [campo]: valor } : b)
-    );
-  }
-
-  // Botão do tipo Telefone: aceita só dígitos e um "+" opcional no início (formato
-  // esperado pela Meta), diferente do texto livre dos demais campos de botão.
-  atualizarTelefoneBotao(index: number, input: HTMLInputElement) {
-    const comSinal = input.value.trim().startsWith('+') ? '+' : '';
-    const digitos = input.value.replace(/\D/g, '').slice(0, 15);
-    const telefone = comSinal + digitos;
-    input.value = telefone;
-    this.atualizarBotao(index, 'numeroTelefone', telefone);
-  }
-
-  removerBotao(index: number) {
-    this.botoes.update(list => list.filter((_, i) => i !== index));
-  }
-
-  rotuloTipoBotao(tipo: TemplateBotao['tipo']) {
-    if (tipo === 'QUICK_REPLY') return 'Resposta Rápida';
-    if (tipo === 'URL') return 'Link';
-    return 'Telefone';
-  }
-
-  // 1. LISTAR TEMPLATES (Corrigido para api/template/Listar/{empresaId})
   buscar() {
     const empId = this.empresaId();
     if (!empId) return;
 
-    this.http.get<Template[]>(`${this.API_URL}/Listar/${empId}`)
-      .subscribe({
-        next: (res) => this.templates.set(res),
-        error: (err) => this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao buscar templates locais.')}`)
-      });
+    this.templateService.listar(empId).subscribe({
+      next: (res) => this.templates.set(res),
+      error: (err) => this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao buscar templates locais.')}`)
+    });
   }
 
-  // 2. INCLUIR NOVO TEMPLATE (Bate no [HttpPost("api/template/incluir")])
-  incluir() {
+  salvar() {
     const f = this.form();
     const empId = this.empresaId();
+    const editando = this.modoEdicao();
 
     if (!f.nomeTemplate || !f.conteudo || !empId) {
       this.response.set('❌ Preencha os campos obrigatórios (Nome e Conteúdo).');
       return;
     }
 
-    const headerTipo = this.headerTipo();
-    if (headerTipo === 'TEXT' && !this.headerTexto().trim()) {
+    const header = this.headerState();
+    if (header.tipo === 'TEXT' && !header.texto.trim()) {
       this.response.set('❌ Informe o texto do cabeçalho.');
       return;
     }
-    if ((headerTipo === 'IMAGE' || headerTipo === 'VIDEO' || headerTipo === 'DOCUMENT') && !this.headerExemploHandle()) {
+    if ((header.tipo === 'IMAGE' || header.tipo === 'VIDEO' || header.tipo === 'DOCUMENT') && !header.exemploHandle) {
       this.response.set('❌ Envie o arquivo de exemplo do cabeçalho antes de cadastrar o template.');
       return;
     }
@@ -249,25 +138,53 @@ export class TemplatesComponent implements OnInit {
       return;
     }
 
+    const botoesPayload = this.botoes().map(b => ({
+      tipo: b.tipo,
+      texto: b.texto,
+      url: b.url,
+      numeroTelefone: b.numeroTelefone,
+      codigoExemplo: b.codigoExemplo
+    }));
+
+    const componentesPayload = {
+      categoria: f.categoria,
+      conteudo: f.conteudo,
+      botoes: botoesPayload.length > 0 ? botoesPayload : null,
+      headerTipo: header.tipo === 'NONE' ? null : header.tipo,
+      headerTexto: header.tipo === 'TEXT' ? header.texto.trim() : null,
+      headerExemploHandle: (header.tipo === 'IMAGE' || header.tipo === 'VIDEO' || header.tipo === 'DOCUMENT') ? header.exemploHandle : null,
+      footerTexto: this.footerTexto().trim() || null,
+      exemplosBody: exemplos.length > 0 ? exemplos : null
+    };
+
+    if (editando) {
+      this.response.set('⏳ Salvando alterações na Meta...');
+      this.templateService.atualizar(editando.id, componentesPayload).subscribe({
+        next: () => {
+          this.response.set('✅ Template atualizado e reenviado para análise da Meta!');
+          this.cancelarEdicao();
+          this.buscar();
+        },
+        error: (err) => {
+          this.response.set(`❌ Erro: ${extrairMensagemErro(err, 'Não foi possível salvar as alterações.')}`);
+        }
+      });
+      return;
+    }
+
     // Força o nome a seguir o padrão estrito de snake_case exigido pela Meta
     const nomeTratado = f.nomeTemplate.trim().toLowerCase().replace(/\s+/g, '_');
 
     const payload = {
       idEmpresa: empId,
       nomeTemplate: nomeTratado,
-      categoria: f.categoria,
       idioma: f.idioma,
-      conteudo: f.conteudo,
-      botoes: this.botoes().length > 0 ? this.botoes() : null,
-      headerTipo: headerTipo === 'NONE' ? null : headerTipo,
-      headerTexto: headerTipo === 'TEXT' ? this.headerTexto().trim() : null,
-      headerExemploHandle: (headerTipo === 'IMAGE' || headerTipo === 'VIDEO' || headerTipo === 'DOCUMENT') ? this.headerExemploHandle() : null,
-      exemplosBody: exemplos.length > 0 ? exemplos : null
+      ...componentesPayload
     };
 
     this.response.set('⏳ Registrando template no ecossistema da Meta...');
 
-    this.http.post(`${this.API_URL}/incluir`, payload).subscribe({
+    this.templateService.incluir(payload).subscribe({
       next: () => {
         this.response.set('✅ Template enviado com sucesso para análise da Meta e salvo localmente!');
         this.limparForm();
@@ -279,7 +196,6 @@ export class TemplatesComponent implements OnInit {
     });
   }
 
-  // 3. SINCRONIZAR COM A META (Corrigido para HTTP PUT e rota AtualizaTemplateMeta/{empresaId})
   sincronizarComMeta() {
     const empId = this.empresaId();
     if (!empId) return;
@@ -287,12 +203,11 @@ export class TemplatesComponent implements OnInit {
     this.sincronizando.set(true);
     this.response.set('⏳ Buscando atualizações e sincronizando com o WABA...');
 
-    // O método na controller aceita o Guid via URL e é um [HttpPut]
-    this.http.put(`${this.API_URL}/AtualizaTemplateMeta/${empId}`, {}).subscribe({
+    this.templateService.sincronizarComMeta(empId).subscribe({
       next: () => {
         this.response.set('✅ Painel de templates atualizado com a Meta!');
         this.sincronizando.set(false);
-        this.buscar(); // Recarrega a grade
+        this.buscar();
       },
       error: (err) => {
         this.response.set(`❌ Falha ao sincronizar: ${extrairMensagemErro(err, 'Falha ao processar sincronização via PUT.')}`);
@@ -301,10 +216,73 @@ export class TemplatesComponent implements OnInit {
     });
   }
 
-  // Opcional: Como não há endpoint de exclusão na Controller de Templates,
-  // deixei o método preparado aqui para quando você implementar no C#.
+  podeEditar(t: Template): boolean {
+    return STATUS_EDITAVEIS.includes((t.status || '').toUpperCase());
+  }
+
+  iniciarEdicao(t: Template) {
+    if (!this.podeEditar(t)) return;
+
+    const componentes = parseComponentes(t.componentesJson);
+    const headerComp = componentes.find(c => c.Tipo === 0);
+    const footerComp = componentes.find(c => c.Tipo === 2);
+    const botoesComp = componentes.find(c => c.Tipo === 3);
+
+    this.form.set({
+      nomeTemplate: t.nomeTemplate,
+      categoria: t.categoria,
+      idioma: t.idioma,
+      conteudo: t.conteudo
+    });
+
+    if (headerComp) {
+      const tipoPorFormat: HeaderState['tipo'][] = ['NONE', 'TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'];
+      this.headerState.set({
+        tipo: tipoPorFormat[headerComp.FormatMidia] ?? 'NONE',
+        texto: headerComp.Texto || '',
+        exemploHandle: '',
+        exemploNomeArquivo: ''
+      });
+    } else {
+      this.headerState.set(headerStateVazio());
+    }
+
+    this.footerTexto.set(footerComp?.Texto || '');
+
+    this.botoes.set((botoesComp?.Botoes || []).map(b => ({
+      tipo: TIPO_BOTAO_POR_INDICE[b.Tipo] ?? 'QUICK_REPLY',
+      texto: b.Texto,
+      url: b.Url,
+      numeroTelefone: b.NumeroTelefone,
+      codigoExemplo: b.CodigoExemplo
+    })));
+
+    const quantidadeVariaveis = (t.conteudo.match(/\{\{\d+\}\}/g) || []).length;
+    this.exemplosBody.set(Array.from({ length: quantidadeVariaveis }, () => ({ value: '' })));
+
+    this.modoEdicao.set(t);
+    this.response.set('');
+  }
+
+  cancelarEdicao() {
+    this.modoEdicao.set(null);
+    this.limparForm();
+  }
+
   excluir(id: string) {
-    alert('A exclusão física de templates deve ser realizada direto no painel do Facebook Business Suite para evitar multas de conformidade na Meta, ou adicione o endpoint HttpDelete correspondente na controller.');
+    if (!confirm('Tem certeza que deseja excluir este template? Isso remove o template da Meta (todas as variantes de idioma desse nome) e do cadastro local.')) {
+      return;
+    }
+
+    this.templateService.excluir(id).subscribe({
+      next: () => {
+        this.response.set('✅ Template excluído.');
+        this.templates.update(list => list.filter(t => t.id !== id));
+      },
+      error: (err) => {
+        this.response.set(`❌ Erro ao excluir: ${extrairMensagemErro(err, 'Não foi possível excluir o template.')}`);
+      }
+    });
   }
 
   private limparForm() {
@@ -315,10 +293,8 @@ export class TemplatesComponent implements OnInit {
       conteudo: ''
     });
     this.botoes.set([]);
-    this.headerTipo.set('NONE');
-    this.headerTexto.set('');
-    this.headerExemploHandle.set('');
-    this.headerExemploNomeArquivo.set('');
+    this.headerState.set(headerStateVazio());
+    this.footerTexto.set('');
     this.exemplosBody.set([]);
   }
 
@@ -331,19 +307,15 @@ export class TemplatesComponent implements OnInit {
   }
 
   // Extrai os botões salvos (ComponentesJson) de um template da lista, pra exibir no preview
-  botoesDoTemplate(t: Template): TemplateBotao[] {
-    if (!t.componentesJson) return [];
-    try {
-      const componentes = JSON.parse(t.componentesJson);
-      const componenteBotoes = componentes?.find((c: any) => c.Tipo === 3 || c.tipo === 3);
-      const lista = componenteBotoes?.Botoes || componenteBotoes?.botoes || [];
-      return lista.map((b: any) => ({
-        tipo: TIPO_BOTAO_POR_INDICE[b.Tipo ?? b.tipo] ?? 'QUICK_REPLY',
-        texto: b.Texto ?? b.texto,
-        url: b.Url ?? b.url
-      }));
-    } catch {
-      return [];
-    }
+  botoesDoTemplate(t: Template): TemplateBotaoForm[] {
+    const componentes = parseComponentes(t.componentesJson);
+    const componenteBotoes = componentes.find(c => c.Tipo === 3);
+    return (componenteBotoes?.Botoes || []).map(b => ({
+      tipo: TIPO_BOTAO_POR_INDICE[b.Tipo] ?? 'QUICK_REPLY',
+      texto: b.Texto,
+      url: b.Url,
+      numeroTelefone: b.NumeroTelefone,
+      codigoExemplo: b.CodigoExemplo
+    }));
   }
 }

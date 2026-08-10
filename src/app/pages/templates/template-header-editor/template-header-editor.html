@@ -1,0 +1,34 @@
+<div class="fg">
+  <label>Cabeçalho (opcional)</label>
+  <select [ngModel]="value().tipo" (ngModelChange)="onTipoChange($event)" [disabled]="disabled()">
+    <option value="NONE">Nenhum</option>
+    <option value="TEXT">Texto</option>
+    <option value="IMAGE">Imagem</option>
+    <option value="VIDEO">Vídeo</option>
+    <option value="DOCUMENT">Documento</option>
+  </select>
+
+  <input *ngIf="value().tipo === 'TEXT'"
+         type="text"
+         style="margin-top: 8px;"
+         placeholder="Texto fixo do cabeçalho"
+         maxlength="60"
+         [ngModel]="value().texto"
+         (ngModelChange)="onTextoChange($event)"
+         [disabled]="disabled()">
+
+  <div *ngIf="value().tipo === 'IMAGE' || value().tipo === 'VIDEO' || value().tipo === 'DOCUMENT'" style="margin-top: 8px;">
+    <input type="file"
+           [accept]="value().tipo === 'IMAGE' ? 'image/*' : value().tipo === 'VIDEO' ? 'video/*' : '.pdf,.doc,.docx'"
+           [disabled]="uploadingHeader() || disabled()"
+           (change)="onArquivoSelecionado($event)">
+    <div class="tpl-header-upload-status" *ngIf="uploadingHeader()">⏳ Enviando pra Meta...</div>
+    <div class="tpl-header-upload-status tpl-header-upload-ok" *ngIf="!uploadingHeader() && value().exemploNomeArquivo">
+      ✅ {{ value().exemploNomeArquivo }} enviado como exemplo
+    </div>
+    <div class="tpl-header-upload-status" style="color: var(--danger);" *ngIf="erro()">❌ {{ erro() }}</div>
+    <div class="tpl-header-upload-hint">
+      Esse arquivo é só o exemplo exigido pela Meta pra aprovar o template — na hora de disparar, cada envio pode usar uma mídia diferente (ver tela Disparos).
+    </div>
+  </div>
+</div>

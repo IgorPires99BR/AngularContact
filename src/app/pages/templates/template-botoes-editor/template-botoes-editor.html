@@ -1,0 +1,22 @@
+<div class="fg">
+  <label>Botões (opcional, até 3)</label>
+  <div class="tpl-btn-picker">
+    <button type="button" class="tpl-btn-chip" [disabled]="disabled()" (click)="adicionarBotao('QUICK_REPLY')">+ Resposta Rápida</button>
+    <button type="button" class="tpl-btn-chip" [disabled]="disabled()" (click)="adicionarBotao('URL')">+ Link</button>
+    <button type="button" class="tpl-btn-chip" [disabled]="disabled()" (click)="adicionarBotao('PHONE_NUMBER')">+ Telefone</button>
+    <button type="button" class="tpl-btn-chip" [disabled]="disabled()" (click)="adicionarBotao('COPY_CODE')">+ Código de Cupom</button>
+  </div>
+
+  <div class="payload-display" style="margin-bottom: 8px;" *ngIf="erro()">❌ {{ erro() }}</div>
+
+  <div class="tpl-btn-list" *ngIf="botoes().length > 0">
+    <div class="tpl-btn-row" *ngFor="let b of botoes(); let i = index">
+      <span class="badge badge-blue tpl-btn-tag">{{ rotulo(b.tipo) }}</span>
+      <input type="text" *ngIf="b.tipo !== 'COPY_CODE'" placeholder="Texto do botão" [ngModel]="b.texto" (ngModelChange)="atualizarBotao(i, 'texto', $event)" [disabled]="disabled()">
+      <input type="text" *ngIf="b.tipo === 'URL'" placeholder="https://..." [ngModel]="b.url" (ngModelChange)="atualizarBotao(i, 'url', $event)" [disabled]="disabled()">
+      <input #telefoneBotaoInput type="text" inputmode="tel" *ngIf="b.tipo === 'PHONE_NUMBER'" placeholder="+5511999999999" [ngModel]="b.numeroTelefone" (input)="atualizarTelefone(i, telefoneBotaoInput)" [disabled]="disabled()">
+      <input type="text" *ngIf="b.tipo === 'COPY_CODE'" placeholder="Código de exemplo do cupom (ex: PROMO10)" [ngModel]="b.codigoExemplo" (ngModelChange)="atualizarBotao(i, 'codigoExemplo', $event)" [disabled]="disabled()">
+      <button type="button" class="tpl-btn-remove" (click)="removerBotao(i)" title="Remover botão" [disabled]="disabled()">✕</button>
+    </div>
+  </div>
+</div>

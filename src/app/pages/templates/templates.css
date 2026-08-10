@@ -200,6 +200,12 @@
   font-style: italic;
 }
 
+.tpl-footer-preview {
+  margin-top: 8px;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
 .tpl-bubble-buttons {
   margin-top: 10px;
   display: flex;
