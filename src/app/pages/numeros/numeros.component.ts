@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, OnDestroy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -28,7 +28,7 @@ interface Numero {
   templateUrl: './numeros.component.html',
   styleUrls: ['../shared-crud.css', './numeros.component.css'],
 })
-export class NumerosComponent implements OnInit {
+export class NumerosComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
 
@@ -75,8 +75,32 @@ export class NumerosComponent implements OnInit {
     n.statusMeta?.toUpperCase() === 'BLOCKED'
   ).length);
 
+  // Preenchidos pelo evento "message" que a Meta dispara no meio do fluxo de Embedded
+  // Signup (WA_EMBEDDED_SIGNUP), separado do callback de FB.login que só devolve o "code".
+  // Sem isso, o backend nunca sabe qual phone_number_id/waba_id a Meta atribuiu ao
+  // número recem-conectado.
+  private phoneNumberIdSignup: string | null = null;
+  private wabaIdSignup: string | null = null;
+  private embeddedSignupListener = (event: MessageEvent) => {
+    if (event.origin !== 'https://www.facebook.com') return;
+    try {
+      const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+      if (data?.type === 'WA_EMBEDDED_SIGNUP' && data?.event === 'FINISH') {
+        this.phoneNumberIdSignup = data?.data?.phone_number_id ?? null;
+        this.wabaIdSignup = data?.data?.waba_id ?? null;
+      }
+    } catch {
+      // Mensagens de outra origem/formato que não interessam a este fluxo são ignoradas.
+    }
+  };
+
   ngOnInit() {
     this.carregarDadosIniciais();
+    window.addEventListener('message', this.embeddedSignupListener);
+  }
+
+  ngOnDestroy() {
+    window.removeEventListener('message', this.embeddedSignupListener);
   }
 
   carregarDadosIniciais() {
@@ -192,12 +216,19 @@ export class NumerosComponent implements OnInit {
       return;
     }
 
+    if (!this.phoneNumberIdSignup) {
+      this.response.set('❌ A Meta não retornou o identificador do número (phone_number_id) via Embedded Signup. Tente novamente.');
+      return;
+    }
+
     const payload = {
       usuarioId: uid,
       idEmpresa: eid,
       code,
       numeroTelefone: f.telefone,
-      nomeEmpresa: f.nomeVerificado
+      nomeEmpresa: f.nomeVerificado,
+      phoneNumberId: this.phoneNumberIdSignup,
+      wabaId: this.wabaIdSignup
     };
 
     this.embeddedSignupCarregando.set(true);
@@ -207,6 +238,8 @@ export class NumerosComponent implements OnInit {
       next: () => {
         this.response.set('✅ Número conectado via Embedded Signup com sucesso!');
         this.embeddedSignupCarregando.set(false);
+        this.phoneNumberIdSignup = null;
+        this.wabaIdSignup = null;
         this.limparForm();
         this.buscar();
       },
