@@ -1,0 +1,131 @@
+/* Cabeçalhos de seção — separa visualmente "Configurações do Flow" de "Etapas" */
+.builder-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 4px 0 14px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.builder-section-title {
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: .78rem; letter-spacing: .03em;
+  color: var(--text);
+}
+.builder-section-count {
+  font-size: .7rem; color: var(--muted);
+}
+
+/* Step card */
+.steps-container { display: flex; flex-direction: column; }
+.step-card {
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border2);
+  border-radius: 12px;
+  padding: 18px;
+  position: relative;
+  transition: border-color .15s;
+}
+.step-card:hover { border-color: var(--border2); }
+
+/* Cor de destaque por tipo de etapa, na mesma paleta do Mapa Mental 3D
+   (azul = início, verde = encerrar, roxo = demais) pra manter consistência visual */
+.step-card.step-accent-inicio { border-left-color: var(--blue2); }
+.step-card.step-accent-meio { border-left-color: var(--violet, #8B5CF6); }
+.step-card.step-accent-fim { border-left-color: var(--green); }
+
+.step-badge-inicio {
+  position: absolute; top: -11px; right: 16px;
+  background: var(--blue2); color: #fff;
+  border-radius: 100px;
+  font-size: .62rem; font-weight: 800;
+  padding: 3px 10px;
+  font-family: 'Syne', sans-serif; letter-spacing: .05em;
+  box-shadow: 0 2px 10px var(--blue-glow);
+}
+
+.step-type-hint {
+  font-size: .72rem;
+  color: var(--muted);
+  margin: -6px 0 12px 0;
+}
+.step-num {
+  position: absolute; top: -11px; left: 16px;
+  background: var(--blue2); color: #fff;
+  border-radius: 100px;
+  font-size: .62rem; font-weight: 800;
+  padding: 3px 10px;
+  font-family: 'Syne', sans-serif; letter-spacing: .05em;
+  box-shadow: 0 2px 10px var(--blue-glow);
+}
+.step-connector {
+  display: flex; flex-direction: column; align-items: center;
+  margin: 6px auto; gap: 2px;
+}
+.step-connector-line {
+  width: 1px; height: 14px;
+  background: linear-gradient(180deg, var(--border2), var(--border));
+}
+.step-connector-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--blue-light);
+  border: 1.5px solid var(--border2);
+}
+
+.step-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.step-type-select {
+  background: var(--blue-light); color: var(--blue3);
+  border: 1px solid var(--border2);
+  border-radius: 6px; padding: 4px 10px;
+  font-size: .72rem; font-weight: 700;
+  outline: none; appearance: none;
+  cursor: pointer;
+}
+.step-actions { display: flex; gap: 5px; }
+
+.step-fg { margin-bottom: 10px; }
+.step-fg:last-child { margin-bottom: 0; }
+.step-fg label {
+  font-size: .66rem; font-weight: 700;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .08em;
+  display: block; margin-bottom: 5px;
+}
+.step-fg input, .step-fg textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--text); font-size: .83rem;
+  outline: none; transition: all .15s;
+}
+.step-fg input:focus, .step-fg textarea:focus {
+  border-color: var(--blue2);
+  background: rgba(61, 110, 232, .06);
+}
+.step-fg textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
+
+/* Chips de "+ nova etapa" por tipo — mesmo padrão visual dos chips de botão em Templates */
+.step-add-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.step-add-chip {
+  background: var(--violet-light, rgba(139, 92, 246, .14));
+  border: 1px dashed var(--border2);
+  color: var(--violet, #8B5CF6);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 100px;
+  transition: all 0.15s;
+}
+.step-add-chip:hover {
+  background: rgba(139, 92, 246, 0.22);
+  border-style: solid;
+}

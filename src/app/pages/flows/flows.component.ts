@@ -1,213 +1,102 @@
 import { Component, signal, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
-
-export interface Step {
-  id: string;
-  ordem: number;          // Alinhado com o DTO do Back-end
-  tipoStep: string;        // Mudado de 'nomeEtapa' para 'tipoStep'
-  mensagemPergunta: string; // Mudado de 'conteudoLivre' para 'mensagemPergunta'
-  variavelSaida?: string; // Tornou-se opcional (?) ou string vazia
-  gatilhoResposta?: string;
-  proximaEtapaId?: string | null;
-  ehEtapaInicial?: boolean;
-  templateId?: string;
-}
+import { NumeroSelectorComponent } from '../../shared/numero-selector/numero-selector';
 
 export interface Flow {
   id: string;
-  idEmpresa: string;      // Vinculado ao ecossistema multi-tenant
+  idEmpresa: string;
   nome: string;
   descricao: string;
   gatilhoPalavraChave: string;
   ativo: boolean;
-  clients?: number;       // Controle visual mantido no front
-  etapas: Step[];
+  numeroId: string | null;
+  totalEtapas: number;
 }
 
+// Lista de Flows da empresa, com filtro por número. A criação/edição virou uma tela
+// própria (/flows/novo, /flows/:id/editar) — antes tudo (lista + builder + monitor)
+// vivia num único componente com abas, o que ficava confuso conforme os flows cresciam.
 @Component({
   selector: 'app-flows',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, NumeroSelectorComponent],
   templateUrl: './flows.component.html',
   styleUrls: ['../shared-crud.css', './flows.component.css'],
 })
 export class FlowsComponent implements OnInit {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
+  private router = inject(Router);
 
-  // URL base extraída diretamente do Swagger: /api/config/flow
   private readonly API_URL = `${environment.apiUrl}/config/flow`;
-
-  // ID da empresa logada vindo do serviço global de autenticação
   private idEmpresaLogada = this.authService.empresaIdSignal;
 
-  // Controle de Abas e Estados de UI
-  Math = Math;
-  tab = signal<'builder' | 'monitor' | 'saved'>('builder');
   response = signal('');
-  sincronizando = signal(false);
-
-  // Estado dos dados
+  carregando = signal(true);
   flows = signal<Flow[]>([]);
-  selectedId = signal<string>('');
+  numeroFiltro = signal<string>('');
 
-  // Computeds para os contadores visuais e estatísticas
   ativos = computed(() => this.flows().filter(f => f.ativo).length);
   inativos = computed(() => this.flows().filter(f => !f.ativo).length);
-  totalSteps = computed(() => this.flows().reduce((acc, f) => acc + f.etapas.length, 0));
-
-  // Provedor do item selecionado na árvore de edição
-  selected = computed(() => this.flows().find(f => f.id === this.selectedId()) ?? this.flows()[0]);
-
-  stepTypes = [
-    { value: 'Mensagem', label: 'Mensagem', chipLabel: '+ Mensagem', icon: '💬', hint: 'O bot envia um texto pro cliente.' },
-    { value: 'Capturar Input', label: 'Capturar Input', chipLabel: '+ Capturar Dado', icon: '✍️', hint: 'Espera a resposta do cliente e guarda numa variável.' },
-    { value: 'Condição', label: 'Condição', chipLabel: '+ Condição', icon: '🔀', hint: 'Só avança se a resposta bater com o gatilho configurado.' },
-    { value: 'Encerrar', label: 'Encerrar', chipLabel: '+ Encerrar Conversa', icon: '🏁', hint: 'Finaliza o flow — nenhuma etapa depois dela roda.' },
-  ];
 
   ngOnInit() {
     this.buscar();
   }
 
-  // 1. LISTAR FLOWS (GET /api/config/flow)
+  onNumeroFiltroChange(numeroId: string) {
+    this.numeroFiltro.set(numeroId);
+    this.buscar();
+  }
+
   buscar() {
     const empId = this.idEmpresaLogada();
+    if (!empId) return;
 
-    if (!empId) {
-      console.warn('⚠️ Aguardando ID da empresa para listar os fluxos.');
-      return;
-    }
+    this.carregando.set(true);
+    const numeroId = this.numeroFiltro();
+    const url = numeroId ? `${this.API_URL}/${empId}?numeroId=${numeroId}` : `${this.API_URL}/${empId}`;
 
-    // Ajustado para refletir o envelope de resposta do .NET: { value: [...], erros: [], hasValidations: false }
-    this.http.get<{ value: any[] }>(`${this.API_URL}/${empId}`).subscribe({
+    // GET /config/flow/{id} devolve o array puro, sem envelope { value: [...] } (diferente
+    // de outros endpoints da API) -- ValidateResponse<T> so embrulha quando o controller
+    // passa statusCode 0; FlowsController passa 200 explicito, entao vem cru.
+    this.http.get<any[]>(url).subscribe({
       next: (res) => {
-        // Verifica se a propriedade 'value' existe e possui itens
-        if (!res || !res.value || !Array.isArray(res.value)) {
-          this.flows.set([]);
-          return;
-        }
-
-        // Mapeia a partir de res.value
-        const mapeados: Flow[] = res.value.map(f => {
-          // Trata o array de etapas interno do fluxo
-          const etapasRaw = f.etapas || f.Etapas || [];
-
-          const etapasMapeadas = etapasRaw.map((e: any) => ({
-            id: e.id || e.Id,
-            ordem: e.ordem !== undefined ? e.ordem : e.Ordem,
-            tipoStep: e.tipoStep || e.TipoStep || e.nomeEtapa || e.NomeEtapa, // Fallback seguro
-            mensagemPergunta: e.mensagemPergunta || e.MensagemPergunta || e.conteudoLivre || e.ConteudoLivre,
-            variavelSaida: e.variavelSaida || e.VariavelSaida || '',
-            gatilhoResposta: e.gatilhoResposta || e.GatilhoResposta,
-            proximaEtapaId: e.proximaEtapaId || e.ProximaEtapaId,
-            ehEtapaInicial: e.ehEtapaInicial !== undefined ? e.ehEtapaInicial : e.EhEtapaInicial,
-            templateId: e.templateId || e.TemplateId
-          }));
-
-          // A ordem real das etapas é a corrente de ProximaEtapaId, mantida pelo backend --
-          // não existe coluna "Ordem" no banco, então o antigo sort por `a.ordem - b.ordem`
-          // comparava undefined, dava NaN e devolvia a lista em ordem imprevisível a cada
-          // leitura (chegava a trocar qual era a etapa inicial).
-          const etapasOrdenadas = this.ordenarPelaCorrente(etapasMapeadas);
-
-          // Retorna o objeto Flow mapeado estritamente para o padrão do seu Front-end
-          return {
-            id: f.id || f.Id,
-            idEmpresa: f.idEmpresa || f.IdEmpresa || f.empresaId || f.EmpresaId,
-            nome: f.nome || f.Nome,
-            descricao: f.descricao || f.Descricao,
-            // Fallback robusto caso a palavra-chave venha nula do banco
-            gatilhoPalavraChave: f.gatilhoPalavraChave || f.GatilhoPalavraChave || '',
-            ativo: f.ativo !== undefined ? f.ativo : f.Ativo,
-            clients: f.clients || f.Clients || 0,
-            etapas: etapasOrdenadas
-          };
-        });
-
+        const lista = Array.isArray(res) ? res : [];
+        const mapeados: Flow[] = lista.map(f => ({
+          id: f.id || f.Id,
+          idEmpresa: f.idEmpresa || f.IdEmpresa || f.empresaId || f.EmpresaId,
+          nome: f.nome || f.Nome,
+          descricao: f.descricao || f.Descricao,
+          gatilhoPalavraChave: f.gatilhoPalavraChave || f.GatilhoPalavraChave || '',
+          ativo: f.ativo !== undefined ? f.ativo : f.Ativo,
+          numeroId: f.numeroId || f.NumeroId || null,
+          totalEtapas: (f.etapas || f.Etapas || []).length
+        }));
         this.flows.set(mapeados);
-
-        // Sincroniza o primeiro item na tela de edição imediatamente após carregar
-        if (mapeados.length > 0) {
-          const currentId = this.selectedId();
-          // Se não houver ID selecionado ou o ID atual não fizer parte da nova lista, força o primeiro
-          if (!currentId || !mapeados.some(f => f.id === currentId)) {
-            this.selectedId.set(mapeados[0].id);
-          }
-        }
+        this.carregando.set(false);
       },
       error: (err) => {
         this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao carregar fluxos do servidor para esta empresa.')}`);
+        this.carregando.set(false);
       }
     });
   }
 
-  // 2. SALVAR OU ALTERAR FLOW (POST ou PUT /api/config/flow)
-  salvar() {
-    const fluxoAtual = this.selected();
-    const empId = this.idEmpresaLogada();
-
-    if (!fluxoAtual || !empId) {
-      this.response.set('❌ Sessão expirada ou fluxo inválido.');
-      return;
-    }
-
-    if (!fluxoAtual.nome || !fluxoAtual.gatilhoPalavraChave) {
-      this.response.set('❌ Nome do fluxo e palavra-chave são obrigatórios.');
-      return;
-    }
-
-    this.sincronizando.set(true);
-    this.response.set('⏳ Sincronizando fluxo com o banco de dados...');
-
-    // Mapeia o objeto local para o contrato estrito que o C# espera
-    const payloadToPost = {
-      id: fluxoAtual.id,
-      idEmpresa: empId,
-      nome: fluxoAtual.nome,
-      descricao: fluxoAtual.descricao,
-      gatilhoPalavraChave: fluxoAtual.gatilhoPalavraChave,
-      ativo: fluxoAtual.ativo,
-      etapas: fluxoAtual.etapas.map(e => ({
-        id: e.id,
-        ordem: e.ordem,
-        tipoStep: e.tipoStep,          // De 'nomeEtapa' para 'tipoStep'
-        mensagemPergunta: e.mensagemPergunta, // De 'conteudoLivre' para 'mensagemPergunta'
-        variavelSaida: e.variavelSaida || '',
-        gatilhoResposta: e.gatilhoResposta,
-        proximaEtapaId: e.proximaEtapaId,
-        ehEtapaInicial: e.ehEtapaInicial,
-        templateId: e.templateId
-      }))
-    };
-
-    const { isNew } = fluxoAtual as any;
-
-    // O bloco do POST era um bloco solto, sem `else`: ao editar um fluxo existente
-    // o PUT e o POST saíam juntos, e cada gravação criava uma cópia inteira do fluxo.
-    if (isNew) {
-      this.http.post(this.API_URL, payloadToPost).subscribe({
-        next: () => {
-          (fluxoAtual as any).isNew = false;
-          this.processarSucesso('✅ Novo fluxo registrado com sucesso!');
-        },
-        error: (err) => this.processarErro(err, 'Erro ao criar fluxo.')
-      });
-    } else {
-      this.http.put(this.API_URL, payloadToPost).subscribe({
-        next: () => this.processarSucesso('✅ Fluxo atualizado com sucesso!'),
-        error: (err) => this.processarErro(err, 'Erro ao atualizar fluxo.')
-      });
-    }
+  novoFlow() {
+    const numeroId = this.numeroFiltro();
+    this.router.navigate(['/flows/novo'], numeroId ? { queryParams: { numeroId } } : {});
   }
 
-  // 3. EXCLUIR FLOW (DELETE /api/config/flow/{id})
+  editar(id: string) {
+    this.router.navigate(['/flows', id, 'editar']);
+  }
+
   excluir(id: string) {
     if (!confirm('Deseja realmente remover este fluxo de conversa? Isso apagará todas as etapas vinculadas.')) return;
 
@@ -216,162 +105,9 @@ export class FlowsComponent implements OnInit {
       next: () => {
         this.flows.update(list => list.filter(f => f.id !== id));
         this.response.set('✅ Fluxo removido com sucesso.');
-        if (this.selectedId() === id && this.flows().length > 0) {
-          this.selectedId.set(this.flows()[0].id);
-        }
       },
       error: (err) => this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao tentar excluir o fluxo do servidor.')}`)
     });
-  }
-
-  // Coloca as etapas na ordem de execução seguindo ProximaEtapaId a partir da etapa inicial.
-  // Etapas fora da corrente (ponteiro quebrado, ou órfãs de uma edição antiga) entram no fim,
-  // pra nunca sumirem da tela sem o usuário perceber.
-  private ordenarPelaCorrente(etapas: any[]): any[] {
-    if (etapas.length <= 1) return etapas;
-
-    const porId = new Map(etapas.map(e => [e.id, e]));
-    const inicial = etapas.find(e => e.ehEtapaInicial) ?? etapas[0];
-
-    const ordenadas: any[] = [];
-    const visitados = new Set<string>();
-
-    let atual = inicial;
-    // O `visitados` também protege contra flow com referência circular (A -> B -> A),
-    // que sem isso travaria o navegador num laço infinito.
-    while (atual && !visitados.has(atual.id)) {
-      visitados.add(atual.id);
-      ordenadas.push(atual);
-      atual = atual.proximaEtapaId ? porId.get(atual.proximaEtapaId) : undefined;
-    }
-
-    for (const etapa of etapas) {
-      if (!visitados.has(etapa.id)) ordenadas.push(etapa);
-    }
-
-    return ordenadas;
-  }
-
-  // Métodos Auxiliares de Gerenciamento Local
-  newFlow() {
-    const novoGuid = crypto.randomUUID();
-    const f: Flow & { isNew?: boolean } = {
-      id: novoGuid,
-      idEmpresa: this.idEmpresaLogada() || '',
-      nome: 'Novo Flow',
-      descricao: '',
-      gatilhoPalavraChave: '',
-      ativo: false,
-      clients: 0,
-      etapas: [],
-      isNew: true // <-- Essa flag garante que o sistema saiba que ele DEVE ser criado (POST)
-    };
-    this.flows.set([f, ...this.flows()]);
-    this.selectedId.set(novoGuid);
-    this.tab.set('builder');
-    this.response.set('✨ Novo fluxo engatado na memória. Clique em Salvar para persistir.');
-  }
-
-  addStep(tipo: string = 'Mensagem') {
-    const f = this.selected();
-    if (!f) return;
-
-    // Criamos a nova etapa com a tipagem e campos que o Back-end exige
-    const novaEtapa: Step = {
-      id: crypto.randomUUID(),
-      ordem: f.etapas.length + 1,
-      tipoStep: tipo,                // Alinhado com TipoStep (antigo nomeEtapa)
-      mensagemPergunta: '',          // Alinhado com MensagemPergunta (antigo conteudoLivre)
-      variavelSaida: '',             // Enviando vazio para evitar o erro de validação do 400
-      ehEtapaInicial: f.etapas.length === 0,
-      gatilhoResposta: 'Avancar',
-      proximaEtapaId: null
-    };
-
-    // Reconstrói a corrente (ordem + proximaEtapaId) pra nova etapa ficar encadeada
-    // com a anterior — sem isso o flow visualmente crescia mas o backend nunca
-    // avançava pra etapa nova (proximaEtapaId ficava null pra sempre).
-    f.etapas = this.recalcularCadeia([...f.etapas, novaEtapa]);
-    this.flows.set([...this.flows()]);
-  }
-
-  removeStep(stepId: string) {
-    const f = this.selected();
-    if (!f) return;
-
-    f.etapas = this.recalcularCadeia(f.etapas.filter(s => s.id !== stepId));
-    this.flows.set([...this.flows()]);
-  }
-
-  moveStep(stepId: string, direcao: -1 | 1) {
-    const f = this.selected();
-    if (!f) return;
-
-    const etapas = [...f.etapas];
-    const idx = etapas.findIndex(s => s.id === stepId);
-    const novoIdx = idx + direcao;
-    if (idx < 0 || novoIdx < 0 || novoIdx >= etapas.length) return;
-
-    [etapas[idx], etapas[novoIdx]] = [etapas[novoIdx], etapas[idx]];
-
-    f.etapas = this.recalcularCadeia(etapas);
-    this.flows.set([...this.flows()]);
-  }
-
-  // Sempre que a ordem visual muda (adicionar/remover/mover), refaz a cadeia inteira:
-  // ordem sequencial, ehEtapaInicial só na primeira, e proximaEtapaId apontando pra
-  // etapa seguinte (o builder hoje só monta flows lineares, sem ramificação).
-  private recalcularCadeia(etapas: Step[]): Step[] {
-    return etapas.map((s, i) => ({
-      ...s,
-      ordem: i + 1,
-      ehEtapaInicial: i === 0,
-      proximaEtapaId: i < etapas.length - 1 ? etapas[i + 1].id : null
-    }));
-  }
-
-  updateFlowField(field: keyof Flow, value: any) {
-    const f = this.selected();
-    if (!f) return;
-    (f as any)[field] = value;
-    this.flows.set([...this.flows()]);
-  }
-
-  updateStep(stepId: string, partial: Partial<Step>) {
-    const f = this.selected();
-    if (!f) return;
-    f.etapas = f.etapas.map(s => s.id === stepId ? { ...s, ...partial } : s);
-    this.flows.set([...this.flows()]);
-  }
-
-  select(id: string) {
-    this.selectedId.set(id);
-  }
-
-  // Sem trackBy, o *ngFor dos steps usa a identidade do objeto pra rastrear cada item.
-  // updateStep() troca o objeto do step editado por uma cópia nova (`{ ...s, ...partial }`),
-  // então a cada tecla digitada o Angular via um objeto "diferente" naquela posição e
-  // destruía/recriava o <textarea> do DOM, tirando o foco e a seleção de dentro dele.
-  trackByStepId(_index: number, step: Step) {
-    return step.id;
-  }
-
-  stepLabel(t: string) {
-    return this.stepTypes.find(s => s.value === t)?.label ?? t;
-  }
-
-  stepIcon(t: string) {
-    return this.stepTypes.find(s => s.value === t)?.icon ?? '💬';
-  }
-
-  stepHint(t: string) {
-    return this.stepTypes.find(s => s.value === t)?.hint ?? '';
-  }
-
-  stepAccentClass(step: Step) {
-    if (step.ehEtapaInicial) return 'step-accent-inicio';
-    if (step.tipoStep === 'Encerrar') return 'step-accent-fim';
-    return 'step-accent-meio';
   }
 
   badgeClass(ativo: boolean) {
@@ -382,14 +118,7 @@ export class FlowsComponent implements OnInit {
     return ativo ? 'Ativo' : 'Inativo';
   }
 
-  private processarSucesso(msg: string) {
-    this.response.set(msg);
-    this.sincronizando.set(false);
-    this.buscar();
-  }
-
-  private processarErro(err: any, msgPadrao: string) {
-    this.response.set(`❌ ${extrairMensagemErro(err, msgPadrao)}`);
-    this.sincronizando.set(false);
+  numeroLabel(numeroId: string | null) {
+    return numeroId ? 'Número específico' : 'Todos os números';
   }
 }

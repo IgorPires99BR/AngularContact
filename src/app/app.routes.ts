@@ -12,6 +12,7 @@ import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { ChatsComponent } from './pages/chats/chats.component';
 import { DisparadorComponent } from './pages/disparador/disparador.component';
 import { FlowsComponent } from './pages/flows/flows.component';
+import { FlowBuilderComponent } from './pages/flow-builder/flow-builder';
 import { EmpresasComponent } from './pages/empresas/empresas.component';
 import { ContatosComponent } from './pages/contatos/contatos.component';
 import { NumerosComponent } from './pages/numeros/numeros.component';
@@ -39,6 +40,8 @@ export const routes: Routes = [
       { path: 'chats', component: ChatsComponent },
       { path: 'disparador', component: DisparadorComponent },
       { path: 'flows', component: FlowsComponent },
+      { path: 'flows/novo', component: FlowBuilderComponent },
+      { path: 'flows/:id/editar', component: FlowBuilderComponent },
       { path: 'flows/mapa', component: FlowsMapaComponent },
       { path: 'empresas', component: EmpresasComponent, canActivate: [adminGuard] },
       { path: 'contatos', component: ContatosComponent },

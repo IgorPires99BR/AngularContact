@@ -10,10 +10,19 @@
 
 <div class="mapa-mensagem" *ngIf="mensagem()">{{ mensagem() }}</div>
 
-<div class="flow-tabs" *ngIf="flows().length > 1">
+<div class="fg" style="max-width: 320px; margin-bottom: 14px;">
+  <label>Filtrar por número</label>
+  <app-numero-selector
+    [value]="numeroFiltro()"
+    opcaoTodos="Todos os números"
+    (valueChange)="onNumeroFiltroChange($event)">
+  </app-numero-selector>
+</div>
+
+<div class="flow-tabs" *ngIf="flowsFiltrados().length > 1">
   <button
     class="tab"
-    *ngFor="let f of flows()"
+    *ngFor="let f of flowsFiltrados()"
     [class.active]="f.id === flowSelecionadoId()"
     (click)="selecionarFlow(f.id)">
     {{ f.nome }}
@@ -25,7 +34,7 @@
 
   <div class="mapa-loading" *ngIf="carregando()">Carregando fluxo...</div>
 
-  <div class="mapa-empty" *ngIf="!carregando() && flows().length === 0">
+  <div class="mapa-empty" *ngIf="!carregando() && flowsFiltrados().length === 0">
     Nenhum flow cadastrado ainda. Crie um fluxo na tela de Flows para visualizá-lo aqui.
   </div>
 

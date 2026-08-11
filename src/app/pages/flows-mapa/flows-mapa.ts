@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import ForceGraph3D, { ForceGraph3DInstance } from '3d-force-graph';
 import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
+import { NumeroSelectorComponent } from '../../shared/numero-selector/numero-selector';
 
 interface Template {
   id: string;
@@ -33,6 +34,7 @@ interface Flow {
   descricao: string;
   gatilhoPalavraChave: string;
   ativo: boolean;
+  numeroId: string | null;
   etapas: FlowEtapa[];
 }
 
@@ -55,7 +57,7 @@ interface GraphLink {
 @Component({
   selector: 'app-flows-mapa',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NumeroSelectorComponent],
   templateUrl: './flows-mapa.html',
   styleUrls: ['../shared-crud.css', './flows-mapa.css']
 })
@@ -75,8 +77,17 @@ export class FlowsMapaComponent implements OnInit, AfterViewInit {
   flows = signal<Flow[]>([]);
   templates = signal<Template[]>([]);
   flowSelecionadoId = signal<string>('');
+  numeroFiltro = signal<string>('');
 
-  flowSelecionado = computed(() => this.flows().find(f => f.id === this.flowSelecionadoId()) ?? this.flows()[0]);
+  // Sempre inclui os flows genericos (numeroId nulo) alem dos especificos do numero
+  // filtrado -- mesma regra de prioridade/visibilidade usada no backend (FlowOrchestratorService).
+  flowsFiltrados = computed(() => {
+    const filtro = this.numeroFiltro();
+    if (!filtro) return this.flows();
+    return this.flows().filter(f => f.numeroId === filtro || f.numeroId === null);
+  });
+
+  flowSelecionado = computed(() => this.flowsFiltrados().find(f => f.id === this.flowSelecionadoId()) ?? this.flowsFiltrados()[0]);
 
   etapaSelecionada = signal<GraphNode | null>(null);
   mensagem = signal('');
@@ -117,6 +128,14 @@ export class FlowsMapaComponent implements OnInit, AfterViewInit {
     this.atualizarGrafo();
   }
 
+  onNumeroFiltroChange(numeroId: string) {
+    this.numeroFiltro.set(numeroId);
+    const filtrados = this.flowsFiltrados();
+    this.flowSelecionadoId.set(filtrados[0]?.id ?? '');
+    this.etapaSelecionada.set(null);
+    this.atualizarGrafo();
+  }
+
   private carregarDados() {
     this.carregando.set(true);
     const empId = this.empresaId();
@@ -125,9 +144,11 @@ export class FlowsMapaComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    this.http.get<{ value: any[] }>(`${this.FLOW_API_URL}/${empId}`).subscribe({
+    // GET /config/flow/{id} devolve o array puro, sem envelope { value: [...] } (ver nota
+    // em flows.component.ts).
+    this.http.get<any[]>(`${this.FLOW_API_URL}/${empId}`).subscribe({
       next: (res) => {
-        const lista = (res && Array.isArray(res.value)) ? res.value : [];
+        const lista = Array.isArray(res) ? res : [];
         const mapeados: Flow[] = lista.map(f => this.mapearFlow(f));
         this.flows.set(mapeados);
         if (mapeados.length > 0) {
@@ -161,6 +182,7 @@ export class FlowsMapaComponent implements OnInit, AfterViewInit {
       descricao: f.descricao || f.Descricao || '',
       gatilhoPalavraChave: f.gatilhoPalavraChave || f.GatilhoPalavraChave || '',
       ativo: f.ativo !== undefined ? f.ativo : f.Ativo,
+      numeroId: f.numeroId || f.NumeroId || null,
       etapas
     };
   }

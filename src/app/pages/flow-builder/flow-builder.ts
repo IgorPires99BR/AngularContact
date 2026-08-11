@@ -1,0 +1,229 @@
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../core/services/auth';
+import { environment } from '../../../environments/environment';
+import { extrairMensagemErro } from '../../core/utils/erro-api.util';
+import { NumeroSelectorComponent } from '../../shared/numero-selector/numero-selector';
+import { FlowEtapasEditorComponent, Step } from './flow-etapas-editor/flow-etapas-editor';
+
+interface Flow {
+  id: string;
+  idEmpresa: string;
+  nome: string;
+  descricao: string;
+  gatilhoPalavraChave: string;
+  ativo: boolean;
+  numeroId: string | null;
+  etapas: Step[];
+}
+
+// Tela dedicada de criação/edição de um Flow, extraída do antigo flows.component.ts
+// (que misturava lista + builder + monitor numa única tela com abas). Separar em rota
+// própria segue o mesmo padrão já usado por /templates x /templates/mapa.
+@Component({
+  selector: 'app-flow-builder',
+  standalone: true,
+  imports: [CommonModule, FormsModule, NumeroSelectorComponent, FlowEtapasEditorComponent],
+  templateUrl: './flow-builder.html',
+  styleUrls: ['../flows/flows.component.css', './flow-builder.css'],
+})
+export class FlowBuilderComponent implements OnInit {
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
+  private readonly API_URL = `${environment.apiUrl}/config/flow`;
+  private idEmpresaLogada = this.authService.empresaIdSignal;
+
+  response = signal('');
+  sincronizando = signal(false);
+  carregando = signal(true);
+
+  private idRota: string | null = null;
+  isNew = true;
+
+  flow = signal<Flow>({
+    id: '',
+    idEmpresa: '',
+    nome: '',
+    descricao: '',
+    gatilhoPalavraChave: '',
+    ativo: true,
+    numeroId: null,
+    etapas: []
+  });
+
+  ngOnInit() {
+    this.idRota = this.route.snapshot.paramMap.get('id');
+    this.isNew = !this.idRota || this.idRota === 'novo';
+
+    if (this.isNew) {
+      this.flow.set({
+        id: crypto.randomUUID(),
+        idEmpresa: this.idEmpresaLogada() || '',
+        nome: '',
+        descricao: '',
+        gatilhoPalavraChave: '',
+        ativo: true,
+        numeroId: this.route.snapshot.queryParamMap.get('numeroId'),
+        etapas: []
+      });
+      this.carregando.set(false);
+    } else {
+      this.carregarFlowExistente(this.idRota!);
+    }
+  }
+
+  private carregarFlowExistente(id: string) {
+    const empId = this.idEmpresaLogada();
+    if (!empId) {
+      this.carregando.set(false);
+      return;
+    }
+
+    // Não existe endpoint de GET por id -- a lista já carrega as etapas, então busca
+    // todos os flows da empresa e filtra o que veio na rota (mesma limitação que a tela
+    // antiga já tinha, só que antes escondida por já estar tudo numa única lista/estado).
+    // GET /config/flow/{id} devolve o array puro, sem envelope { value: [...] } (ver nota
+    // em flows.component.ts).
+    this.http.get<any[]>(`${this.API_URL}/${empId}`).subscribe({
+      next: (res) => {
+        const lista = Array.isArray(res) ? res : [];
+        const encontrado = lista.find(f => (f.id || f.Id) === id);
+
+        if (!encontrado) {
+          this.response.set('❌ Flow não encontrado.');
+          this.carregando.set(false);
+          return;
+        }
+
+        this.flow.set(this.mapearFlow(encontrado));
+        this.carregando.set(false);
+      },
+      error: (err) => {
+        this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao carregar o flow.')}`);
+        this.carregando.set(false);
+      }
+    });
+  }
+
+  private mapearFlow(f: any): Flow {
+    const etapasRaw = f.etapas || f.Etapas || [];
+    const etapasMapeadas: Step[] = etapasRaw.map((e: any) => ({
+      id: e.id || e.Id,
+      ordem: e.ordem !== undefined ? e.ordem : e.Ordem,
+      tipoStep: e.tipoStep || e.TipoStep || e.nomeEtapa || e.NomeEtapa,
+      mensagemPergunta: e.mensagemPergunta || e.MensagemPergunta || e.conteudoLivre || e.ConteudoLivre,
+      variavelSaida: e.variavelSaida || e.VariavelSaida || '',
+      gatilhoResposta: e.gatilhoResposta || e.GatilhoResposta,
+      proximaEtapaId: e.proximaEtapaId || e.ProximaEtapaId,
+      ehEtapaInicial: e.ehEtapaInicial !== undefined ? e.ehEtapaInicial : e.EhEtapaInicial,
+      templateId: e.templateId || e.TemplateId
+    }));
+
+    return {
+      id: f.id || f.Id,
+      idEmpresa: f.idEmpresa || f.IdEmpresa || f.empresaId || f.EmpresaId,
+      nome: f.nome || f.Nome,
+      descricao: f.descricao || f.Descricao,
+      gatilhoPalavraChave: f.gatilhoPalavraChave || f.GatilhoPalavraChave || '',
+      ativo: f.ativo !== undefined ? f.ativo : f.Ativo,
+      numeroId: f.numeroId || f.NumeroId || null,
+      etapas: this.ordenarPelaCorrente(etapasMapeadas)
+    };
+  }
+
+  // Coloca as etapas na ordem de execução seguindo ProximaEtapaId a partir da etapa
+  // inicial (não existe coluna "Ordem" persistida, então a ordem real é essa corrente).
+  private ordenarPelaCorrente(etapas: Step[]): Step[] {
+    if (etapas.length <= 1) return etapas;
+
+    const porId = new Map(etapas.map(e => [e.id, e]));
+    const inicial = etapas.find(e => e.ehEtapaInicial) ?? etapas[0];
+
+    const ordenadas: Step[] = [];
+    const visitados = new Set<string>();
+
+    let atual: Step | undefined = inicial;
+    while (atual && !visitados.has(atual.id)) {
+      visitados.add(atual.id);
+      ordenadas.push(atual);
+      atual = atual.proximaEtapaId ? porId.get(atual.proximaEtapaId) : undefined;
+    }
+
+    for (const etapa of etapas) {
+      if (!visitados.has(etapa.id)) ordenadas.push(etapa);
+    }
+
+    return ordenadas;
+  }
+
+  updateField(field: keyof Flow, value: any) {
+    this.flow.set({ ...this.flow(), [field]: value });
+  }
+
+  onEtapasChange(etapas: Step[]) {
+    this.flow.set({ ...this.flow(), etapas });
+  }
+
+  salvar() {
+    const f = this.flow();
+    const empId = this.idEmpresaLogada();
+
+    if (!empId) {
+      this.response.set('❌ Sessão expirada.');
+      return;
+    }
+    if (!f.nome || !f.gatilhoPalavraChave) {
+      this.response.set('❌ Nome do fluxo e palavra-chave são obrigatórios.');
+      return;
+    }
+
+    this.sincronizando.set(true);
+    this.response.set('⏳ Sincronizando fluxo com o banco de dados...');
+
+    const payload = {
+      id: f.id,
+      idEmpresa: empId,
+      nome: f.nome,
+      descricao: f.descricao,
+      gatilhoPalavraChave: f.gatilhoPalavraChave,
+      ativo: f.ativo,
+      numeroId: f.numeroId || null,
+      etapas: f.etapas.map(e => ({
+        id: e.id,
+        ordem: e.ordem,
+        tipoStep: e.tipoStep,
+        mensagemPergunta: e.mensagemPergunta,
+        variavelSaida: e.variavelSaida || '',
+        gatilhoResposta: e.gatilhoResposta,
+        proximaEtapaId: e.proximaEtapaId,
+        ehEtapaInicial: e.ehEtapaInicial,
+        templateId: e.templateId
+      }))
+    };
+
+    const request$ = this.isNew
+      ? this.http.post(this.API_URL, payload)
+      : this.http.put(this.API_URL, payload);
+
+    request$.subscribe({
+      next: () => {
+        this.sincronizando.set(false);
+        this.router.navigate(['/flows']);
+      },
+      error: (err) => {
+        this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao salvar o flow.')}`);
+        this.sincronizando.set(false);
+      }
+    });
+  }
+
+  cancelar() {
+    this.router.navigate(['/flows']);
+  }
+}
