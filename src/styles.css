@@ -26,6 +26,9 @@
   --warn-light: rgba(245, 158, 11, 0.12);
   --danger: #EF4444;
   --danger-light: rgba(239, 68, 68, 0.12);
+  /* Automação (Flow/bot) — separado do azul de marca pra não confundir com links/ações padrão */
+  --violet: #8B5CF6;
+  --violet-light: rgba(139, 92, 246, 0.14);
   /* Text */
   --text: #EDF2FF;
   --text2: #A8B8D8;
@@ -363,6 +366,15 @@ a {
 
   .badge-muted::before {
     background: var(--muted2);
+  }
+
+.badge-violet {
+  background: var(--violet-light);
+  color: var(--violet);
+}
+
+  .badge-violet::before {
+    background: var(--violet);
   }
 
 /* ============================================================

@@ -1,11 +1,11 @@
 <div class="fg">
   <label>Cabeçalho (opcional)</label>
   <select [ngModel]="value().tipo" (ngModelChange)="onTipoChange($event)" [disabled]="disabled()">
-    <option value="NONE">Nenhum</option>
-    <option value="TEXT">Texto</option>
-    <option value="IMAGE">Imagem</option>
-    <option value="VIDEO">Vídeo</option>
-    <option value="DOCUMENT">Documento</option>
+    <option value="NONE">Nenhum (só texto)</option>
+    <option value="TEXT">Texto fixo</option>
+    <option value="IMAGE">🖼️ Imagem (JPG/PNG)</option>
+    <option value="VIDEO">🎬 Vídeo (MP4)</option>
+    <option value="DOCUMENT">📄 Documento (PDF/DOC)</option>
   </select>
 
   <input *ngIf="value().tipo === 'TEXT'"

@@ -64,6 +64,9 @@
     </div>
 
     <div class="flow-build-body">
+      <div class="builder-section-head">
+        <span class="builder-section-title">⚙️ Configurações do Flow</span>
+      </div>
       <div class="fg mb-16">
         <label>Nome do Flow</label>
         <input type="text" placeholder="ex: Qualificação de Lead"
@@ -77,26 +80,35 @@
                (ngModelChange)="updateFlowField('descricao', $event)">
       </div>
       <div class="fg" style="margin-bottom: 18px">
-        <label>Gatilho (palavra-chave)</label>
+        <label>Gatilho inicial (palavra-chave que inicia o flow)</label>
         <input type="text" placeholder="oi, olá, início, quero saber mais..."
                [ngModel]="selected().gatilhoPalavraChave || ''"
                (ngModelChange)="updateFlowField('gatilhoPalavraChave', $event)">
       </div>
 
+      <div class="builder-section-head">
+        <span class="builder-section-title">🧩 Etapas do Flow</span>
+        <span class="builder-section-count">{{ selected().etapas.length }} etapa{{ selected().etapas.length === 1 ? '' : 's' }} configurada{{ selected().etapas.length === 1 ? '' : 's' }}</span>
+      </div>
+
       <div class="steps-container">
-        <ng-container *ngFor="let step of selected().etapas; let i = index; let last = last">
-          <div class="step-card">
-            <div class="step-num">{{ step.ordem }}</div>
+        <ng-container *ngFor="let step of selected().etapas; let i = index; let first = first; let last = last; trackBy: trackByStepId">
+          <div class="step-card" [ngClass]="stepAccentClass(step)">
+            <div class="step-num">{{ stepIcon(step.tipoStep) }} {{ step.ordem }}</div>
+            <div class="step-badge-inicio" *ngIf="step.ehEtapaInicial">🚀 Início</div>
             <div class="step-head">
               <select class="step-type-select"
                       [ngModel]="step.tipoStep"
                       (ngModelChange)="updateStep(step.id, { tipoStep: $event })">
-                <option *ngFor="let t of stepTypes" [value]="t.value">{{ t.label }}</option>
+                <option *ngFor="let t of stepTypes" [value]="t.value">{{ t.icon }} {{ t.label }}</option>
               </select>
               <div class="step-actions">
+                <button class="btn btn-ghost btn-xs" (click)="moveStep(step.id, -1)" [disabled]="first" title="Mover para cima">↑</button>
+                <button class="btn btn-ghost btn-xs" (click)="moveStep(step.id, 1)" [disabled]="last" title="Mover para baixo">↓</button>
                 <button class="btn btn-ghost btn-xs" (click)="removeStep(step.id)" title="Remover">🗑</button>
               </div>
             </div>
+            <div class="step-type-hint">{{ stepHint(step.tipoStep) }}</div>
             <div class="step-fg">
               <label>Mensagem / Pergunta</label>
               <!-- Sem o (ngModelChange) o texto digitado nunca voltava para o modelo,
@@ -112,6 +124,12 @@
                      [ngModel]="step.variavelSaida"
                      (ngModelChange)="updateStep(step.id, { variavelSaida: $event })">
             </div>
+            <div class="step-fg" *ngIf="!first">
+              <label>Gatilho de avanço</label>
+              <input type="text" placeholder="palavra-chave que faz o flow chegar até aqui (ex: sim, quero, 1)"
+                     [ngModel]="step.gatilhoResposta || ''"
+                     (ngModelChange)="updateStep(step.id, { gatilhoResposta: $event })">
+            </div>
           </div>
           <div class="step-connector" *ngIf="!last">
             <div class="step-connector-line"></div>
@@ -121,10 +139,9 @@
         </ng-container>
       </div>
 
-      <button class="btn btn-outline btn-sm btn-block" style="margin-top: 14px" (click)="addStep()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-        Adicionar Step
-      </button>
+      <div class="step-add-picker">
+        <button type="button" class="step-add-chip" *ngFor="let t of stepTypes" (click)="addStep(t.value)">{{ t.chipLabel }}</button>
+      </div>
     </div>
   </div>
 

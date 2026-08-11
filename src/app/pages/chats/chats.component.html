@@ -30,7 +30,10 @@
           {{ c.initials }}
         </div>
         <div class="chat-info">
-          <div class="chat-name">{{ c.nomeContato || 'Sem nome' }}</div>
+          <div class="chat-name">
+            {{ c.nomeContato || 'Sem nome' }}
+            <span class="badge badge-violet chat-flow-badge" *ngIf="c.respondendoPorFlow" title="Essa conversa está sendo respondida automaticamente pelo Flow">🤖 Flow</span>
+          </div>
           <div class="chat-last">{{ c.ultimaMensagem | templateMessage }}</div>
         </div>
         <div class="chat-meta">
@@ -61,9 +64,12 @@
           <div class="chat-win-name">{{ selected()!.nomeContato || 'Sem nome' }}</div>
           <div class="chat-win-status">
             {{ selected()!.telefone }}
+            <span class="badge badge-violet" *ngIf="selected()!.respondendoPorFlow">🤖 Respondendo por Flow</span>
+            <span class="badge badge-green" *ngIf="selected()!.flowAssumido">🧑‍💼 Assumido por você</span>
           </div>
         </div>
         <div class="chat-win-actions">
+          <button class="btn btn-ghost btn-sm" *ngIf="selected()!.flowAssumido" (click)="devolverAoFlow()" title="Reativar o flow automático nesta conversa">↩️ Devolver ao Flow</button>
           <button class="btn btn-ghost btn-xs">📞</button>
           <button class="btn btn-ghost btn-xs">⋮</button>
         </div>

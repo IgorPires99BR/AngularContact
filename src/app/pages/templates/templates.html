@@ -41,15 +41,21 @@
             <div class="fg">
               <label>Categoria Meta</label>
               <select [ngModel]="form().categoria" (ngModelChange)="update('categoria', $event)">
-                <option value="UTILITY">Utilidade (Avisos, transações)</option>
-                <option value="MARKETING">Marketing (Promoções, ofertas)</option>
-                <option value="AUTHENTICATION">Autenticação (Códigos OTP/PIN)</option>
+                <option value="UTILITY">📦 Utilidade — avisos e atualizações de pedido</option>
+                <option value="MARKETING">📣 Marketing — promoções e ofertas</option>
+                <option value="AUTHENTICATION">🔐 Autenticação — código de verificação (OTP)</option>
               </select>
+              <div class="tpl-header-upload-hint">A categoria errada é a causa mais comum de rejeição de template pela Meta — escolha a que melhor descreve a intenção real da mensagem.</div>
             </div>
             <div class="fg">
               <label>Idioma</label>
               <select [ngModel]="form().idioma" (ngModelChange)="update('idioma', $event)" [disabled]="!!modoEdicao()">
-                <option *ngFor="let idioma of idiomas" [value]="idioma.codigo">{{ idioma.rotulo }}</option>
+                <optgroup label="Mais usados">
+                  <option *ngFor="let idioma of idiomasMaisUsados" [value]="idioma.codigo">{{ idioma.rotulo }}</option>
+                </optgroup>
+                <optgroup label="Outros idiomas">
+                  <option *ngFor="let idioma of idiomasOutros" [value]="idioma.codigo">{{ idioma.rotulo }}</option>
+                </optgroup>
               </select>
             </div>
           </div>

@@ -18,6 +18,8 @@ interface ChatItem {
   quantidadeNaoLidas: number;
   color?: string;
   initials?: string;
+  respondendoPorFlow?: boolean;
+  flowAssumido?: boolean;
 }
 
 interface Message {
@@ -543,9 +545,18 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
             { from: 'bot', text: text, time: timeStr, wamid, status: 'sent' }
           ]);
 
+          // Mensagem manual pelo chat: o backend já marca a conversa como assumida
+          // automaticamente quando há um flow ativo, então refletimos isso aqui na hora
+          // (sem esperar um novo carregarConversas()) pra não ficar mostrando o selo
+          // "🤖 Flow" enquanto o vendedor já está respondendo.
           this.chats.update(lista =>
             lista.map(c => c.contatoId === idContato
-              ? { ...c, ultimaMensagem: text, dataUltimaMensagem: now.toISOString() }
+              ? {
+                  ...c,
+                  ultimaMensagem: text,
+                  dataUltimaMensagem: now.toISOString(),
+                  ...(c.respondendoPorFlow ? { respondendoPorFlow: false, flowAssumido: true } : {})
+                }
               : c
             )
           );
@@ -554,6 +565,28 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
         },
         error: (err) => {
           this.response.set(`❌ Erro ao enviar a mensagem: ${extrairMensagemErro(err, 'Verifique a conexão.')}`);
+        }
+      });
+  }
+
+  // Reativa o flow automático numa conversa que tinha sido assumida manualmente
+  devolverAoFlow() {
+    const idContato = this.selectedId();
+    const idEmpresa = this.empresaId();
+    if (!idContato || !idEmpresa) return;
+
+    this.http.post(`${this.API_URL}/devolver-ao-bot`, { empresaId: idEmpresa, contatoId: idContato })
+      .subscribe({
+        next: () => {
+          this.chats.update(lista =>
+            lista.map(c => c.contatoId === idContato
+              ? { ...c, flowAssumido: false, respondendoPorFlow: true }
+              : c
+            )
+          );
+        },
+        error: (err) => {
+          this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao devolver a conversa ao flow.')}`);
         }
       });
   }

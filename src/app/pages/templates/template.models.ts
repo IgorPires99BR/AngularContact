@@ -106,6 +106,10 @@ export const IDIOMAS_META: IdiomaMeta[] = [
   { codigo: 'vi', rotulo: 'Vietnamita' },
 ];
 
+// Idiomas mais usados por quem dispara mensagem no Brasil — exibidos no topo do seletor
+// pra não precisar rolar a lista inteira toda vez que for criar um template.
+export const CODIGOS_IDIOMAS_MAIS_USADOS = ['pt_BR', 'en_US', 'es_ES', 'es_MX'];
+
 export interface HeaderState {
   tipo: 'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT';
   texto: string;

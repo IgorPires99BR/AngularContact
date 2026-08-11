@@ -66,10 +66,10 @@ export class FlowsComponent implements OnInit {
   selected = computed(() => this.flows().find(f => f.id === this.selectedId()) ?? this.flows()[0]);
 
   stepTypes = [
-    { value: 'Mensagem', label: 'Mensagem' },
-    { value: 'Capturar Input', label: 'Capturar Input' },
-    { value: 'Condição', label: 'Condição' },
-    { value: 'Encerrar', label: 'Encerrar' },
+    { value: 'Mensagem', label: 'Mensagem', chipLabel: '+ Mensagem', icon: '💬', hint: 'O bot envia um texto pro cliente.' },
+    { value: 'Capturar Input', label: 'Capturar Input', chipLabel: '+ Capturar Dado', icon: '✍️', hint: 'Espera a resposta do cliente e guarda numa variável.' },
+    { value: 'Condição', label: 'Condição', chipLabel: '+ Condição', icon: '🔀', hint: 'Só avança se a resposta bater com o gatilho configurado.' },
+    { value: 'Encerrar', label: 'Encerrar', chipLabel: '+ Encerrar Conversa', icon: '🏁', hint: 'Finaliza o flow — nenhuma etapa depois dela roda.' },
   ];
 
   ngOnInit() {
@@ -272,28 +272,26 @@ export class FlowsComponent implements OnInit {
     this.response.set('✨ Novo fluxo engatado na memória. Clique em Salvar para persistir.');
   }
 
-  addStep() {
+  addStep(tipo: string = 'Mensagem') {
     const f = this.selected();
     if (!f) return;
 
-    const novaOrdem = f.etapas.length + 1;
-
-    // 1. Criamos a nova etapa com a tipagem e campos que o Back-end exige
+    // Criamos a nova etapa com a tipagem e campos que o Back-end exige
     const novaEtapa: Step = {
       id: crypto.randomUUID(),
-      ordem: novaOrdem,
-      tipoStep: 'Mensagem',          // Alinhado com TipoStep (antigo nomeEtapa)
+      ordem: f.etapas.length + 1,
+      tipoStep: tipo,                // Alinhado com TipoStep (antigo nomeEtapa)
       mensagemPergunta: '',          // Alinhado com MensagemPergunta (antigo conteudoLivre)
       variavelSaida: '',             // Enviando vazio para evitar o erro de validação do 400
-      ehEtapaInicial: novaOrdem === 1,
+      ehEtapaInicial: f.etapas.length === 0,
       gatilhoResposta: 'Avancar',
       proximaEtapaId: null
     };
 
-    // 2. Atualizamos a lista de etapas criando um novo array para garantir a reatividade do Signal
-    f.etapas = [...f.etapas, novaEtapa];
-
-    // 3. Notificamos o Signal da mudança
+    // Reconstrói a corrente (ordem + proximaEtapaId) pra nova etapa ficar encadeada
+    // com a anterior — sem isso o flow visualmente crescia mas o backend nunca
+    // avançava pra etapa nova (proximaEtapaId ficava null pra sempre).
+    f.etapas = this.recalcularCadeia([...f.etapas, novaEtapa]);
     this.flows.set([...this.flows()]);
   }
 
@@ -301,12 +299,35 @@ export class FlowsComponent implements OnInit {
     const f = this.selected();
     if (!f) return;
 
-    // Remove e reorganiza a propriedade ordem sequencialmente
-    f.etapas = f.etapas
-      .filter(s => s.id !== stepId)
-      .map((s, index) => ({ ...s, ordem: index + 1 }));
-
+    f.etapas = this.recalcularCadeia(f.etapas.filter(s => s.id !== stepId));
     this.flows.set([...this.flows()]);
+  }
+
+  moveStep(stepId: string, direcao: -1 | 1) {
+    const f = this.selected();
+    if (!f) return;
+
+    const etapas = [...f.etapas];
+    const idx = etapas.findIndex(s => s.id === stepId);
+    const novoIdx = idx + direcao;
+    if (idx < 0 || novoIdx < 0 || novoIdx >= etapas.length) return;
+
+    [etapas[idx], etapas[novoIdx]] = [etapas[novoIdx], etapas[idx]];
+
+    f.etapas = this.recalcularCadeia(etapas);
+    this.flows.set([...this.flows()]);
+  }
+
+  // Sempre que a ordem visual muda (adicionar/remover/mover), refaz a cadeia inteira:
+  // ordem sequencial, ehEtapaInicial só na primeira, e proximaEtapaId apontando pra
+  // etapa seguinte (o builder hoje só monta flows lineares, sem ramificação).
+  private recalcularCadeia(etapas: Step[]): Step[] {
+    return etapas.map((s, i) => ({
+      ...s,
+      ordem: i + 1,
+      ehEtapaInicial: i === 0,
+      proximaEtapaId: i < etapas.length - 1 ? etapas[i + 1].id : null
+    }));
   }
 
   updateFlowField(field: keyof Flow, value: any) {
@@ -327,8 +348,30 @@ export class FlowsComponent implements OnInit {
     this.selectedId.set(id);
   }
 
+  // Sem trackBy, o *ngFor dos steps usa a identidade do objeto pra rastrear cada item.
+  // updateStep() troca o objeto do step editado por uma cópia nova (`{ ...s, ...partial }`),
+  // então a cada tecla digitada o Angular via um objeto "diferente" naquela posição e
+  // destruía/recriava o <textarea> do DOM, tirando o foco e a seleção de dentro dele.
+  trackByStepId(_index: number, step: Step) {
+    return step.id;
+  }
+
   stepLabel(t: string) {
     return this.stepTypes.find(s => s.value === t)?.label ?? t;
+  }
+
+  stepIcon(t: string) {
+    return this.stepTypes.find(s => s.value === t)?.icon ?? '💬';
+  }
+
+  stepHint(t: string) {
+    return this.stepTypes.find(s => s.value === t)?.hint ?? '';
+  }
+
+  stepAccentClass(step: Step) {
+    if (step.ehEtapaInicial) return 'step-accent-inicio';
+    if (step.tipoStep === 'Encerrar') return 'step-accent-fim';
+    return 'step-accent-meio';
   }
 
   badgeClass(ativo: boolean) {

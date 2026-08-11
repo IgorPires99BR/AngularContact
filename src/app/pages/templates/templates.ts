@@ -18,6 +18,7 @@ import {
   headerStateVazio,
   parseComponentes,
   IDIOMAS_META,
+  CODIGOS_IDIOMAS_MAIS_USADOS,
   STATUS_EDITAVEIS,
   TIPO_BOTAO_POR_INDICE,
 } from './template.models';
@@ -47,6 +48,8 @@ export class TemplatesComponent implements OnInit {
   empresaIdAtual = computed(() => this.empresaId());
 
   idiomas = IDIOMAS_META;
+  idiomasMaisUsados = IDIOMAS_META.filter(i => CODIGOS_IDIOMAS_MAIS_USADOS.includes(i.codigo));
+  idiomasOutros = IDIOMAS_META.filter(i => !CODIGOS_IDIOMAS_MAIS_USADOS.includes(i.codigo));
 
   form = signal({
     nomeTemplate: '',
