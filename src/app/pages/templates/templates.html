@@ -134,7 +134,7 @@
         </div>
 
         <div class="tpl-bubble tpl-bubble-mini">
-          {{ t.conteudo }}
+          <span [innerHTML]="t.conteudo | whatsappFormat"></span>
           <div class="tpl-bubble-tail"></div>
         </div>
         <div class="tpl-bubble-buttons" *ngIf="botoesDoTemplate(t).length > 0">

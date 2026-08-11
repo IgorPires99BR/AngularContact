@@ -6,7 +6,7 @@
   <div class="tpl-header-preview" *ngIf="header().tipo === 'DOCUMENT'">📄 Cabeçalho de documento{{ header().exemploNomeArquivo ? ': ' + header().exemploNomeArquivo : '' }}</div>
 
   <div class="tpl-bubble" *ngIf="textoPreview(); else previewVazio">
-    {{ textoPreview() }}
+    <span [innerHTML]="textoPreview() | whatsappFormat"></span>
     <div class="tpl-footer-preview" *ngIf="footerTexto()">{{ footerTexto() }}</div>
     <div class="tpl-bubble-tail"></div>
   </div>

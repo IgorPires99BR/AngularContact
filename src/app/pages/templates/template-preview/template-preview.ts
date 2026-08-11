@@ -1,11 +1,12 @@
 import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HeaderState, TemplateBotaoForm, rotuloTipoBotao } from '../template.models';
+import { WhatsappFormatPipe } from '../../../shared/pipes/whatsapp-format.pipe';
 
 @Component({
   selector: 'app-template-preview',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, WhatsappFormatPipe],
   templateUrl: './template-preview.html',
   styleUrls: ['../templates.css']
 })

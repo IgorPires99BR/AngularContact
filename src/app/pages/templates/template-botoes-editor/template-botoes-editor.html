@@ -10,7 +10,7 @@
   <div class="payload-display" style="margin-bottom: 8px;" *ngIf="erro()">❌ {{ erro() }}</div>
 
   <div class="tpl-btn-list" *ngIf="botoes().length > 0">
-    <div class="tpl-btn-row" *ngFor="let b of botoes(); let i = index">
+    <div class="tpl-btn-row" *ngFor="let b of botoes(); let i = index; trackBy: trackByIndex">
       <span class="badge badge-blue tpl-btn-tag">{{ rotulo(b.tipo) }}</span>
       <input type="text" *ngIf="b.tipo !== 'COPY_CODE'" placeholder="Texto do botão" [ngModel]="b.texto" (ngModelChange)="atualizarBotao(i, 'texto', $event)" [disabled]="disabled()">
       <input type="text" *ngIf="b.tipo === 'URL'" placeholder="https://..." [ngModel]="b.url" (ngModelChange)="atualizarBotao(i, 'url', $event)" [disabled]="disabled()">

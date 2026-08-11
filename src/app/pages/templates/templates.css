@@ -147,6 +147,85 @@
 }
 
 /* ============================================================
+   TOOLBAR DE FORMATAÇÃO DO CORPO (negrito/itálico/emoji)
+   ============================================================ */
+.tpl-body-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  position: relative;
+}
+
+.tpl-format-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text2);
+  font-size: 0.82rem;
+  transition: all 0.15s;
+}
+
+  .tpl-format-btn:hover:not(:disabled) {
+    border-color: var(--blue2);
+    color: var(--text);
+  }
+
+  .tpl-format-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+.tpl-emoji-wrap {
+  position: relative;
+}
+
+.tpl-emoji-picker {
+  position: absolute;
+  top: 36px;
+  left: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  width: 220px;
+  padding: 8px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.6);
+}
+
+.tpl-emoji-option {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+  .tpl-emoji-option:hover {
+    background: var(--bg-input);
+  }
+
+.tpl-body-hint {
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* ============================================================
    PRÉVIA ESTILO WHATSAPP
    ============================================================ */
 .tpl-preview-label {

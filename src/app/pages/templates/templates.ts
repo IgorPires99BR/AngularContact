@@ -10,6 +10,7 @@ import { TemplateBodyEditorComponent } from './template-body-editor/template-bod
 import { TemplateFooterEditorComponent } from './template-footer-editor/template-footer-editor';
 import { TemplateBotoesEditorComponent } from './template-botoes-editor/template-botoes-editor';
 import { TemplatePreviewComponent } from './template-preview/template-preview';
+import { WhatsappFormatPipe } from '../../shared/pipes/whatsapp-format.pipe';
 import {
   Template,
   TemplateBotaoForm,
@@ -33,6 +34,7 @@ import {
     TemplateFooterEditorComponent,
     TemplateBotoesEditorComponent,
     TemplatePreviewComponent,
+    WhatsappFormatPipe,
   ],
   templateUrl: './templates.html',
   styleUrls: ['../shared-crud.css', './templates.css']

@@ -18,6 +18,13 @@ export class TemplateBotoesEditorComponent {
   erro = signal('');
   rotulo = rotuloTipoBotao;
 
+  // trackBy por índice: sem isso, cada tecla digitada recria o objeto do botão naquela
+  // posição do array e o *ngFor (sem chave estável) destrói e recria o próprio <input>
+  // do DOM a cada letra, tirando o foco/cursor de dentro dele.
+  trackByIndex(index: number) {
+    return index;
+  }
+
   adicionarBotao(tipo: TipoBotaoForm) {
     if (this.botoes().length >= 3) {
       this.erro.set('A Meta permite no máximo 3 botões por template.');

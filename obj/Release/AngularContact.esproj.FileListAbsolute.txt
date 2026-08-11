@@ -1,2 +1,1 @@
-C:\Users\Administrator\source\repos\AngularContact\obj\Release\AngularContact.esproj.SuggestedBindingRedirects.cache
 C:\Users\Administrator\source\repos\AngularContact\obj\Release\AngularContact.esproj.CoreCompileInputs.cache
