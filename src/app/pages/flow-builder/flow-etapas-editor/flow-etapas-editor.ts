@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AssistenteIaBotaoComponent } from '../../../shared/assistente-ia/assistente-ia-botao';
 
 export interface Step {
   id: string;
@@ -21,13 +22,16 @@ export interface Step {
 @Component({
   selector: 'app-flow-etapas-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AssistenteIaBotaoComponent],
   templateUrl: './flow-etapas-editor.html',
   styleUrls: ['./flow-etapas-editor.css'],
 })
 export class FlowEtapasEditorComponent {
   @Input() etapas: Step[] = [];
   @Output() etapasChange = new EventEmitter<Step[]>();
+  // Contexto opcional pra IA entender o objetivo do flow ao sugerir o texto de uma etapa.
+  @Input() flowNome = '';
+  @Input() flowDescricao = '';
 
   stepTypes = [
     { value: 'Mensagem', label: 'Mensagem', chipLabel: '+ Mensagem', icon: '💬', hint: 'O bot envia um texto pro cliente.' },
@@ -99,6 +103,19 @@ export class FlowEtapasEditorComponent {
 
   stepHint(t: string) {
     return this.stepTypes.find(s => s.value === t)?.hint ?? '';
+  }
+
+  instrucaoIa(tipoStep: string): string {
+    const tipo = tipoStep === 'Capturar Input' ? 'que pede um dado ao cliente (ex: nome, e-mail)' : `do tipo "${tipoStep}"`;
+    return `Sugira a mensagem que um bot de atendimento deve enviar numa etapa ${tipo} de um fluxo de conversa automatizado.`;
+  }
+
+  contextoIa(step: Step): string {
+    const partes: string[] = [];
+    if (this.flowNome) partes.push(`Nome do flow: ${this.flowNome}`);
+    if (this.flowDescricao) partes.push(`Descrição do flow: ${this.flowDescricao}`);
+    if (step.mensagemPergunta) partes.push(`Texto atual da etapa: ${step.mensagemPergunta}`);
+    return partes.join('\n');
   }
 
   stepAccentClass(step: Step) {

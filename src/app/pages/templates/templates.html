@@ -71,7 +71,8 @@
             [conteudo]="form().conteudo"
             (conteudoChange)="update('conteudo', $event)"
             [exemplos]="exemplosBody()"
-            (exemplosChange)="exemplosBody.set($event)">
+            (exemplosChange)="exemplosBody.set($event)"
+            [categoria]="form().categoria">
           </app-template-body-editor>
 
           <app-template-footer-editor

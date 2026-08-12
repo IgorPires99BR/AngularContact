@@ -96,6 +96,14 @@
 }
 .step-actions { display: flex; gap: 5px; }
 
+.step-fg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+.step-fg-head label { margin-bottom: 0; }
+
 .step-fg { margin-bottom: 10px; }
 .step-fg:last-child { margin-bottom: 0; }
 .step-fg label {

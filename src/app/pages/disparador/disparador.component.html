@@ -90,10 +90,20 @@
       <div>
         <div class="card-title">👁️ Preview da Mensagem</div>
       </div>
+      <app-assistente-ia-botao
+        *ngIf="templateAtivo()"
+        label="✨ O que esse template faz?"
+        [instrucao]="instrucaoExplicarTemplate()"
+        [quantidade]="1"
+        (escolhido)="explicacaoTemplate.set($event)">
+      </app-assistente-ia-botao>
     </div>
     <div class="card-body" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
       <div style="background-color: rgba(255,255,255,0.03); padding: 16px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); min-height: 140px; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5;">
         {{ templatePreview() }}
+      </div>
+      <div class="ia-explicacao" *ngIf="explicacaoTemplate()">
+        🤖 {{ explicacaoTemplate() }}
       </div>
       <div class="card-sub" style="margin-top: 12px; font-style: italic;">
         * Variáveis dinâmicas serão processadas no ato do envio.

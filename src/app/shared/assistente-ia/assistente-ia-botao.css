@@ -1,0 +1,125 @@
+/* Botão + popover do assistente de IA -- mesmo padrão de popover já usado no seletor
+   de emoji de Templates (position:relative + *ngIf absolute), mas com acento violeta
+   (token já reservado no design system pra automação/IA). */
+.ia-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.ia-trigger {
+  background: var(--violet-light);
+  border: 1px solid var(--border2);
+  color: var(--violet);
+  font-size: .76rem;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .15s, transform .15s;
+  white-space: nowrap;
+}
+.ia-trigger:hover:not(:disabled) {
+  background: rgba(139, 92, 246, .22);
+  transform: translateY(-1px);
+}
+.ia-trigger:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.ia-popover {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  z-index: 30;
+  width: 320px;
+  max-width: 80vw;
+  background: var(--bg-card2);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .6);
+  animation: fadeUp .2s ease both;
+}
+
+.ia-popover.abre-cima {
+  top: auto;
+  bottom: 40px;
+}
+.ia-popover.alinha-esquerda {
+  right: auto;
+  left: 0;
+}
+
+.ia-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: .74rem;
+  font-weight: 700;
+  color: var(--violet);
+}
+.ia-close {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: .8rem;
+  padding: 2px 4px;
+}
+.ia-close:hover { color: var(--text); }
+
+.ia-popover-body {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.ia-carregando {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 8px;
+  color: var(--muted);
+  font-size: .78rem;
+}
+.ia-spinner {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--violet-light);
+  border-top-color: var(--violet);
+  animation: ia-spin .7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes ia-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ia-erro {
+  padding: 10px 8px;
+  color: var(--muted);
+  font-size: .78rem;
+  text-align: center;
+}
+
+.ia-opcao {
+  text-align: left;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: .78rem;
+  line-height: 1.45;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  white-space: pre-wrap;
+}
+.ia-opcao:hover {
+  border-color: var(--border2);
+  background: var(--violet-light);
+}

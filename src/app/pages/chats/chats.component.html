@@ -139,6 +139,14 @@
                 type="button">
           {{ gravandoAudio() ? '⏹️' : '🎤' }}
         </button>
+        <app-assistente-ia-botao
+          label="✨"
+          instrucao="Sugira uma resposta profissional para a última mensagem do cliente nesta conversa."
+          [contexto]="contextoParaIa()"
+          [abrirParaCima]="true"
+          alinhamento="esquerda"
+          (escolhido)="aplicarSugestaoIA($event)">
+        </app-assistente-ia-botao>
         <textarea class="chat-input"
                   rows="1"
                   placeholder="Digite uma mensagem..."

@@ -22,7 +22,15 @@
       </div>
       <div class="step-type-hint">{{ stepHint(step.tipoStep) }}</div>
       <div class="step-fg">
-        <label>Mensagem / Pergunta</label>
+        <div class="step-fg-head">
+          <label>Mensagem / Pergunta</label>
+          <app-assistente-ia-botao
+            label="✨ Sugerir"
+            [instrucao]="instrucaoIa(step.tipoStep)"
+            [contexto]="contextoIa(step)"
+            (escolhido)="updateStep(step.id, { mensagemPergunta: $event })">
+          </app-assistente-ia-botao>
+        </div>
         <textarea rows="2"
                   [ngModel]="step.mensagemPergunta"
                   (ngModelChange)="updateStep(step.id, { mensagemPergunta: $event })"

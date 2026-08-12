@@ -7,6 +7,7 @@ import { environment } from '../../../environments/environment';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 import { TemplateService } from '../templates/template.service';
 import { Template, TemplateComponente, parseComponentes } from '../templates/template.models';
+import { AssistenteIaBotaoComponent } from '../../shared/assistente-ia/assistente-ia-botao';
 
 interface Contato {
   id: string;
@@ -34,7 +35,7 @@ interface TemplateMeta extends Template {
 @Component({
   selector: 'app-disparador',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AssistenteIaBotaoComponent],
   templateUrl: './disparador.component.html',
   styleUrls: ['../shared-crud.css', './disparador.component.css'],
 })
@@ -67,6 +68,7 @@ export class DisparadorComponent implements OnInit {
   temMediaHeader = signal(false);
   response = signal('');
   errosLote = signal<{ telefone: string; erro: string }[]>([]);
+  explicacaoTemplate = signal('');
 
   // Computeds
   contatosFiltrados = computed(() => {
@@ -121,6 +123,16 @@ export class DisparadorComponent implements OnInit {
     return textoFormatado;
   });
 
+  // Instrução pro assistente de IA "explicar" o template selecionado -- não há campo
+  // de texto livre nesta tela (só variáveis de um template já aprovado pela Meta), então
+  // a IA ajuda de outra forma: traduzindo o template pro atendente entender o que vai
+  // ser enviado e conseguir explicar pro cliente antes de disparar.
+  instrucaoExplicarTemplate = computed(() => {
+    const tpl = this.templateAtivo();
+    if (!tpl) return '';
+    return `Explique em 1-2 frases simples, para um atendente que não escreveu este template, o que esta mensagem de WhatsApp comunica ao cliente e quando ela deve ser usada.`;
+  });
+
   ngOnInit() {
     this.buscarContatos();
     this.buscarTemplates();
@@ -166,6 +178,7 @@ export class DisparadorComponent implements OnInit {
     this.updateForm('templateId', id);
 
     // Reseta os estados anteriores
+    this.explicacaoTemplate.set('');
     this.headerMediaUrl.set('');
     this.params.set([]);
     this.buttonParams.set([]);

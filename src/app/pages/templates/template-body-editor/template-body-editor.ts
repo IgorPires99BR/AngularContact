@@ -1,6 +1,7 @@
 import { Component, input, output, viewChild, ElementRef, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AssistenteIaBotaoComponent } from '../../../shared/assistente-ia/assistente-ia-botao';
 
 // Emojis mais usados em mensagens comerciais (avisos, confirmações, promoções) --
 // lista curta de propósito, é um atalho, não um seletor de emoji completo.
@@ -13,7 +14,7 @@ const EMOJIS_SUGERIDOS = [
 @Component({
   selector: 'app-template-body-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AssistenteIaBotaoComponent],
   templateUrl: './template-body-editor.html',
   styleUrls: ['../templates.css']
 })
@@ -23,6 +24,16 @@ export class TemplateBodyEditorComponent {
   exemplos = input.required<{ value: string }[]>();
   exemplosChange = output<{ value: string }[]>();
   disabled = input(false);
+  categoria = input('');
+
+  get instrucaoIa(): string {
+    const categoriaLabel = this.categoria() ? ` da categoria ${this.categoria()}` : '';
+    return `Sugira um texto de corpo para um template de mensagem de WhatsApp${categoriaLabel}. Use {{1}}, {{2}} etc para variáveis quando fizer sentido (ex: nome do cliente, número do pedido).`;
+  }
+
+  aplicarSugestaoIA(texto: string) {
+    this.onConteudoChange(texto);
+  }
 
   private textareaRef = viewChild<ElementRef<HTMLTextAreaElement>>('bodyTextarea');
   private emojiWrapRef = viewChild<ElementRef<HTMLElement>>('emojiWrap');

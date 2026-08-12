@@ -1,0 +1,24 @@
+<div class="ia-wrap">
+  <button type="button" class="ia-trigger" [disabled]="disabled" (click)="alternar()" title="Pedir sugestões para a IA">
+    {{ label }}
+  </button>
+
+  <div class="ia-popover" [class.abre-cima]="abrirParaCima" [class.alinha-esquerda]="alinhamento === 'esquerda'" *ngIf="aberto()">
+    <div class="ia-popover-head">
+      <span>🤖 Assistente de IA</span>
+      <button type="button" class="ia-close" (click)="fechar()">✕</button>
+    </div>
+
+    <div class="ia-popover-body">
+      <div class="ia-carregando" *ngIf="carregando()">
+        <span class="ia-spinner"></span> Pensando em opções...
+      </div>
+
+      <div class="ia-erro" *ngIf="erro() && !carregando()">{{ erro() }}</div>
+
+      <button type="button" class="ia-opcao" *ngFor="let o of opcoes()" (click)="escolher(o)">
+        {{ o }}
+      </button>
+    </div>
+  </div>
+</div>

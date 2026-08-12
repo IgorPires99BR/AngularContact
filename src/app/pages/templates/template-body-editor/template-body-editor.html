@@ -10,6 +10,14 @@
         <button type="button" class="tpl-emoji-option" *ngFor="let e of emojis" (click)="inserirEmoji(e)">{{ e }}</button>
       </div>
     </div>
+    <app-assistente-ia-botao
+      label="✨ Sugerir texto"
+      [instrucao]="instrucaoIa"
+      [contexto]="conteudo()"
+      [disabled]="disabled()"
+      alinhamento="esquerda"
+      (escolhido)="aplicarSugestaoIA($event)">
+    </app-assistente-ia-botao>
   </div>
 
   <textarea #bodyTextarea rows="5"

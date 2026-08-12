@@ -8,6 +8,7 @@ import { environment } from '../../../environments/environment';
 import * as signalR from '@microsoft/signalr';
 import { TemplateMessagePipe } from '../../shared/pipes/template-message.pipe';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
+import { AssistenteIaBotaoComponent } from '../../shared/assistente-ia/assistente-ia-botao';
 
 interface ChatItem {
   contatoId: string;
@@ -38,7 +39,7 @@ interface Message {
 @Component({
   selector: 'app-chats',
   standalone: true,
-  imports: [CommonModule, FormsModule, TemplateMessagePipe],
+  imports: [CommonModule, FormsModule, TemplateMessagePipe, AssistenteIaBotaoComponent],
   templateUrl: './chats.component.html',
   styleUrls: ['./chats.component.css'],
 })
@@ -510,6 +511,20 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
           error: (err) => console.error('Erro ao marcar conversa como lida:', err)
         });
     }
+  }
+
+  // Contexto pro assistente de IA sugerir resposta: as últimas mensagens da conversa
+  // aberta, formatadas como um mini-histórico. So texto (mídia vira um marcador
+  // simples) -- o Gemini so precisa entender o assunto, não processar a mídia em si.
+  contextoParaIa = computed(() => {
+    return this.activeMessages()
+      .slice(-6)
+      .map(m => `${m.from === 'bot' || m.from === 'enviada' ? 'Atendente' : 'Cliente'}: ${m.text || '[mídia]'}`)
+      .join('\n');
+  });
+
+  aplicarSugestaoIA(texto: string) {
+    this.draft.set(texto);
   }
 
   send() {

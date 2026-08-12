@@ -68,6 +68,8 @@
 
       <app-flow-etapas-editor
         [etapas]="flow().etapas"
+        [flowNome]="flow().nome"
+        [flowDescricao]="flow().descricao"
         (etapasChange)="onEtapasChange($event)">
       </app-flow-etapas-editor>
     </div>

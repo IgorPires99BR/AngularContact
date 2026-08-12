@@ -154,6 +154,17 @@
   opacity: .85;
 }
 
+.ia-explicacao {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--violet-light);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  font-size: .82rem;
+  line-height: 1.5;
+  color: var(--text2);
+}
+
 .hide-md { display: none; }
 @media (max-width: 1180px) {
   .disp-grid { grid-template-columns: 1fr; }
