@@ -71,7 +71,10 @@
 
       <div class="fg">
         <label>Meta Access Token</label>
-        <input type="text" placeholder="Token de acesso permanente (EAANhG...)"
+        <!-- password, nao text: com o token em texto puro ele ficava legivel na tela ao colar
+             um novo, e vazava em screenshot/compartilhamento de tela. autocomplete off pra o
+             gerenciador de senhas do navegador nao tratar o token como senha do usuario. -->
+        <input type="password" autocomplete="off" placeholder="Token de acesso permanente (EAANhG...)"
                [ngModel]="form().metaAccessToken" (ngModelChange)="update('metaAccessToken', $event)">
         <!-- Por segurança o token não é devolvido pela API: a listagem traz só os últimos
              dígitos. Deixar o campo como veio mantém o token atual. -->
