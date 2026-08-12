@@ -19,11 +19,25 @@ export interface NumeroOption {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <select [ngModel]="value" (ngModelChange)="onChange($event)" [disabled]="carregando">
+    <select [ngModel]="value" (ngModelChange)="onChange($event)" [disabled]="carregando"
+            [class.destacado]="destacado">
       <option value="">{{ opcaoTodos }}</option>
       <option *ngFor="let n of numeros" [value]="n.id">{{ n.telefone }}{{ n.descricao ? ' — ' + n.descricao : '' }}</option>
     </select>
   `,
+  // O <select> vive dentro do template deste componente -- uma regra CSS escrita no
+  // componente pai (ex: ".vinculado select") nunca alcança este elemento por causa do
+  // encapsulamento de estilo do Angular (cada componente só estiliza o que está no
+  // seu próprio template). O destaque precisa nascer aqui.
+  styles: [`
+    select {
+      transition: border-color .15s, box-shadow .15s;
+    }
+    select.destacado {
+      border-color: var(--violet) !important;
+      box-shadow: 0 0 0 3px var(--violet-light);
+    }
+  `],
 })
 export class NumeroSelectorComponent implements OnInit {
   private http = inject(HttpClient);
@@ -34,6 +48,7 @@ export class NumeroSelectorComponent implements OnInit {
 
   @Input() value: string = '';
   @Input() opcaoTodos: string = 'Todos os números';
+  @Input() destacado: boolean = false;
   @Output() valueChange = new EventEmitter<string>();
 
   numeros: NumeroOption[] = [];

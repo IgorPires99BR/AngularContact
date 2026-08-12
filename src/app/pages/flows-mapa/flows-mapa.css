@@ -2,7 +2,8 @@
   margin: 8px 0 12px;
   padding: 8px 14px;
   border-radius: 8px;
-  background: rgba(99, 102, 241, 0.12);
+  background: var(--violet-light);
+  color: var(--violet);
   font-size: 13px;
 }
 
@@ -13,15 +14,22 @@
   flex-wrap: wrap;
 }
 
+/* Área de Flows é a "área roxa" do painel -- aba ativa usa o mesmo acento violeta
+   reservado pra automação/bot, em vez do azul padrão do .tab.active global. */
+.flow-tabs .tab.active {
+  background: var(--violet-light);
+  color: var(--violet);
+}
+
 .mapa-wrap {
   position: relative;
-  border-radius: 12px;
+  border-radius: var(--r-lg);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
 }
 
 .mapa-canvas {
-  background: #0b0f19;
+  background: var(--bg-deep);
 }
 
 .mapa-loading,
@@ -30,10 +38,10 @@
   top: 16px;
   left: 16px;
   padding: 6px 12px;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, .6);
   border-radius: 8px;
   font-size: 13px;
-  color: #fff;
+  color: var(--text);
 }
 
 .mapa-empty {
@@ -49,11 +57,18 @@
   top: 16px;
   right: 16px;
   width: 280px;
-  background: rgba(20, 20, 30, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
   padding: 12px 14px;
-  color: #fff;
+  color: var(--text);
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .6);
+  animation: mapa-painel-in .2s ease both;
+}
+
+@keyframes mapa-painel-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .mapa-painel-head {
@@ -70,9 +85,17 @@
   gap: 6px;
 }
 
+/* Conteúdo da etapa vira uma bolha de mensagem, mesmo tratamento visual usado no
+   preview ao vivo do builder (flow-builder.css .flow-preview-bubble) -- consistência
+   entre "editar o flow" e "visualizar o flow no mapa". */
 .mapa-painel-conteudo {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  margin-top: 8px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 10px 10px 10px 2px;
+  padding: 10px 12px;
   white-space: pre-wrap;
+  font-size: .78rem;
+  line-height: 1.5;
 }

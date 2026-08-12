@@ -5,7 +5,7 @@
 
 <div class="steps-container">
   <ng-container *ngFor="let step of etapas; let i = index; let first = first; let last = last; trackBy: trackByStepId">
-    <div class="step-card" [ngClass]="stepAccentClass(step)">
+    <div class="step-card fade-up" [ngClass]="stepAccentClass(step)">
       <div class="step-num">{{ stepIcon(step.tipoStep) }} {{ step.ordem }}</div>
       <div class="step-badge-inicio" *ngIf="step.ehEtapaInicial">🚀 Início</div>
       <div class="step-head">

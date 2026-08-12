@@ -25,7 +25,17 @@
   position: relative;
   transition: border-color .15s;
 }
-.step-card:hover { border-color: var(--border2); }
+.step-card:hover {
+  border-color: var(--border2);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -14px rgba(139, 92, 246, .5);
+}
+
+/* .fade-up global não tem fill-mode:both; aqui não há delay (trackBy só recria o nó
+   quando o step é realmente novo), mas both evita qualquer flash na primeira pintura. */
+.step-card.fade-up {
+  animation: fadeUp .3s ease both;
+}
 
 /* Cor de destaque por tipo de etapa, na mesma paleta do Mapa Mental 3D
    (azul = início, verde = encerrar, roxo = demais) pra manter consistência visual */

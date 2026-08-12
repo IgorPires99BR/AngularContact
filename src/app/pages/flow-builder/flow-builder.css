@@ -1,2 +1,137 @@
-/* Estilos específicos do builder ficam em flows/flows.component.css (reaproveitado via
-   styleUrls) — este arquivo existe para ajustes que só façam sentido nesta tela. */
+/* Layout principal: formulário + editor de etapas à esquerda, prévia da conversa
+   fixa (sticky) à direita -- mesmo espírito do preview ao vivo já usado em
+   Templates (.tpl-phone/.tpl-bubble), aqui simulando a sequência de mensagens do
+   flow em vez de um único template. */
+.builder-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .builder-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   Prévia da conversa (estilo bolha de WhatsApp, mesmo padrão de
+   templates.css .tpl-phone/.tpl-bubble)
+   ============================================================ */
+.flow-preview-phone {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+}
+.flow-preview-label {
+  padding: 14px 16px 10px;
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: .78rem; color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+.flow-preview-screen {
+  background:
+    radial-gradient(ellipse 120% 60% at 30% 0%, rgba(139, 92, 246, .14) 0%, transparent 60%),
+    var(--bg-deep);
+  padding: 18px 14px;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.flow-preview-bubble {
+  position: relative;
+  align-self: flex-start;
+  max-width: 88%;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 12px 12px 12px 2px;
+  padding: 10px 13px;
+  font-size: .8rem;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, .5);
+  animation: fadeUp .25s ease both;
+}
+.flow-preview-bubble.cliente {
+  align-self: flex-end;
+  background: var(--violet-light);
+  border-color: var(--border2);
+  border-radius: 12px 12px 2px 12px;
+  color: var(--text2);
+  font-style: italic;
+  font-size: .74rem;
+}
+.flow-preview-bubble.empty {
+  color: var(--muted);
+  font-style: italic;
+  font-size: .78rem;
+}
+
+.flow-preview-var {
+  color: var(--violet);
+  background: var(--violet-light);
+  border-radius: 4px;
+  padding: 0 3px;
+  font-weight: 700;
+  font-style: normal;
+}
+
+.flow-preview-tail {
+  position: absolute;
+  bottom: 0;
+  left: -6px;
+  width: 12px; height: 12px;
+  background: var(--bg-card2);
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+.flow-preview-tail.cliente {
+  left: auto; right: -6px;
+  background: var(--violet-light);
+  border-left: none; border-right: 1px solid var(--border2);
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+.flow-preview-sistema {
+  align-self: center;
+  font-size: .7rem;
+  color: var(--muted);
+  background: rgba(255, 255, 255, .04);
+  padding: 4px 12px;
+  border-radius: 100px;
+}
+
+@media (max-width: 960px) {
+  .flow-preview-phone { position: static; }
+}
+
+/* ============================================================
+   Toast de confirmação ao salvar
+   ============================================================ */
+.flow-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--green);
+  color: #08150c;
+  font-weight: 700;
+  font-size: .85rem;
+  padding: 10px 20px;
+  border-radius: 100px;
+  box-shadow: 0 10px 30px -8px rgba(34, 197, 94, .5);
+  animation: flow-toast-in .25s ease both;
+  z-index: 50;
+}
+
+@keyframes flow-toast-in {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}

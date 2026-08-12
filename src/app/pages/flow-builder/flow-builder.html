@@ -14,59 +14,85 @@
 
 <div *ngIf="carregando()" style="text-align:center; padding: 40px; color: var(--muted);">Carregando...</div>
 
-<div class="flow-builder" *ngIf="!carregando()">
-  <div class="flow-build-head">
-    <div>
-      <div class="card-title">{{ flow().nome || 'Novo Flow' }}</div>
-      <div class="card-sub">Configure as etapas da conversa</div>
+<div class="builder-grid" *ngIf="!carregando()">
+  <div class="flow-builder">
+    <div class="flow-build-head">
+      <div>
+        <div class="card-title">{{ flow().nome || 'Novo Flow' }}</div>
+        <div class="card-sub">Configure as etapas da conversa</div>
+      </div>
+      <div class="builder-actions">
+        <select class="status-select"
+                [ngModel]="flow().ativo"
+                (ngModelChange)="updateField('ativo', $event === 'true' || $event === true)">
+          <option [value]="true">● Ativo</option>
+          <option [value]="false">○ Inativo</option>
+        </select>
+        <button class="btn btn-success btn-sm" [disabled]="sincronizando()" (click)="salvar()">
+          💾 <span class="btn-label-long">Salvar</span>
+        </button>
+      </div>
     </div>
-    <div class="builder-actions">
-      <select class="status-select"
-              [ngModel]="flow().ativo"
-              (ngModelChange)="updateField('ativo', $event === 'true' || $event === true)">
-        <option [value]="true">● Ativo</option>
-        <option [value]="false">○ Inativo</option>
-      </select>
-      <button class="btn btn-success btn-sm" [disabled]="sincronizando()" (click)="salvar()">
-        💾 <span class="btn-label-long">Salvar</span>
-      </button>
+
+    <div class="flow-build-body">
+      <div class="builder-section-head">
+        <span class="builder-section-title">⚙️ Configurações do Flow</span>
+      </div>
+      <div class="fg mb-16">
+        <label>Nome do Flow</label>
+        <input type="text" placeholder="ex: Qualificação de Lead"
+               [ngModel]="flow().nome"
+               (ngModelChange)="updateField('nome', $event)">
+      </div>
+      <div class="fg mb-16">
+        <label>Descrição do Flow</label>
+        <input type="text" placeholder="ex: Fluxo enviado para novos leads"
+               [ngModel]="flow().descricao"
+               (ngModelChange)="updateField('descricao', $event)">
+      </div>
+      <div class="fg mb-16">
+        <label>Gatilho inicial (palavra-chave que inicia o flow)</label>
+        <input type="text" placeholder="oi, olá, início, quero saber mais..."
+               [ngModel]="flow().gatilhoPalavraChave || ''"
+               (ngModelChange)="updateField('gatilhoPalavraChave', $event)">
+      </div>
+      <div class="fg" style="margin-bottom: 18px">
+        <label>Vincular a um número específico (opcional)</label>
+        <app-numero-selector
+          [value]="flow().numeroId || ''"
+          [destacado]="!!flow().numeroId"
+          opcaoTodos="Vale para todos os números da empresa"
+          (valueChange)="updateField('numeroId', $event || null)">
+        </app-numero-selector>
+      </div>
+
+      <app-flow-etapas-editor
+        [etapas]="flow().etapas"
+        (etapasChange)="onEtapasChange($event)">
+      </app-flow-etapas-editor>
     </div>
   </div>
 
-  <div class="flow-build-body">
-    <div class="builder-section-head">
-      <span class="builder-section-title">⚙️ Configurações do Flow</span>
-    </div>
-    <div class="fg mb-16">
-      <label>Nome do Flow</label>
-      <input type="text" placeholder="ex: Qualificação de Lead"
-             [ngModel]="flow().nome"
-             (ngModelChange)="updateField('nome', $event)">
-    </div>
-    <div class="fg mb-16">
-      <label>Descrição do Flow</label>
-      <input type="text" placeholder="ex: Fluxo enviado para novos leads"
-             [ngModel]="flow().descricao"
-             (ngModelChange)="updateField('descricao', $event)">
-    </div>
-    <div class="fg mb-16">
-      <label>Gatilho inicial (palavra-chave que inicia o flow)</label>
-      <input type="text" placeholder="oi, olá, início, quero saber mais..."
-             [ngModel]="flow().gatilhoPalavraChave || ''"
-             (ngModelChange)="updateField('gatilhoPalavraChave', $event)">
-    </div>
-    <div class="fg" style="margin-bottom: 18px">
-      <label>Vincular a um número específico (opcional)</label>
-      <app-numero-selector
-        [value]="flow().numeroId || ''"
-        opcaoTodos="Vale para todos os números da empresa"
-        (valueChange)="updateField('numeroId', $event || null)">
-      </app-numero-selector>
-    </div>
+  <div class="flow-preview-phone">
+    <div class="flow-preview-label">👁️ Prévia da conversa</div>
+    <div class="flow-preview-screen">
+      <ng-container *ngIf="previewBolhas().length > 0; else previewVazia">
+        <ng-container *ngFor="let b of previewBolhas()">
+          <div class="flow-preview-sistema" *ngIf="b.tipo === 'sistema'">{{ b.partes[0].texto }}</div>
 
-    <app-flow-etapas-editor
-      [etapas]="flow().etapas"
-      (etapasChange)="onEtapasChange($event)">
-    </app-flow-etapas-editor>
+          <div class="flow-preview-bubble" [class.cliente]="b.tipo === 'cliente'" *ngIf="b.tipo !== 'sistema'">
+            <span *ngFor="let p of b.partes" [class.flow-preview-var]="p.variavel">{{ p.texto }}</span>
+            <div class="flow-preview-tail" [class.cliente]="b.tipo === 'cliente'"></div>
+          </div>
+        </ng-container>
+      </ng-container>
+      <ng-template #previewVazia>
+        <div class="flow-preview-bubble empty">
+          Adicione uma etapa de Mensagem ou Capturar Input pra ver a conversa aqui.
+        </div>
+      </ng-template>
+    </div>
   </div>
 </div>
+
+<div class="flow-toast" *ngIf="mostrarToast()">✅ Flow salvo com sucesso</div>

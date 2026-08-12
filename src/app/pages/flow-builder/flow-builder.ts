@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -18,6 +18,16 @@ interface Flow {
   ativo: boolean;
   numeroId: string | null;
   etapas: Step[];
+}
+
+interface ParteMensagem {
+  texto: string;
+  variavel: boolean;
+}
+
+interface BolhaPreview {
+  tipo: 'bot' | 'cliente' | 'sistema';
+  partes: ParteMensagem[];
 }
 
 // Tela dedicada de criação/edição de um Flow, extraída do antigo flows.component.ts
@@ -42,6 +52,7 @@ export class FlowBuilderComponent implements OnInit {
   response = signal('');
   sincronizando = signal(false);
   carregando = signal(true);
+  mostrarToast = signal(false);
 
   private idRota: string | null = null;
   isNew = true;
@@ -56,6 +67,48 @@ export class FlowBuilderComponent implements OnInit {
     numeroId: null,
     etapas: []
   });
+
+  // Simula a conversa que o cliente veria, na ordem real das etapas -- Mensagem vira
+  // bolha do bot, Capturar Input vira a pergunta do bot seguida de uma bolha "do
+  // cliente" esperando resposta. É o que diferencia essa tela de um formulário cru:
+  // dá pra ver o resultado sem precisar publicar o flow e mandar mensagem de teste.
+  previewBolhas = computed<BolhaPreview[]>(() => {
+    const bolhas: BolhaPreview[] = [];
+    for (const etapa of this.flow().etapas) {
+      if (etapa.tipoStep === 'Mensagem' && etapa.mensagemPergunta) {
+        bolhas.push({ tipo: 'bot', partes: this.partesMensagem(etapa.mensagemPergunta) });
+      } else if (etapa.tipoStep === 'Capturar Input' && etapa.mensagemPergunta) {
+        bolhas.push({ tipo: 'bot', partes: this.partesMensagem(etapa.mensagemPergunta) });
+        bolhas.push({ tipo: 'cliente', partes: [{ texto: etapa.variavelSaida ? `(resposta salva em "${etapa.variavelSaida}")` : 'digitando...', variavel: false }] });
+      } else if (etapa.tipoStep === 'Encerrar') {
+        bolhas.push({ tipo: 'sistema', partes: [{ texto: '🏁 Conversa encerrada', variavel: false }] });
+      }
+    }
+    return bolhas;
+  });
+
+  // Quebra "Olá {{nome}}!" em partes de texto normal + variável, pra destacar as
+  // variáveis na prévia sem precisar de innerHTML (a mensagem é editada livremente
+  // pelo usuário, então prefiro não injetar HTML cru mesmo sendo conteúdo do próprio
+  // tenant).
+  private partesMensagem(texto: string): ParteMensagem[] {
+    const partes: ParteMensagem[] = [];
+    const regex = /\{\{(\w+)\}\}/g;
+    let ultimoIndice = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(texto)) !== null) {
+      if (match.index > ultimoIndice) {
+        partes.push({ texto: texto.slice(ultimoIndice, match.index), variavel: false });
+      }
+      partes.push({ texto: match[1], variavel: true });
+      ultimoIndice = match.index + match[0].length;
+    }
+    if (ultimoIndice < texto.length) {
+      partes.push({ texto: texto.slice(ultimoIndice), variavel: false });
+    }
+    return partes;
+  }
 
   ngOnInit() {
     this.idRota = this.route.snapshot.paramMap.get('id');
@@ -214,7 +267,10 @@ export class FlowBuilderComponent implements OnInit {
     request$.subscribe({
       next: () => {
         this.sincronizando.set(false);
-        this.router.navigate(['/flows']);
+        this.mostrarToast.set(true);
+        // Deixa o toast visível um instante antes de sair da tela -- some sozinho
+        // se o usuário não navegar antes (o componente é destruído na troca de rota).
+        setTimeout(() => this.router.navigate(['/flows']), 700);
       },
       error: (err) => {
         this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao salvar o flow.')}`);

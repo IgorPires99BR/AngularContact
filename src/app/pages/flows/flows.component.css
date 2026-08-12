@@ -38,3 +38,62 @@
   .builder-actions { width: 100%; justify-content: flex-end; }
   .builder-actions .status-select { flex: 1; min-width: 0; }
 }
+
+/* ============================================================
+   Lista de Flows — stats, busca, status ao vivo, empty state
+   ============================================================ */
+.flows-stats { margin-bottom: 16px; }
+
+/* .fade-up global não tem fill-mode:both -- com animation-delay (stagger por linha)
+   isso causaria um flash visível antes da animação começar. Sobrescrito só aqui. */
+.tbl tbody tr.fade-up {
+  animation: fadeUp .3s ease both;
+}
+
+.flows-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.flows-search {
+  flex: 1;
+  min-width: 220px;
+  margin: 0;
+}
+
+/* O dot já existe via .badge::before (global) -- aqui só anima ele quando o flow
+   está ativo, mesmo espírito do indicador "ao vivo" de Chats (pulso-gravando), só
+   que mais discreto (indicador contínuo, não uma ação temporária). */
+.badge-pulsando::before {
+  animation: flow-status-pulso 1.8s ease-in-out infinite;
+}
+@keyframes flow-status-pulso {
+  0%, 100% { box-shadow: 0 0 0 0 var(--green-light); }
+  50% { box-shadow: 0 0 0 4px transparent; }
+}
+
+.flows-empty {
+  text-align: center;
+  padding: 48px 24px;
+}
+.flows-empty-icon {
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+  opacity: .7;
+}
+.flows-empty-title {
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: .95rem;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.flows-empty-sub {
+  font-size: .8rem;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+
+@media (max-width: 640px) {
+  .flows-toolbar { flex-direction: column; align-items: stretch; }
+}

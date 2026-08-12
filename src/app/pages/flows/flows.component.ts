@@ -41,9 +41,19 @@ export class FlowsComponent implements OnInit {
   carregando = signal(true);
   flows = signal<Flow[]>([]);
   numeroFiltro = signal<string>('');
+  busca = signal('');
 
   ativos = computed(() => this.flows().filter(f => f.ativo).length);
   inativos = computed(() => this.flows().filter(f => !f.ativo).length);
+
+  flowsFiltrados = computed(() => {
+    const termo = this.busca().toLowerCase().trim();
+    if (!termo) return this.flows();
+    return this.flows().filter(f =>
+      f.nome?.toLowerCase().includes(termo) ||
+      f.gatilhoPalavraChave?.toLowerCase().includes(termo)
+    );
+  });
 
   ngOnInit() {
     this.buscar();

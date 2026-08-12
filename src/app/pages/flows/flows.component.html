@@ -16,9 +16,39 @@
   {{ response() }}
 </div>
 
+<div class="stats-grid flows-stats">
+  <div class="stat-card">
+    <div class="stat-icon violet">🤖</div>
+    <div>
+      <div class="stat-label">Total de Flows</div>
+      <div class="stat-value violet">{{ flows().length }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">✅</div>
+    <div>
+      <div class="stat-label">Ativos</div>
+      <div class="stat-value green">{{ ativos() }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">💤</div>
+    <div>
+      <div class="stat-label">Inativos</div>
+      <div class="stat-value">{{ inativos() }}</div>
+    </div>
+  </div>
+</div>
+
 <div class="card" style="margin-bottom: 16px;">
-  <div class="card-body" style="display:flex; align-items:center; gap:12px; flex-wrap: wrap;">
-    <div class="fg" style="margin:0; min-width: 260px;">
+  <div class="card-body flows-toolbar">
+    <div class="crud-search-bar flows-search">
+      <span class="crud-search-icon">🔎</span>
+      <input class="crud-search-input" type="text" placeholder="Buscar por nome ou gatilho..."
+             [ngModel]="busca()" (ngModelChange)="busca.set($event)">
+      <span class="crud-search-count" *ngIf="busca()">{{ flowsFiltrados().length }}</span>
+    </div>
+    <div class="fg" style="margin:0; min-width: 240px;">
       <label>Filtrar por número</label>
       <app-numero-selector
         [value]="numeroFiltro()"
@@ -26,28 +56,28 @@
         (valueChange)="onNumeroFiltroChange($event)">
       </app-numero-selector>
     </div>
-    <div style="display:flex; gap:16px; font-size:.8rem; color:var(--muted);">
-      <span>{{ ativos() }} ativo{{ ativos() === 1 ? '' : 's' }}</span>
-      <span>{{ inativos() }} inativo{{ inativos() === 1 ? '' : 's' }}</span>
-    </div>
   </div>
 </div>
 
 <div *ngIf="carregando()" style="text-align:center; padding: 40px; color: var(--muted);">Carregando...</div>
 
 <div class="card" *ngIf="!carregando()">
-  <div class="tbl-wrap">
+  <div class="tbl-wrap" *ngIf="flowsFiltrados().length > 0; else vazio">
     <table class="tbl">
       <thead>
         <tr><th>Nome</th><th>Gatilho</th><th>Número</th><th>Steps</th><th>Status</th><th>Ações</th></tr>
       </thead>
       <tbody>
-        <tr *ngFor="let f of flows()">
+        <tr *ngFor="let f of flowsFiltrados(); let i = index" class="fade-up" [style.animation-delay.ms]="i * 40">
           <td><strong>{{ f.nome }}</strong></td>
           <td class="mono">{{ f.gatilhoPalavraChave || '—' }}</td>
-          <td>{{ numeroLabel(f.numeroId) }}</td>
+          <td><span class="badge" [ngClass]="f.numeroId ? 'badge-violet' : 'badge-muted'">{{ numeroLabel(f.numeroId) }}</span></td>
           <td>{{ f.totalEtapas }}</td>
-          <td><span class="badge" [ngClass]="badgeClass(f.ativo)">{{ statusLabel(f.ativo) }}</span></td>
+          <td>
+            <span class="badge" [ngClass]="badgeClass(f.ativo)" [class.badge-pulsando]="f.ativo">
+              {{ statusLabel(f.ativo) }}
+            </span>
+          </td>
           <td>
             <div class="btn-grp">
               <button class="btn btn-ghost btn-xs" (click)="editar(f.id)">Editar</button>
@@ -55,12 +85,16 @@
             </div>
           </td>
         </tr>
-        <tr *ngIf="flows().length === 0">
-          <td colspan="6" style="text-align:center; padding: 30px; color: var(--muted);">
-            Nenhum fluxo encontrado. Clique em "+ Novo Flow" para criar a sua primeira automação.
-          </td>
-        </tr>
       </tbody>
     </table>
   </div>
+
+  <ng-template #vazio>
+    <div class="flows-empty">
+      <div class="flows-empty-icon">🤖</div>
+      <div class="flows-empty-title">{{ busca() ? 'Nenhum flow encontrado pra essa busca' : 'Nenhum fluxo encontrado' }}</div>
+      <div class="flows-empty-sub" *ngIf="!busca()">Crie sua primeira automação e comece a responder clientes no automático.</div>
+      <button class="btn btn-primary btn-sm" *ngIf="!busca()" (click)="novoFlow()">+ Novo Flow</button>
+    </div>
+  </ng-template>
 </div>

@@ -139,6 +139,7 @@
 .stat-icon.warn   { background: var(--warn-light); }
 .stat-icon.danger { background: var(--danger-light); }
 .stat-icon.blue   { background: var(--blue-light); }
+.stat-icon.violet { background: var(--violet-light); }
 .stat-label {
   font-size: .7rem; color: var(--muted);
   font-weight: 600;
@@ -152,6 +153,7 @@
 .stat-value.warn   { color: var(--warn); }
 .stat-value.danger { color: var(--danger); }
 .stat-value.blue   { color: var(--blue3); }
+.stat-value.violet { color: var(--violet); }
 
 @media (max-width: 768px) {
   .stats-grid { grid-template-columns: 1fr; }
