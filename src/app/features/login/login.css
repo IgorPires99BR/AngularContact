@@ -423,6 +423,12 @@
     height: 16px;
     accent-color: var(--cs-cyan);
     cursor: pointer;
+    /* .fg input global (styles.css) aplica appearance:none pensado pra inputs de texto
+       e acaba pegando este checkbox tambem, sumindo com o check nativo -- reverte aqui. */
+    appearance: auto;
+    background: none;
+    border: none;
+    padding: 0;
   }
 
 .forgot-password-link {
