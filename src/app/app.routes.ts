@@ -6,6 +6,9 @@ import { ShellComponent } from './shell/shell.component';
 import { LoginComponent } from './features/login/login';
 import { ForgotPasswordComponent } from './features/forgot-password/forgot-password';
 import { LandingComponent } from './features/landing/landing';
+import { PrivacidadeComponent } from './features/legal/privacidade';
+import { TermosComponent } from './features/legal/termos';
+import { ExclusaoDadosComponent } from './features/legal/exclusao-dados';
 
 // Componentes das Páginas (Eager Loading para evitar erros de chunk)
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
@@ -29,6 +32,13 @@ export const routes: Routes = [
   // 2. Rota Pública: O Login precisa estar fora do Guard para o usuário conseguir entrar
   { path: 'login', component: LoginComponent },
   { path: 'esqueci-senha', component: ForgotPasswordComponent },
+
+  // Paginas juridicas: publicas de proposito. A analise do app na Meta exige a URL da
+  // politica de privacidade e a de instrucoes de exclusao de dados abrindo sem login,
+  // e o titular de dados costuma pedir exclusao justamente quando ja nao tem acesso.
+  { path: 'privacidade', component: PrivacidadeComponent },
+  { path: 'termos', component: TermosComponent },
+  { path: 'exclusao-de-dados', component: ExclusaoDadosComponent },
 
   // 3. Rotas Protegidas: O Shell e todos os seus filhos agora exigem autenticação
   {

@@ -724,6 +724,15 @@
     margin: 0;
   }
 
+  .lp-footer-links {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 10px 24px; margin-bottom: 16px;
+  }
+
+  .lp-footer-links a { font-size: .82rem; color: var(--lp-muted2); text-decoration: none; }
+  .lp-footer-links a:hover { color: var(--lp-text); text-decoration: underline; }
+  .lp-footer-links a:focus-visible { outline: 2px solid #4FA8FF; outline-offset: 3px; }
+
 /* ============================================================
    Responsivo
    ============================================================ */

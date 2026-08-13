@@ -1,0 +1,83 @@
+/* Estilo comum das paginas juridicas (privacidade, termos, exclusao de dados).
+   Sao paginas publicas: precisam abrir sem login, porque o revisor da Meta e o
+   titular dos dados acessam a URL direto, sem conta no sistema. */
+
+.legal-wrap {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+  color: #E6EDF3;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.legal-voltar {
+  display: inline-block;
+  margin-bottom: 32px;
+  color: #6EA8FE;
+  text-decoration: none;
+  font-size: 14px;
+}
+.legal-voltar:hover { text-decoration: underline; }
+.legal-voltar:focus-visible { outline: 2px solid #6EA8FE; outline-offset: 3px; border-radius: 2px; }
+
+.legal-wrap h1 {
+  font-size: clamp(1.9rem, 5vw, 2.5rem);
+  line-height: 1.15;
+  margin: 0 0 8px;
+  color: #FFFFFF;
+}
+
+.legal-atualizacao {
+  font-size: 13px;
+  color: #8B98A5;
+  margin: 0 0 40px;
+}
+
+.legal-wrap h2 {
+  font-size: 1.2rem;
+  margin: 40px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #223041;
+  color: #FFFFFF;
+}
+
+.legal-wrap h3 {
+  font-size: 1rem;
+  margin: 24px 0 8px;
+  color: #C9D6E2;
+}
+
+.legal-wrap p { margin: 0 0 16px; }
+.legal-wrap ul { padding-left: 22px; margin: 0 0 16px; }
+.legal-wrap li { margin-bottom: 8px; }
+.legal-wrap strong { color: #FFFFFF; }
+.legal-wrap a { color: #6EA8FE; }
+
+/* Marcador visivel do que ainda falta preencher: proposital, pra ninguem
+   publicar a pagina achando que esta pronta. */
+.legal-pendente {
+  background: #4A2F00;
+  color: #FFD494;
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.legal-destaque {
+  background: #16202B;
+  border-left: 3px solid #6EA8FE;
+  padding: 16px 20px;
+  margin: 24px 0;
+}
+.legal-destaque > :last-child { margin-bottom: 0; }
+
+.legal-tabela-wrap { overflow-x: auto; margin: 20px 0; }
+.legal-wrap table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.legal-wrap th, .legal-wrap td {
+  text-align: left; padding: 10px 12px;
+  border-bottom: 1px solid #223041; vertical-align: top;
+}
+.legal-wrap th { color: #8B98A5; font-weight: 600; white-space: nowrap; }
