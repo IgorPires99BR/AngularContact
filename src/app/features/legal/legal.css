@@ -54,18 +54,6 @@
 .legal-wrap strong { color: #FFFFFF; }
 .legal-wrap a { color: #6EA8FE; }
 
-/* Marcador visivel do que ainda falta preencher: proposital, pra ninguem
-   publicar a pagina achando que esta pronta. */
-.legal-pendente {
-  background: #4A2F00;
-  color: #FFD494;
-  padding: 1px 7px;
-  border-radius: 3px;
-  font-family: ui-monospace, Menlo, monospace;
-  font-size: 0.85em;
-  white-space: nowrap;
-}
-
 .legal-destaque {
   background: #16202B;
   border-left: 3px solid #6EA8FE;
