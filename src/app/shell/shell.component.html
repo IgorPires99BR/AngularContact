@@ -72,11 +72,15 @@
           <div class="api-dot"></div>
           <span class="api-label">API Online</span>
         </div>
-        <a class="btn btn-ghost btn-sm hide-sm" routerLink="/disparador">
+        <!-- title/aria-label porque no celular o .btn-label-long some e sobra so o
+             icone: sem eles o botao fica sem nome pra quem toca e pro leitor de tela. -->
+        <a class="btn btn-ghost btn-sm hide-sm" routerLink="/disparador"
+           title="Novo Disparo" aria-label="Novo Disparo">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22,2 15,22 11,13 2,9" /></svg>
           <span class="btn-label-long">Novo Disparo</span>
         </a>
-        <a class="btn btn-primary btn-sm" routerLink="/chats">
+        <a class="btn btn-primary btn-sm" routerLink="/chats"
+           title="Chats" aria-label="Chats">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
           <span class="btn-label-long">Chats</span>
         </a>

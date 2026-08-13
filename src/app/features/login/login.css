@@ -205,7 +205,8 @@
 .stat-val {
   font-weight: 800;
   font-size: 1.7rem;
-  line-height: 1;
+  /* 1.15: com line-height 1 o topo dos digitos era cortado. */
+  line-height: 1.15;
   color: #fff;
   margin-bottom: 6px;
 }
@@ -442,6 +443,23 @@
     color: var(--cs-cyan);
     text-decoration: underline;
   }
+
+@media (max-width: 640px) {
+  /* "Esqueci minha senha" e a saida de quem esta travado na porta: com 15px de
+     altura o toque erra bem na hora em que a pessoa ja esta irritada. */
+  .forgot-password-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .remember-me { min-height: 44px; }
+  .remember-me input[type="checkbox"] { width: 20px; height: 20px; }
+
+  /* Mostrar/ocultar senha vinha com 30px, dentro do campo: no celular e onde
+     mais se usa, porque digitar senha em teclado virtual erra muito. */
+  .pw-toggle { min-width: 44px; min-height: 44px; }
+}
 
 /* Botão */
 .btn {

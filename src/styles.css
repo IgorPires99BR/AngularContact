@@ -260,7 +260,10 @@ a {
   font-weight: 800;
   font-size: clamp(1.5rem, 3vw, 1.95rem);
   color: var(--text);
-  line-height: 1;
+  /* 1.15, e nao 1: os glifos da Syne 800 sao mais altos que o em, entao com
+     line-height 1 o numero era cortado uns 3px em cima (o "1" virava um bloco
+     e o "0" perdia a curva). Acontecia no desktop tambem, nao so no celular. */
+  line-height: 1.15;
   margin-bottom: 10px;
 }
 
@@ -479,18 +482,31 @@ a {
   flex-wrap: wrap;
 }
 
-/* mobile: botões com label longa colapsam para ícone + tooltip */
+/* Mobile: o rotulo colapsa SO na topbar, onde o espaco e escasso e o icone ja
+   identifica a acao. Fora dela nao: colapsar apagava o nome das acoes principais
+   e sobrava um quadrado com emoji — "Disparar em Lote para N contato(s)" virava
+   so "✅" e "Novo Flow" ficava um botao vazio de 26px — sem title nem aria-label
+   dizendo o que faziam. */
 @media (max-width: 640px) {
-  .btn .btn-label-long {
+  .tb-right .btn .btn-label-long {
     display: none;
   }
 
+  /* 44px e o alvo de toque minimo confortavel; antes ficavam em 30-38px. */
   .btn {
-    padding: 9px 14px;
+    padding: 11px 16px;
+    min-height: 44px;
   }
 
   .btn-grp {
-    gap: 6px;
+    gap: 8px;
+  }
+
+  /* A acao principal toma a linha inteira: o rotulo longo cabe sem truncar
+     e o alvo fica largo. */
+  .btn-grp > .btn-primary {
+    flex: 1 1 100%;
+    justify-content: center;
   }
 }
 
@@ -610,6 +626,23 @@ a {
     font-size: .79rem;
     color: var(--text2);
   }
+
+@media (max-width: 640px) {
+  /* A tabela nao vira cartao: continua rolando na horizontal dentro do .tbl-wrap.
+     So aumento o que ficava ilegivel (cabecalho a 10.5px) e o alvo dos botoes
+     de acao da linha, que vinham com 38px de altura. */
+  .tbl th { font-size: .72rem; padding: 11px 14px; }
+  .tbl td { padding: 12px 14px; }
+
+  .tbl .btn-xs { min-height: 40px; min-width: 40px; }
+
+  /* Selecionar destinatario e a acao mais repetida do disparador e a caixa vinha
+     com 13px. 20px ja da pra acertar sem ampliar a tela. */
+  .tbl input[type="checkbox"] { width: 20px; height: 20px; }
+
+  /* Rolagem por toque com inercia, senao a tabela larga trava no meio do gesto. */
+  .tbl-wrap { -webkit-overflow-scrolling: touch; }
+}
 
 /* ============================================================
    TABS
@@ -749,9 +782,5 @@ a {
 @media (max-width: 640px) {
   .hide-md {
     display: inline;
-  }
-
-  .btn .btn-label-long {
-    display: none;
   }
 }

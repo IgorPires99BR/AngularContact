@@ -12,8 +12,12 @@
 }
 
 .legal-voltar {
-  display: inline-block;
-  margin-bottom: 32px;
+  display: inline-flex;
+  align-items: center;
+  /* min-height 44px: e um controle de navegacao, nao um link no meio do texto,
+     entao precisa de alvo de toque. Sem isso ficava com 24px de altura. */
+  min-height: 44px;
+  margin-bottom: 24px;
   color: #6EA8FE;
   text-decoration: none;
   font-size: 14px;
@@ -69,3 +73,13 @@
   border-bottom: 1px solid #223041; vertical-align: top;
 }
 .legal-wrap th { color: #8B98A5; font-weight: 600; white-space: nowrap; }
+
+/* Celular: sao as paginas que o revisor da Meta e o titular dos dados abrem, quase
+   sempre pelo telefone, entao a margem lateral encolhe pra sobrar linha de texto. */
+@media (max-width: 640px) {
+  .legal-wrap { padding: 28px 18px 72px; }
+  .legal-wrap h2 { margin-top: 32px; }
+  /* 13px fica pequeno demais num celular. */
+  .legal-wrap table { font-size: 14px; }
+  .legal-wrap th, .legal-wrap td { padding: 10px 10px; }
+}
