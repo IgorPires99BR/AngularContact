@@ -1,0 +1,128 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">💰 Financeiro &amp; Engajamento</h1>
+    <div class="ph-sub">Gasto estimado com disparos e funil de resposta, por cliente</div>
+  </div>
+</div>
+
+<div class="erro-box" *ngIf="erro()">{{ erro() }}</div>
+
+<div class="card mb-14">
+  <div class="card-head" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <div class="card-title">🗓️ Filtro por período</div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;">
+      <div class="fg" style="margin-bottom: 0;">
+        <label>De</label>
+        <input type="date" [ngModel]="dataInicio()" (ngModelChange)="dataInicio.set($event)">
+      </div>
+      <div class="fg" style="margin-bottom: 0;">
+        <label>Até</label>
+        <input type="date" [ngModel]="dataFim()" (ngModelChange)="dataFim.set($event)">
+      </div>
+      <button class="btn btn-primary btn-sm" (click)="buscar()" [disabled]="carregando()">
+        {{ carregando() ? '⏳' : '🔎' }} Filtrar
+      </button>
+      <button class="btn btn-ghost btn-sm" (click)="limparFiltroData()" [disabled]="carregando()">Limpar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRECO POR CATEGORIA -->
+<div class="card mb-14">
+  <div class="card-head">
+    <div>
+      <div class="card-title">🏷️ Preço por categoria (Meta)</div>
+      <div class="card-sub">Usado pra calcular o gasto estimado abaixo. A Meta não expõe isso por API — preencha com o valor real cobrado no seu país/tier.</div>
+    </div>
+  </div>
+  <div class="preco-grid">
+    <div class="preco-row" *ngFor="let p of precos()">
+      <span class="preco-label">{{ categoriaLabel(p.categoria) }}</span>
+      <span class="preco-moeda">{{ p.moeda }}</span>
+      <input type="number" min="0" step="0.01"
+             [ngModel]="precosEmEdicao()[p.categoria]"
+             (ngModelChange)="atualizarPrecoEmEdicao(p.categoria, $event)">
+      <button class="btn btn-ghost btn-xs" (click)="salvarPreco(p.categoria)" [disabled]="salvandoPreco() === p.categoria">
+        {{ salvandoPreco() === p.categoria ? '⏳' : '💾' }} Salvar
+      </button>
+    </div>
+    <div class="crud-empty" *ngIf="precos().length === 0">Sem categorias cadastradas ainda.</div>
+  </div>
+</div>
+
+<!-- GASTO POR CLIENTE/MES -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon violet">💸</div>
+    <div>
+      <div class="stat-label">Gasto estimado no período</div>
+      <div class="stat-value violet">{{ gastoTotalPeriodo() | currency:'BRL' }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-22">
+  <div class="card-head">
+    <div>
+      <div class="card-title">📅 Gasto por cliente / mês</div>
+      <div class="card-sub">Só conta disparo de template (Marketing/Utility/Authentication) — resposta livre dentro da janela de atendimento não é cobrada pela Meta</div>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th style="width: 90px;">Mês</th>
+          <th>Categorias</th>
+          <th style="width: 140px;">Gasto Estimado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let g of gastosAgrupados()">
+          <td>{{ g.nomeEmpresa }}</td>
+          <td class="mono">{{ mesLabel(g.mes, g.ano) }}</td>
+          <td>
+            <span class="badge badge-muted" *ngFor="let c of g.categorias" style="margin-right: 4px;">
+              {{ categoriaLabel(c.categoria) }}: {{ c.quantidade }}
+            </span>
+          </td>
+          <td class="mono">{{ g.gastoTotal | currency:'BRL' }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="crud-empty" *ngIf="!carregando() && gastosAgrupados().length === 0">
+      Nenhum disparo de template no período selecionado.
+    </div>
+  </div>
+</div>
+
+<!-- ENGAJAMENTO -->
+<div class="card mb-22">
+  <div class="card-head">
+    <div>
+      <div class="card-title">🎯 Engajamento por cliente</div>
+      <div class="card-sub">Quem recebeu, quem visualizou (✓✓ azul) e quem respondeu</div>
+    </div>
+  </div>
+  <div class="engajamento-list">
+    <div class="engajamento-row" *ngFor="let e of engajamento()">
+      <div class="engajamento-nome">{{ e.nomeEmpresa }}</div>
+      <div class="engajamento-badges">
+        <span class="badge badge-muted">📤 {{ e.enviados }} enviados</span>
+        <span class="badge badge-blue">👁️ {{ e.visualizaram }} visualizaram ({{ pct(e.visualizaram, e.enviados) }}%)</span>
+        <span class="badge badge-green">💬 {{ e.responderam }} responderam ({{ pct(e.responderam, e.enviados) }}%)</span>
+        <span class="badge badge-danger">🚫 {{ e.naoResponderam }} não responderam</span>
+      </div>
+      <div class="engajamento-bar">
+        <div class="engajamento-bar-fill responderam" [style.width.%]="pct(e.responderam, e.enviados)"></div>
+        <div class="engajamento-bar-fill visualizaram" [style.width.%]="pct(e.visualizaram - e.responderam, e.enviados)"></div>
+      </div>
+    </div>
+    <div class="crud-empty" *ngIf="!carregando() && engajamento().length === 0">
+      Nenhum disparo no período selecionado.
+    </div>
+  </div>
+</div>

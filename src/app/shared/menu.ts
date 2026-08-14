@@ -42,6 +42,10 @@ const MENU_RAW: MenuSection[] = [
         id: 'relatorio', label: 'Relatório de Mensagens', route: '/relatorio',
         icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>`,
       },
+      {
+        id: 'metricas', label: 'Financeiro & Engajamento', route: '/metricas',
+        icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`,
+      },
     ],
   },
   {
@@ -103,4 +107,5 @@ export const PAGE_TITLES: Record<string, string> = {
   templates: 'Templates',
   usuarios: 'Usuários',
   relatorio: 'Relatório de Mensagens',
+  metricas: 'Financeiro & Engajamento',
 };
