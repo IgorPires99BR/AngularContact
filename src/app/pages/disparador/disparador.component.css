@@ -171,7 +171,9 @@
   .disp-side { order: -1; }
 }
 @media (max-width: 640px) {
-  .btn-label-long { display: none; }
+  /* Terceira copia da regra que escondia o rotulo; sem ela o botao de disparar
+     ficava so com o "✅" e nada dizia quantos contatos iam receber. O texto e a
+     unica confirmacao antes de um envio pago e irreversivel. */
   .hide-md { display: inline; }
   .param-type { width: 100px; }
 }

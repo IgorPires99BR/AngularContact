@@ -147,7 +147,9 @@
 }
 .stat-value {
   font-family: 'Syne', sans-serif; font-weight: 800;
-  font-size: 1.65rem; line-height: 1; margin-top: 4px;
+  /* line-height 1.15 pelo mesmo motivo do .kpi-value: a Syne 800 estoura o em
+     e o numero aparecia cortado no topo. */
+  font-size: 1.65rem; line-height: 1.15; margin-top: 4px;
 }
 .stat-value.green  { color: var(--green); }
 .stat-value.warn   { color: var(--warn); }

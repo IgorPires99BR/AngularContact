@@ -325,7 +325,8 @@
 .stat-val {
   font-weight: 800;
   font-size: 1.8rem;
-  line-height: 1;
+  /* 1.15: com line-height 1 o topo dos digitos era cortado. */
+  line-height: 1.15;
   color: #fff;
   margin-bottom: 6px;
 }
@@ -724,9 +725,29 @@
     margin: 0;
   }
 
+  .lp-footer-links {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 10px 24px; margin-bottom: 16px;
+  }
+
+  .lp-footer-links a { font-size: .82rem; color: var(--lp-muted2); text-decoration: none; }
+  .lp-footer-links a:hover { color: var(--lp-text); text-decoration: underline; }
+  .lp-footer-links a:focus-visible { outline: 2px solid #4FA8FF; outline-offset: 3px; }
+
 /* ============================================================
    Responsivo
    ============================================================ */
+@media (max-width: 640px) {
+  /* Sao os links que levam as paginas exigidas pela Meta e pela LGPD: com 16px de
+     altura o dedo erra. inline-flex + min-height cresce a area sem afastar o texto. */
+  .lp-footer-links { gap: 4px 24px; }
+  .lp-footer-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+
 @media (max-width: 900px) {
   .lp-nav-links {
     display: none;

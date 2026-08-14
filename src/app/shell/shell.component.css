@@ -244,4 +244,20 @@
   .hide-sm { display: none !important; }
   .tb-crumb { display: none; }
   .sidebar { width: min(280px, 84vw); }
+
+  /* 9.6px (0.6rem) era ilegivel no celular, ainda mais em caixa alta com
+     letter-spacing. Sobe pro minimo que ainda se le de longe. */
+  .sb-group-label { font-size: 0.7rem; }
+  .sb-badge { font-size: 0.66rem; }
+
+  /* O item do menu e o alvo de toque principal do drawer: 44px de altura. */
+  .sb-item { padding: 12px 10px; min-height: 44px; }
+
+  /* Fechar o menu e sair vinham com 26px e 22px — dificeis de acertar com o dedo,
+     e errar o "Sair" derruba a sessao. A area cresce sem mexer no icone. */
+  .sb-close, .sb-exit {
+    min-width: 44px; min-height: 44px;
+    justify-content: center;
+  }
+  .sb-exit { display: flex; align-items: center; }
 }
