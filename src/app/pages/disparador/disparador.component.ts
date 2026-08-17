@@ -32,6 +32,15 @@ interface TemplateMeta extends Template {
   componentesParsed?: TemplateComponente[]; // Cache local pós-parse
 }
 
+// De onde sai o valor de cada variável da mensagem. "fixo" = o mesmo texto para todo mundo;
+// "nome"/"telefone" = o dado de cada contato, resolvido na hora do envio.
+type OrigemVariavel = 'fixo' | 'nome' | 'telefone';
+
+interface VariavelBody {
+  origem: OrigemVariavel;
+  valorFixo: string;
+}
+
 @Component({
   selector: 'app-disparador',
   standalone: true,
@@ -62,13 +71,19 @@ export class DisparadorComponent implements OnInit {
     instanciaId: '',
   });
 
-  params = signal<{ value: string }[]>([]);
+  variaveis = signal<VariavelBody[]>([]);
   buttonParams = signal<{ value: string }[]>([]);
   headerMediaUrl = signal('');
   temMediaHeader = signal(false);
   response = signal('');
   errosLote = signal<{ telefone: string; erro: string }[]>([]);
   explicacaoTemplate = signal('');
+
+  // Passo a passo: 1 escolher mensagem, 2 preencher o que muda, 3 escolher quem recebe,
+  // 4 conferir e enviar. Envio custa dinheiro e não tem desfazer -- o passo 4 existe pra
+  // ninguém disparar 500 mensagens de um clique sem ver o que vai sair.
+  passo = signal(1);
+  enviando = signal(false);
 
   // Computeds
   contatosFiltrados = computed(() => {
@@ -89,6 +104,8 @@ export class DisparadorComponent implements OnInit {
     return filtrados.every(c => c.checked);
   });
 
+  numeroEscolhido = computed(() => this.numerosAtivos().find(n => n.id === this.form().instanciaId) || null);
+
   // Captura o objeto de template atualmente ativo e realiza o Parse do JSON interno
   templateAtivo = computed(() => {
     const tplId = this.form().templateId;
@@ -101,27 +118,40 @@ export class DisparadorComponent implements OnInit {
     return tpl;
   });
 
+  personalizado = computed(() => this.variaveis().some(v => v.origem !== 'fixo'));
+
+  // Contatos que ficariam com uma variável vazia (sem nome cadastrado, por exemplo): a Meta
+  // recusaria só o envio deles, no meio do lote, com erro cru.
+  selecionadosIncompletos = computed(() => {
+    const vars = this.variaveis();
+    if (!vars.some(v => v.origem !== 'fixo')) return [];
+    return this.selecionados().filter(c => vars.some(v => !this.valorDaVariavel(v, c).trim()));
+  });
+
+  // Como a mensagem fica para um contato específico (o primeiro selecionado, se houver)
   templatePreview = computed(() => {
     const tpl = this.templateAtivo();
-    if (!tpl) return 'Selecione um template para visualizar o preview...';
+    if (!tpl) return 'Escolha um modelo de mensagem para ver como ela fica.';
 
-    let textoFormatado = '';
+    const exemplo = this.selecionados()[0] || null;
+    let texto = '';
 
     if (this.temMediaHeader()) {
-      const url = this.headerMediaUrl().trim() ? this.headerMediaUrl().trim() : 'https://www.theeagleview.com.br/2018/09/midia-em-clima-de-baixaria.html';
-      textoFormatado += `🖼️ [MÍDIA HEADER]: ${url}\n\n`;
+      const url = this.headerMediaUrl().trim();
+      texto += url ? `🖼️ [imagem/arquivo]: ${url}\n\n` : '🖼️ [imagem/arquivo do cabeçalho]\n\n';
     }
 
-    textoFormatado += tpl.conteudo;
+    texto += tpl.conteudo;
 
-    this.params().forEach((p, index) => {
-      const valorSubstitutos = p.value.trim() ? p.value : `[Parâmetro ${index + 1}]`;
-      const regex = new RegExp(`\\{\\{${index + 1}\\}\\}`, 'g');
-      textoFormatado = textoFormatado.replace(regex, valorSubstitutos);
+    this.variaveis().forEach((v, index) => {
+      const valor = this.valorDaVariavel(v, exemplo).trim() || `[campo ${index + 1}]`;
+      texto = texto.replace(new RegExp(`\\{\\{${index + 1}\\}\\}`, 'g'), valor);
     });
 
-    return textoFormatado;
+    return texto;
   });
+
+  contatoDaPrevia = computed(() => this.selecionados()[0] || null);
 
   // Instrução pro assistente de IA "explicar" o template selecionado -- não há campo
   // de texto livre nesta tela (só variáveis de um template já aprovado pela Meta), então
@@ -159,7 +189,7 @@ export class DisparadorComponent implements OnInit {
           const aprovados = (res as TemplateMeta[]).filter(t => t.status?.toUpperCase() === 'APPROVED');
           this.templates.set(aprovados);
         },
-        error: () => this.response.set('❌ Erro ao carregar templates.')
+        error: () => this.response.set('❌ Erro ao carregar modelos de mensagem.')
       });
   }
 
@@ -170,7 +200,7 @@ export class DisparadorComponent implements OnInit {
     this.http.get<NumeroMeta[]>(`${this.API_NUMERO}/ListarNumeros/${uid}`)
       .subscribe({
         next: (res) => this.numerosAtivos.set(res),
-        error: () => this.response.set('❌ Erro ao carregar canais/números.')
+        error: () => this.response.set('❌ Erro ao carregar os números conectados.')
       });
   }
 
@@ -180,7 +210,7 @@ export class DisparadorComponent implements OnInit {
     // Reseta os estados anteriores
     this.explicacaoTemplate.set('');
     this.headerMediaUrl.set('');
-    this.params.set([]);
+    this.variaveis.set([]);
     this.buttonParams.set([]);
     this.temMediaHeader.set(false);
 
@@ -189,7 +219,12 @@ export class DisparadorComponent implements OnInit {
     if (tpl && tpl.componentesParsed) {
       // 1. Captura variáveis dinâmicas do corpo
       const matches = tpl.conteudo.match(/\{\{\d+\}\}/g) || [];
-      this.params.set(matches.map(() => ({ value: '' })));
+      // {{1}} quase sempre é o nome do cliente: já sai marcado assim, que é o uso certo
+      // do disparo em massa (e o que a tela antiga não permitia fazer).
+      this.variaveis.set(matches.map((_, i) => ({
+        origem: i === 0 ? 'nome' : 'fixo',
+        valorFixo: ''
+      } as VariavelBody)));
 
       // 2. CORREÇÃO AQUI: Procura usando 'Tipo' e 'FormatMidia' em maiúsculo
       const headerComp = tpl.componentesParsed.find(c => c.Tipo === 0);
@@ -211,10 +246,10 @@ export class DisparadorComponent implements OnInit {
     this.form.set({ ...this.form(), [field]: value });
   }
 
-  updateParam(index: number, val: string) {
-    const p = [...this.params()];
-    p[index] = { value: val };
-    this.params.set(p);
+  updateVariavel(index: number, mudanca: Partial<VariavelBody>) {
+    const lista = [...this.variaveis()];
+    lista[index] = { ...lista[index], ...mudanca };
+    this.variaveis.set(lista);
   }
 
   updateButtonParam(index: number, val: string) {
@@ -241,53 +276,121 @@ export class DisparadorComponent implements OnInit {
     ));
   }
 
+  // --- Navegação do passo a passo ---
+
+  avancar() {
+    const erro = this.erroDoPasso();
+    if (erro) {
+      this.response.set(`❌ ${erro}`);
+      return;
+    }
+    this.response.set('');
+    this.passo.update(p => Math.min(4, p + 1));
+  }
+
+  voltar() {
+    this.response.set('');
+    this.passo.update(p => Math.max(1, p - 1));
+  }
+
+  irParaPasso(n: number) {
+    if (n > this.passo() && this.erroDoPasso()) {
+      this.response.set(`❌ ${this.erroDoPasso()}`);
+      return;
+    }
+    this.response.set('');
+    this.passo.set(n);
+  }
+
+  erroDoPasso(): string | null {
+    if (this.passo() === 1) {
+      if (!this.form().instanciaId) return 'Escolha de qual número a mensagem vai sair.';
+      if (!this.templateAtivo()) return 'Escolha o modelo de mensagem que será enviado.';
+    }
+
+    if (this.passo() === 2) {
+      const semValorFixo = this.variaveis().some(v => v.origem === 'fixo' && !v.valorFixo.trim());
+      if (semValorFixo) return 'Preencha o que entra em cada campo da mensagem.';
+      if (this.temMediaHeader() && !this.headerMediaUrl().trim()) {
+        return 'Cole o link da imagem ou arquivo que vai no topo da mensagem.';
+      }
+      if (this.buttonParams().some(bp => !bp.value.trim())) {
+        return 'Preencha o valor que completa o link do botão.';
+      }
+    }
+
+    if (this.passo() === 3 && this.selecionados().length === 0) {
+      return 'Marque pelo menos um contato para receber a mensagem.';
+    }
+
+    return null;
+  }
+
+  rotuloOrigem(origem: OrigemVariavel): string {
+    if (origem === 'nome') return 'nome do contato';
+    if (origem === 'telefone') return 'telefone do contato';
+    return 'valor fixo';
+  }
+
+  // Resolve o valor de uma variável para um contato. Sem contato (prévia sem seleção),
+  // devolve um exemplo visível em vez de vazio.
+  private valorDaVariavel(v: VariavelBody, contato: Contato | null): string {
+    if (v.origem === 'nome') return contato ? (contato.nome || '') : 'Maria';
+    if (v.origem === 'telefone') return contato ? contato.telefone : '5511999990000';
+    return v.valorFixo;
+  }
+
   disparar() {
-    if (!this.form().instanciaId) {
-      this.response.set('❌ Selecione um número ativo (Instância).');
-      return;
-    }
     const tpl = this.templateAtivo();
-
-    if (!tpl) {
-      this.response.set('❌ Selecione um template de mensagem válido.');
-      return;
-    }
-
-    if (this.temMediaHeader() && !this.headerMediaUrl().trim()) {
-      this.response.set('❌ Insira a URL da imagem/mídia para o cabeçalho deste template.');
-      return;
-    }
-
-    if (this.selecionados().length === 0) {
-      this.response.set('❌ Selecione ao menos um contato na tabela.');
-      return;
-    }
-
     const empId = this.empresaId();
-    if (!empId) {
-      this.response.set('❌ Erro: Identificador da empresa não encontrado na sessão.');
+
+    if (!tpl || !empId) {
+      this.response.set('❌ Recarregue a página e tente de novo: faltou o modelo ou a sessão da empresa.');
       return;
     }
 
-    const urlMidia = this.temMediaHeader() ? this.headerMediaUrl().trim() : null;
-    const corpoParams = this.params().map(p => p.value.trim());
-    const botaoParams = this.buttonParams().map(bp => bp.value.trim());
+    // Repete as checagens dos passos anteriores: dá pra chegar aqui e voltar pra mexer.
+    for (const p of [1, 2, 3]) {
+      const anterior = this.passo();
+      this.passo.set(p);
+      const erro = this.erroDoPasso();
+      this.passo.set(anterior);
+      if (erro) {
+        this.response.set(`❌ ${erro}`);
+        return;
+      }
+    }
+
+    const alvos = this.selecionados();
+    const vars = this.variaveis();
+
+    // Valores globais (todos "fixo") e, quando há personalização, o mapa por telefone.
+    const parametrosBody = vars.map(v => (v.origem === 'fixo' ? v.valorFixo.trim() : ''));
+    const parametrosBodyPorTelefone: Record<string, string[]> = {};
+
+    if (this.personalizado()) {
+      for (const contato of alvos) {
+        parametrosBodyPorTelefone[contato.telefone] = vars.map(v => this.valorDaVariavel(v, contato).trim());
+      }
+    }
 
     const payload = {
       idEmpresa: empId,
       empresaId: empId,
-      telefones: this.selecionados().map(c => c.telefone),
-      contatosIds: this.selecionados().map(c => c.id), // ✅ INSERIDO EM PARALELO À LISTA DE TELEFONES
+      telefones: alvos.map(c => c.telefone),
+      contatosIds: alvos.map(c => c.id),
       nomeTemplate: tpl.nomeTemplate,
       idioma: tpl.idioma || 'pt_BR',
       templateId: tpl.id,
-      parametroHeaderMediaUrl: urlMidia,
-      parametrosBody: corpoParams,
-      parametrosButton: botaoParams,
+      parametroHeaderMediaUrl: this.temMediaHeader() ? this.headerMediaUrl().trim() : null,
+      parametrosBody,
+      parametrosBodyPorTelefone,
+      parametrosButton: this.buttonParams().map(bp => bp.value.trim()),
       contatoId: '00000000-0000-0000-0000-000000000000'
     };
 
-    this.response.set('⏳ Iniciando envio em lote...');
+    this.enviando.set(true);
+    this.response.set(`⏳ Enviando para ${alvos.length} contato(s)...`);
     this.errosLote.set([]);
 
     this.http.post<any>(`${this.API_DISPARO}/EnviarMensagemTemplateLote`, payload).subscribe({
@@ -300,25 +403,28 @@ export class DisparadorComponent implements OnInit {
         const total = telefones.length;
         const sucesso = telefones.filter(t => relatorioDisparos[t]).length;
 
+        this.enviando.set(false);
         this.errosLote.set(Object.entries(relatorioErros).map(([telefone, erro]) => ({ telefone, erro })));
 
         if (total === 0) {
-          this.response.set('⚠ O disparo terminou, mas a API não retornou nenhum resultado por telefone.');
+          this.response.set('⚠ O envio terminou, mas o servidor não informou o resultado de nenhum contato.');
         } else if (sucesso === total) {
-          this.response.set(`✅ Disparo concluído! Sucesso: ${sucesso} de ${total}.`);
+          this.response.set(`✅ Enviado para ${sucesso} contato(s). Acompanhe as respostas em Chats.`);
         } else {
-          this.response.set(`⚠ Disparo concluído com falhas. Sucesso: ${sucesso} de ${total} — veja os erros abaixo.`);
+          this.response.set(`⚠ Enviado para ${sucesso} de ${total}. Os que falharam estão listados abaixo.`);
         }
 
-        this.params.set([]);
+        this.variaveis.set([]);
         this.buttonParams.set([]);
         this.headerMediaUrl.set('');
         this.temMediaHeader.set(false);
         this.updateForm('templateId', '');
         this.contatos.update(list => list.map(c => ({ ...c, checked: false })));
+        this.passo.set(1);
       },
       error: (err) => {
-        this.response.set(`❌ Falha: ${extrairMensagemErro(err, 'Erro ao processar lote na API')}`);
+        this.enviando.set(false);
+        this.response.set(`❌ Falha: ${extrairMensagemErro(err, 'Erro ao enviar as mensagens.')}`);
       }
     });
   }

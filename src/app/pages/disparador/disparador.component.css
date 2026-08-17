@@ -177,3 +177,131 @@
   .hide-md { display: inline; }
   .param-type { width: 100px; }
 }
+
+/* ============================================================
+   PASSO A PASSO DO ENVIO
+   Envio custa dinheiro e nao tem desfazer: a tela separa escolher,
+   preencher, selecionar e confirmar, em vez de um botao unico.
+   ============================================================ */
+.disp-steps {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.disp-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.disp-step:disabled { opacity: .45; cursor: not-allowed; }
+.disp-step:not(:disabled):hover { border-color: var(--border2); color: var(--text); }
+.disp-step.ativo { border-color: var(--blue3); color: var(--text); background: var(--blue-light); }
+.disp-step.feito { color: var(--green); border-color: var(--green); }
+
+.disp-step-num {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 700;
+  background: rgba(255, 255, 255, .07);
+}
+
+.disp-step.ativo .disp-step-num { background: var(--blue3); color: #fff; }
+.disp-step.feito .disp-step-num { background: var(--green-light); color: var(--green); }
+
+.disp-titulo { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+
+.disp-ajuda {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+
+.disp-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.45;
+  margin-top: 6px;
+}
+
+.disp-acoes {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+/* origem de cada campo: dado do contato ou texto fixo */
+.disp-origem { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+
+.disp-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.disp-chip:hover { border-color: var(--blue3); color: var(--text); }
+.disp-chip.ativo { border-color: var(--blue3); background: var(--blue-light); color: var(--text); }
+
+.disp-vazio {
+  font-size: 12.5px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.disp-alerta {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--warn);
+  background: var(--warn-light);
+  border: 1px solid var(--warn);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 14px;
+}
+
+.disp-resumo {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.disp-resumo > div { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; }
+.disp-resumo span { color: var(--muted); }
+.disp-resumo b { color: var(--text); text-align: right; }
+
+.disp-tabela { max-height: 340px; overflow-y: auto; }
+
+.disp-bolha {
+  background: rgba(255, 255, 255, .03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  min-height: 140px;
+  white-space: pre-wrap;
+  font-size: .95rem;
+  line-height: 1.5;
+}

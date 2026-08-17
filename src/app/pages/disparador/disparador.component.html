@@ -1,82 +1,210 @@
 <div class="ph">
   <div>
-    <h1 class="ph-title">🚀 Disparador de Mensagens</h1>
-    <div class="ph-sub">Configure o seu template e selecione os contatos em lote</div>
+    <h1 class="ph-title">Enviar mensagem para vários contatos</h1>
+    <div class="ph-sub">Quatro passos. Você confere tudo antes de qualquer mensagem sair.</div>
   </div>
+</div>
+
+<div class="disp-steps">
+  <button type="button" class="disp-step" [class.ativo]="passo() === 1" [class.feito]="passo() > 1" (click)="irParaPasso(1)">
+    <span class="disp-step-num">{{ passo() > 1 ? '✓' : '1' }}</span>
+    <span>Qual mensagem</span>
+  </button>
+  <button type="button" class="disp-step" [class.ativo]="passo() === 2" [class.feito]="passo() > 2" [disabled]="passo() < 2" (click)="irParaPasso(2)">
+    <span class="disp-step-num">{{ passo() > 2 ? '✓' : '2' }}</span>
+    <span>O que muda em cada uma</span>
+  </button>
+  <button type="button" class="disp-step" [class.ativo]="passo() === 3" [class.feito]="passo() > 3" [disabled]="passo() < 3" (click)="irParaPasso(3)">
+    <span class="disp-step-num">{{ passo() > 3 ? '✓' : '3' }}</span>
+    <span>Quem recebe</span>
+  </button>
+  <button type="button" class="disp-step" [class.ativo]="passo() === 4" [disabled]="passo() < 4" (click)="irParaPasso(4)">
+    <span class="disp-step-num">4</span>
+    <span>Conferir e enviar</span>
+  </button>
 </div>
 
 <div class="g2">
   <div class="card">
-    <div class="card-head">
-      <div>
-        <div class="card-title">⚙️ 1. Configurar Mensagem</div>
-      </div>
-    </div>
-
     <div class="card-body">
-      <div class="fg">
-        <label>Número que vai enviar</label>
-        <select [ngModel]="form().instanciaId" (ngModelChange)="updateForm('instanciaId', $event)">
-          <option value="">Escolha um número conectado</option>
-          <option *ngFor="let n of numerosAtivos()" [value]="n.id">
-            {{ n.descricao }} ({{ n.telefone }})
-          </option>
-        </select>
-      </div>
 
-      <div class="fg">
-        <label>Modelo de mensagem</label>
-        <select [ngModel]="form().templateId" (ngModelChange)="onTemplateChange($event)">
-          <option value="">Escolha um modelo aprovado</option>
-          <option *ngFor="let t of templates()" [value]="t.id">
-            {{ t.nomeTemplate }} ({{ t.idioma }})
-          </option>
-        </select>
-      </div>
-
-      <div *ngIf="temMediaHeader()" class="fg" style="margin-top: 16px;">
-        <div class="card-title" style="font-size: 0.95rem; margin-bottom: 12px;">🖼️ Mídia do Cabeçalho (Header)</div>
-        <label>URL do Arquivo (Imagem, Vídeo ou Documento)</label>
-        <input type="text"
-               [ngModel]="headerMediaUrl()"
-               (ngModelChange)="headerMediaUrl.set($event)"
-               placeholder="https://exemplo.com/arquivo.jpg" />
-      </div>
-
-      <div *ngIf="params().length > 0" style="margin-top: 16px;">
-        <div class="card-title" style="font-size: 0.95rem; margin-bottom: 12px;">✨ Variáveis do Corpo (Body)</div>
-        <div *ngFor="let p of params(); let i = index; trackBy: trackByIndex" class="fg">
-          <label>Parâmetro {{ '{{' }}{{ i + 1 }}{{ '}}' }}</label>
-          <input type="text"
-                 [ngModel]="p.value"
-                 (ngModelChange)="updateParam(i, $event)"
-                 placeholder="Digite o valor da variável" />
+      <!-- PASSO 1 -->
+      <ng-container *ngIf="passo() === 1">
+        <div class="disp-titulo">De onde sai e o que vai ser enviado</div>
+        <div class="disp-ajuda">
+          Só dá para enviar mensagem em massa usando um modelo já aprovado pela Meta. Se o que você
+          precisa não está na lista, crie em <b>Templates</b> e espere a aprovação.
         </div>
-      </div>
 
-      <div *ngIf="buttonParams().length > 0" style="margin-top: 16px;">
-        <div class="card-title" style="font-size: 0.95rem; margin-bottom: 12px;">🔗 Variáveis dos Botões (Ações/Links)</div>
-        <div *ngFor="let bp of buttonParams(); let i = index; trackBy: trackByIndex" class="fg">
-          <label>Parâmetro do Botão {{ '{{' }}{{ i + 1 }}{{ '}}' }}</label>
-          <input type="text"
-                 [ngModel]="bp.value"
-                 (ngModelChange)="updateButtonParam(i, $event)"
-                 placeholder="Ex: sufixo-do-link ou cupom" />
+        <div class="fg">
+          <label>Número que vai enviar</label>
+          <select [ngModel]="form().instanciaId" (ngModelChange)="updateForm('instanciaId', $event)">
+            <option value="">Escolha um número conectado</option>
+            <option *ngFor="let n of numerosAtivos()" [value]="n.id">
+              {{ n.descricao }} ({{ n.telefone }})
+            </option>
+          </select>
+          <div class="disp-hint" *ngIf="numerosAtivos().length === 0">
+            Nenhum número conectado ainda. Conecte um em <b>Números</b> antes de enviar.
+          </div>
         </div>
-      </div>
 
-      <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 16px;">
-        <button class="btn btn-primary" (click)="disparar()" [disabled]="selecionados().length === 0">
-          ✅ <span class="btn-label-long">Disparar em Lote para {{ selecionados().length }} contato(s)</span>
-        </button>
-      </div>
+        <div class="fg">
+          <label>Modelo de mensagem</label>
+          <select [ngModel]="form().templateId" (ngModelChange)="onTemplateChange($event)">
+            <option value="">Escolha um modelo aprovado</option>
+            <option *ngFor="let t of templates()" [value]="t.id">
+              {{ t.nomeTemplate }} ({{ t.idioma }})
+            </option>
+          </select>
+          <div class="disp-hint" *ngIf="templates().length === 0">
+            Você ainda não tem modelo aprovado. Crie um em <b>Templates</b> — a Meta costuma responder em até 24h.
+          </div>
+        </div>
+
+        <div class="disp-acoes">
+          <span></span>
+          <button class="btn btn-primary" (click)="avancar()">Continuar →</button>
+        </div>
+      </ng-container>
+
+      <!-- PASSO 2 -->
+      <ng-container *ngIf="passo() === 2">
+        <div class="disp-titulo">O que entra em cada campo</div>
+        <div class="disp-ajuda">
+          Cada campo pode ser <b>o mesmo texto para todo mundo</b> ou <b>o dado de cada contato</b> —
+          assim cada pessoa recebe a mensagem com o nome dela, não com o nome de outra.
+        </div>
+
+        <div class="disp-vazio" *ngIf="variaveis().length === 0 && !temMediaHeader() && buttonParams().length === 0">
+          ✅ Este modelo não tem nenhum campo variável. Pode seguir para escolher quem recebe.
+        </div>
+
+        <div class="fg" *ngFor="let v of variaveis(); let i = index; trackBy: trackByIndex">
+          <label>Campo {{ i + 1 }} da mensagem</label>
+          <div class="disp-origem">
+            <button type="button" class="disp-chip" [class.ativo]="v.origem === 'nome'" (click)="updateVariavel(i, { origem: 'nome' })">Nome do contato</button>
+            <button type="button" class="disp-chip" [class.ativo]="v.origem === 'telefone'" (click)="updateVariavel(i, { origem: 'telefone' })">Telefone do contato</button>
+            <button type="button" class="disp-chip" [class.ativo]="v.origem === 'fixo'" (click)="updateVariavel(i, { origem: 'fixo' })">Escrever um texto</button>
+          </div>
+          <input type="text" *ngIf="v.origem === 'fixo'"
+                 placeholder="Ex: 20% de desconto"
+                 [ngModel]="v.valorFixo"
+                 (ngModelChange)="updateVariavel(i, { valorFixo: $event })" />
+          <div class="disp-hint" *ngIf="v.origem !== 'fixo'">
+            Cada contato recebe o {{ rotuloOrigem(v.origem) }} dele, preenchido no momento do envio.
+          </div>
+        </div>
+
+        <div class="fg" *ngIf="temMediaHeader()">
+          <label>Imagem ou arquivo do topo da mensagem</label>
+          <input type="text" [ngModel]="headerMediaUrl()" (ngModelChange)="headerMediaUrl.set($event)"
+                 placeholder="https://sualoja.com.br/imagem.jpg" />
+          <div class="disp-hint">Este modelo tem mídia no cabeçalho: cole o link público do arquivo que vai junto.</div>
+        </div>
+
+        <div class="fg" *ngFor="let bp of buttonParams(); let i = index; trackBy: trackByIndex">
+          <label>Complemento do link do botão</label>
+          <input type="text" [ngModel]="bp.value" (ngModelChange)="updateButtonParam(i, $event)"
+                 placeholder="Ex: promo-de-julho ou o código do pedido" />
+          <div class="disp-hint">Vai no fim do endereço do botão, no lugar da parte variável.</div>
+        </div>
+
+        <div class="disp-acoes">
+          <button class="btn btn-ghost btn-sm" (click)="voltar()">← Voltar</button>
+          <button class="btn btn-primary" (click)="avancar()">Continuar →</button>
+        </div>
+      </ng-container>
+
+      <!-- PASSO 3 -->
+      <ng-container *ngIf="passo() === 3">
+        <div class="disp-titulo">Quem vai receber</div>
+        <div class="disp-ajuda">
+          Marcados: <b>{{ selecionados().length }}</b> de {{ contatosFiltrados().length }} contatos listados.
+        </div>
+
+        <div class="crud-search-bar">
+          <span class="crud-search-icon">🔍</span>
+          <input class="crud-search-input" placeholder="Buscar por nome, telefone ou e-mail..."
+                 [ngModel]="search()" (ngModelChange)="search.set($event)" />
+        </div>
+
+        <div class="tbl-wrap disp-tabela">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width: 50px; text-align: center;">
+                  <input type="checkbox" [checked]="isAllSelected()" (change)="selAll()" />
+                </th>
+                <th>Nome</th>
+                <th>Telefone</th>
+                <th>E-mail</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of contatosFiltrados()">
+                <td style="text-align: center;">
+                  <input type="checkbox" [checked]="c.checked" (change)="toggleContato(c)" />
+                </td>
+                <td><strong>{{ c.nome || 'Sem nome' }}</strong></td>
+                <td class="mono">{{ c.telefone }}</td>
+                <td>{{ c.email || '-' }}</td>
+              </tr>
+              <tr *ngIf="contatosFiltrados().length === 0">
+                <td colspan="4" class="crud-empty" style="text-align: center; padding: 20px;">
+                  Nenhum contato encontrado.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="disp-alerta" *ngIf="selecionadosIncompletos().length > 0">
+          ⚠️ {{ selecionadosIncompletos().length }} contato(s) marcados não têm o dado que a mensagem usa
+          (nome, por exemplo). Eles receberiam a mensagem com um espaço vazio — desmarque, complete o
+          cadastro em Contatos, ou troque o campo para um texto fixo.
+        </div>
+
+        <div class="disp-acoes">
+          <button class="btn btn-ghost btn-sm" (click)="voltar()">← Voltar</button>
+          <button class="btn btn-primary" (click)="avancar()">Continuar →</button>
+        </div>
+      </ng-container>
+
+      <!-- PASSO 4 -->
+      <ng-container *ngIf="passo() === 4">
+        <div class="disp-titulo">Confira antes de enviar</div>
+        <div class="disp-ajuda">
+          Ao confirmar, as mensagens saem na hora e <b>não há como cancelar</b>. Cada mensagem enviada
+          é cobrada pela Meta na sua conta.
+        </div>
+
+        <div class="disp-resumo">
+          <div><span>Vai sair do número</span><b>{{ numeroEscolhido()?.descricao }} ({{ numeroEscolhido()?.telefone }})</b></div>
+          <div><span>Modelo</span><b>{{ templateAtivo()?.nomeTemplate }}</b></div>
+          <div><span>Quantidade</span><b>{{ selecionados().length }} contato(s)</b></div>
+          <div><span>Personalização</span><b>{{ personalizado() ? 'Cada contato recebe os dados dele' : 'Mesmo texto para todos' }}</b></div>
+        </div>
+
+        <div class="disp-alerta" *ngIf="selecionadosIncompletos().length > 0">
+          ⚠️ {{ selecionadosIncompletos().length }} contato(s) sem o dado usado na mensagem. Volte ao
+          passo anterior para ajustar, ou eles receberão a mensagem com um espaço em branco.
+        </div>
+
+        <div class="disp-acoes">
+          <button class="btn btn-ghost btn-sm" (click)="voltar()" [disabled]="enviando()">← Voltar e ajustar</button>
+          <button class="btn btn-primary" (click)="disparar()" [disabled]="enviando() || selecionados().length === 0">
+            {{ enviando() ? '⏳ Enviando...' : '🚀 Enviar para ' + selecionados().length + ' contato(s)' }}
+          </button>
+        </div>
+      </ng-container>
 
       <div class="payload-display" *ngIf="response()" style="margin-top: 14px">
         {{ response() }}
       </div>
 
       <div class="disparo-erros" *ngIf="errosLote().length > 0">
-        <div class="disparo-erros-titulo">❌ {{ errosLote().length }} contato(s) com falha no disparo</div>
+        <div class="disparo-erros-titulo">❌ {{ errosLote().length }} contato(s) não receberam</div>
         <div class="disparo-erro-item" *ngFor="let e of errosLote()">
           <span class="mono">{{ e.telefone }}</span>
           <span class="disparo-erro-msg">{{ e.erro }}</span>
@@ -85,79 +213,30 @@
     </div>
   </div>
 
+  <!-- Prévia -->
   <div class="card">
     <div class="card-head">
       <div>
-        <div class="card-title">👁️ Preview da Mensagem</div>
+        <div class="card-title">Como o cliente vê</div>
+        <div class="card-sub" *ngIf="contatoDaPrevia()">Exemplo com {{ contatoDaPrevia()!.nome || contatoDaPrevia()!.telefone }}</div>
+        <div class="card-sub" *ngIf="!contatoDaPrevia()">Escolha os contatos para ver com dados reais</div>
       </div>
       <app-assistente-ia-botao
         *ngIf="templateAtivo()"
-        label="✨ O que esse template faz?"
+        label="✨ O que essa mensagem diz?"
         [instrucao]="instrucaoExplicarTemplate()"
         [quantidade]="1"
         (escolhido)="explicacaoTemplate.set($event)">
       </app-assistente-ia-botao>
     </div>
-    <div class="card-body" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
-      <div style="background-color: rgba(255,255,255,0.03); padding: 16px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); min-height: 140px; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5;">
-        {{ templatePreview() }}
-      </div>
+    <div class="card-body">
+      <div class="disp-bolha">{{ templatePreview() }}</div>
       <div class="ia-explicacao" *ngIf="explicacaoTemplate()">
         🤖 {{ explicacaoTemplate() }}
       </div>
-      <div class="card-sub" style="margin-top: 12px; font-style: italic;">
-        * Variáveis dinâmicas serão processadas no ato do envio.
+      <div class="disp-hint" style="margin-top: 12px;" *ngIf="personalizado()">
+        Cada contato recebe esta mensagem com os dados dele.
       </div>
     </div>
-  </div>
-</div>
-
-<div class="card mb-14" style="margin-top: 16px">
-  <div class="card-head" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-    <div>
-      <div class="card-title">📋 2. Selecionar Destinatários</div>
-      <div class="card-sub">Selecionados: {{ selecionados().length }} de {{ contatosFiltrados().length }} listados</div>
-    </div>
-
-    <div class="fg" style="margin-bottom: 0; min-width: 240px;">
-      <input type="text"
-             placeholder="🔍 Buscar contato..."
-             [ngModel]="search()"
-             (ngModelChange)="search.set($event)" />
-    </div>
-  </div>
-
-  <div class="tbl-wrap">
-    <table class="tbl">
-      <thead>
-        <tr>
-          <th style="width: 50px; text-align: center;">
-            <input type="checkbox"
-                   [checked]="isAllSelected()"
-                   (change)="selAll()" />
-          </th>
-          <th>Nome</th>
-          <th>Telefone</th>
-          <th>E-mail</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let c of contatosFiltrados()">
-          <td style="text-align: center;">
-            <input type="checkbox"
-                   [checked]="c.checked"
-                   (change)="toggleContato(c)" />
-          </td>
-          <td><strong>{{ c.nome || 'Sem nome' }}</strong></td>
-          <td class="mono">{{ c.telefone }}</td>
-          <td>{{ c.email || '-' }}</td>
-        </tr>
-        <tr *ngIf="contatosFiltrados().length === 0">
-          <td colspan="4" class="crud-empty" style="text-align: center; padding: 20px;">
-            Nenhum contato encontrado.
-          </td>
-        </tr>
-      </tbody>
-    </table>
   </div>
 </div>
