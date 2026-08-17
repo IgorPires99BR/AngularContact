@@ -12,6 +12,8 @@ interface Plan {
   features: string[];
   highlighted?: boolean;
   ctaLabel: string;
+  // Link de checkout na Cakto. Ausente = plano sob consulta, que continua indo pro contato.
+  checkoutUrl?: string;
 }
 
 interface Feature {
@@ -85,6 +87,7 @@ export class LandingComponent {
         'Suporte por e-mail',
       ],
       ctaLabel: 'Começar agora',
+      checkoutUrl: 'https://pay.cakto.com.br/pw7sssc_1045806',
     },
     {
       name: 'Pro',
@@ -101,6 +104,7 @@ export class LandingComponent {
       ],
       highlighted: true,
       ctaLabel: 'Assinar Pro',
+      checkoutUrl: 'https://pay.cakto.com.br/qftc9dx',
     },
     {
       name: 'Enterprise',

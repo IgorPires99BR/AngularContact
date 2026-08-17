@@ -68,6 +68,10 @@ const MENU_RAW: MenuSection[] = [
         icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
       },
       {
+        id: 'cobrancas', label: 'Cobranças', route: '/cobrancas',
+        icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
+      },
+      {
         id: 'templates', label: 'Templates', route: '/templates',
         icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
       }
@@ -108,4 +112,5 @@ export const PAGE_TITLES: Record<string, string> = {
   usuarios: 'Usuários',
   relatorio: 'Relatório de Mensagens',
   metricas: 'Financeiro & Engajamento',
+  cobrancas: 'Cobranças',
 };

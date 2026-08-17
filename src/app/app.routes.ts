@@ -24,6 +24,7 @@ import { TemplatesComponent } from './pages/templates/templates'; // <--- IMPORT
 import { TemplatesMapaComponent } from './pages/templates-mapa/templates-mapa';
 import { FlowsMapaComponent } from './pages/flows-mapa/flows-mapa';
 import { RelatorioMensagensComponent } from './pages/relatorio-mensagens/relatorio-mensagens.component';
+import { CobrancasComponent } from './pages/cobrancas/cobrancas.component';
 import { RelatorioFinanceiroComponent } from './pages/relatorio-financeiro/relatorio-financeiro.component';
 
 export const routes: Routes = [
@@ -61,6 +62,7 @@ export const routes: Routes = [
       { path: 'templates', component: TemplatesComponent }, // <--- INSERIDO DENTRO DO SHELL PROTEGIDO
       { path: 'templates/mapa', component: TemplatesMapaComponent },
       { path: 'relatorio', component: RelatorioMensagensComponent },
+      { path: 'cobrancas', component: CobrancasComponent, canActivate: [adminGuard] },
       { path: 'metricas', component: RelatorioFinanceiroComponent, canActivate: [adminGuard] },
     ],
   },

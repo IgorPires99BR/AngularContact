@@ -1,0 +1,115 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">Cobranças</h1>
+    <div class="ph-sub">Assinaturas ativas, pagamentos pendentes e receita — atualizado pela Cakto a cada evento</div>
+  </div>
+  <button class="btn btn-ghost btn-sm" (click)="buscar()" [disabled]="carregando()">
+    {{ carregando() ? '⏳ Carregando...' : '🔁 Atualizar' }}
+  </button>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon green">✅</div>
+    <div>
+      <div class="stat-label">Assinaturas ativas</div>
+      <div class="stat-value green">{{ totalAtivas() }}</div>
+      <div class="cob-hint">Clientes com a conta liberada</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon blue">💰</div>
+    <div>
+      <div class="stat-label">Receita recorrente</div>
+      <div class="stat-value blue">{{ receita() | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+      <div class="cob-hint">Soma das assinaturas ativas, por mês</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon warn">⚠️</div>
+    <div>
+      <div class="stat-label">Pagamento pendente</div>
+      <div class="stat-value warn">{{ inadimplentes() }}</div>
+      <div class="cob-hint">Cobrança falhou; a Cakto tenta de novo</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon danger">🚫</div>
+    <div>
+      <div class="stat-label">Encerradas</div>
+      <div class="stat-value danger">{{ encerradas() }}</div>
+      <div class="cob-hint">Canceladas ou reembolsadas</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="card-title">Assinantes</div>
+      <div class="card-sub">{{ assinaturas().length }} no total</div>
+    </div>
+  </div>
+
+  <div class="crud-search-bar">
+    <span class="crud-search-icon">🔍</span>
+    <input class="crud-search-input" placeholder="Buscar por empresa, e-mail, plano ou situação..."
+           [ngModel]="busca()" (ngModelChange)="busca.set($event)">
+    <span class="crud-search-count" *ngIf="busca()">{{ filtradas().length }} de {{ assinaturas().length }}</span>
+  </div>
+
+  <div class="payload-display" *ngIf="erro()" style="margin: 0 18px 14px;">❌ {{ erro() }}</div>
+
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Plano</th>
+          <th>Situação</th>
+          <th>Valor</th>
+          <th>Próxima cobrança</th>
+          <th>Cliente desde</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let a of filtradas()">
+          <td>
+            <strong>{{ a.nomeEmpresa }}</strong>
+            <div class="cob-email">{{ a.emailComprador }}</div>
+          </td>
+          <td>{{ rotuloPlano(a.plano) }}</td>
+          <td>
+            <span class="badge" [ngClass]="classeStatus(a.status)" [title]="ajudaStatus(a.status)">
+              {{ rotuloStatus(a.status) }}
+            </span>
+          </td>
+          <td>{{ a.valor ? (a.valor | currency:'BRL':'symbol':'1.2-2':'pt-BR') : '—' }}</td>
+          <td>{{ a.dataProximaCobranca ? (a.dataProximaCobranca | date:'dd/MM/yyyy') : '—' }}</td>
+          <td>{{ a.dataInicio | date:'dd/MM/yyyy' }}</td>
+        </tr>
+
+        <tr *ngIf="!carregando() && !erro() && assinaturas().length === 0">
+          <td colspan="6" class="crud-empty" style="text-align: center; padding: 28px;">
+            Nenhuma assinatura ainda. Assim que a primeira venda entrar pela Cakto, o cliente aparece aqui —
+            a conta dele é criada sozinha.
+          </td>
+        </tr>
+        <!-- Falha de carga nao pode virar "nenhuma assinatura": daria a entender que nao houve venda. -->
+        <tr *ngIf="!carregando() && erro()">
+          <td colspan="6" class="crud-empty" style="text-align: center; padding: 28px;">
+            Não foi possível carregar as assinaturas — o que aparece acima pode estar desatualizado.
+          </td>
+        </tr>
+        <tr *ngIf="!carregando() && assinaturas().length > 0 && filtradas().length === 0">
+          <td colspan="6" class="crud-empty" style="text-align: center; padding: 24px;">
+            Nenhum assinante encontrado para "{{ busca() }}".
+          </td>
+        </tr>
+        <tr *ngIf="carregando()">
+          <td colspan="6" class="crud-empty" style="text-align: center; padding: 24px;">Carregando...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
