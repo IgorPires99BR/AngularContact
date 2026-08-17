@@ -126,6 +126,20 @@ export class LandingComponent {
   // Fatos verificaveis do produto no lugar de depoimentos inventados: os tres anteriores
   // eram assinados por pessoas que nao existem, o que derruba a credibilidade da pagina
   // (e e exatamente o tipo de coisa que a analise da Meta olha).
+  // O checkout roda no dominio da Cakto, onde nosso pixel nao alcanca. Marcar o clique aqui
+  // e o que permite a Meta ligar "quem clicou em assinar" ao anuncio -- a compra em si e
+  // reportada pelo servidor, quando o webhook confirma o pagamento.
+  registrarCliqueCheckout(plan: Plan): void {
+    const fbq = (window as any).fbq;
+    if (typeof fbq !== 'function') return;
+
+    fbq('track', 'InitiateCheckout', {
+      content_name: plan.name,
+      value: Number((plan.price || '').replace(/[^\d]/g, '')) || undefined,
+      currency: 'BRL',
+    });
+  }
+
   readonly diferenciais: Diferencial[] = [
     {
       titulo: 'Seu número, sua conta na Meta',

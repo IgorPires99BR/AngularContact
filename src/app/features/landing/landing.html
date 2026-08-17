@@ -109,6 +109,7 @@
         <!-- Plano com preco fechado vai direto pro checkout da Cakto: e o pagamento que cria a
              conta do cliente. O Enterprise, sob consulta, continua caindo no contato. -->
         <a *ngIf="plan.checkoutUrl" [href]="plan.checkoutUrl" rel="noopener"
+           (click)="registrarCliqueCheckout(plan)"
            class="btn lp-plan-cta" [class.btn-primary]="plan.highlighted" [class.btn-outline]="!plan.highlighted">
           {{ plan.ctaLabel }}
         </a>
