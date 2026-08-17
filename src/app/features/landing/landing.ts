@@ -20,10 +20,9 @@ interface Feature {
   description: string;
 }
 
-interface Testimonial {
-  quote: string;
-  author: string;
-  role: string;
+interface Diferencial {
+  titulo: string;
+  descricao: string;
 }
 
 interface FaqItem {
@@ -114,27 +113,27 @@ export class LandingComponent {
         'Volume de mensagens sob demanda',
         'Automações e integrações sob medida',
         'Gerente de conta dedicado',
-        'SLA de disponibilidade 99.9%',
+        'SLA de disponibilidade em contrato',
       ],
       ctaLabel: 'Falar com vendas',
     },
   ];
 
-  readonly testimonials: Testimonial[] = [
+  // Fatos verificaveis do produto no lugar de depoimentos inventados: os tres anteriores
+  // eram assinados por pessoas que nao existem, o que derruba a credibilidade da pagina
+  // (e e exatamente o tipo de coisa que a analise da Meta olha).
+  readonly diferenciais: Diferencial[] = [
     {
-      quote: 'Reduzimos o tempo de resposta em mais de 70% depois que centralizamos os atendimentos na plataforma.',
-      author: 'Marina Souza',
-      role: 'Head de CS, loja de e-commerce',
+      titulo: 'Seu número, sua conta na Meta',
+      descricao: 'A conexão é feita na sua própria WhatsApp Business Account — o número e o histórico continuam seus.',
     },
     {
-      quote: 'A automação de disparo em massa triplicou nossa taxa de recompra sem aumentar o time.',
-      author: 'Rafael Andrade',
-      role: 'Sócio, agência de marketing',
+      titulo: 'Você paga a mensagem direto à Meta',
+      descricao: 'Sem intermediação nem markup por conversa: aqui você paga só a assinatura da plataforma.',
     },
     {
-      quote: 'A integração com a Meta foi simples e o dashboard nos dá visibilidade real do funil.',
-      author: 'Camila Ferreira',
-      role: 'Gerente de Operações',
+      titulo: 'Atendimento humano e automático no mesmo lugar',
+      descricao: 'O robô conduz a conversa e o vendedor assume quando quiser, sem perder o histórico.',
     },
   ];
 

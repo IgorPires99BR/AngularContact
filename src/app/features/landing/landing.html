@@ -41,18 +41,20 @@
         <a href="#planos" class="btn btn-outline btn-lg">Ver planos e preços</a>
       </div>
 
+      <!-- Selos do que a plataforma e, nao metricas: os numeros que ficavam aqui
+           (99,9% de uptime, +24M mensagens/mes, +70% de reducao) nunca foram medidos. -->
       <div class="lp-hero-stats">
         <div class="stat-item">
-          <div class="stat-val">99.9%</div>
-          <div class="stat-label">Uptime da API</div>
+          <div class="stat-val">API Oficial</div>
+          <div class="stat-label">WhatsApp Business, direto da Meta</div>
         </div>
         <div class="stat-item">
-          <div class="stat-val">+24M</div>
-          <div class="stat-label">Mensagens/mês processadas</div>
+          <div class="stat-val">Sem markup</div>
+          <div class="stat-label">Você paga a mensagem direto à Meta</div>
         </div>
         <div class="stat-item">
-          <div class="stat-val">+70%</div>
-          <div class="stat-label">Redução no tempo de resposta</div>
+          <div class="stat-val">Tudo num painel</div>
+          <div class="stat-label">Chat, automação, campanhas e relatórios</div>
         </div>
       </div>
     </div>
@@ -114,20 +116,16 @@
   <!-- TESTIMONIALS -->
   <section class="lp-section">
     <div class="lp-section-head">
-      <span class="lp-eyebrow">DEPOIMENTOS</span>
-      <h2>Times reais, resultados reais</h2>
+      <span class="lp-eyebrow">POR QUE A API OFICIAL</span>
+      <h2>O que muda com a Contact Solution</h2>
     </div>
 
+    <!-- Antes havia depoimentos assinados por pessoas que nao existem. Enquanto nao houver
+         cliente real disposto a assinar um, esta secao fala do produto, nao de terceiros. -->
     <div class="lp-testimonials-grid">
-      <div class="lp-testimonial-card" *ngFor="let t of testimonials">
-        <p class="lp-quote">“{{ t.quote }}”</p>
-        <div class="lp-author">
-          <div class="lp-author-avatar">{{ t.author.charAt(0) }}</div>
-          <div>
-            <div class="lp-author-name">{{ t.author }}</div>
-            <div class="lp-author-role">{{ t.role }}</div>
-          </div>
-        </div>
+      <div class="lp-testimonial-card" *ngFor="let d of diferenciais">
+        <p class="lp-quote">{{ d.titulo }}</p>
+        <div class="lp-author-role">{{ d.descricao }}</div>
       </div>
     </div>
   </section>
