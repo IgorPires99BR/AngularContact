@@ -256,14 +256,17 @@ a {
 }
 
 .kpi-value {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
+  /* Numero de painel vai na fonte de texto, nao na Syne: no peso 800 o zero da Syne
+     vira um oval quase sem contorno interno e "0" ficava ilegivel de relance -- num
+     cartao de metrica o valor precisa ser lido antes do rotulo, nao depois.
+     A Syne continua nos titulos, que e onde ela da personalidade. */
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   font-size: clamp(1.5rem, 3vw, 1.95rem);
   color: var(--text);
-  /* 1.15, e nao 1: os glifos da Syne 800 sao mais altos que o em, entao com
-     line-height 1 o numero era cortado uns 3px em cima (o "1" virava um bloco
-     e o "0" perdia a curva). Acontecia no desktop tambem, nao so no celular. */
   line-height: 1.15;
+  letter-spacing: -.01em;
   margin-bottom: 10px;
 }
 

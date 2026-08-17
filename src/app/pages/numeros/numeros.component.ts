@@ -329,8 +329,24 @@ export class NumerosComponent implements OnInit, OnDestroy {
     this.form.set({ telefone: '', nomeVerificado: '', codigoPais: '55' });
   }
 
+  // Status vazio nao e "conectado": e "a Meta ainda nao respondeu sobre este numero".
+  // Fingir CONNECTED aqui foi o que fez a tela mostrar 0 ativos e a lista dizer CONNECTED
+  // na mesma pagina.
+  rotuloStatus(status?: string): string {
+    if (!status) return 'NÃO SINCRONIZADO';
+    return status.toUpperCase();
+  }
+
+  ajudaStatus(status?: string): string {
+    const s = (status || '').toUpperCase();
+    if (s === 'CONNECTED' || s === 'APPROVED' || s === 'LIVE') return 'Número pronto para enviar mensagens.';
+    if (s === 'PENDING') return 'A Meta ainda está verificando este número.';
+    if (s === 'DISCONNECTED' || s === 'FLAGGED' || s === 'BLOCKED') return 'Número com restrição na Meta — verifique no Business Manager.';
+    return 'Clique em "Sincronizar Meta" para trazer a situação atual deste número.';
+  }
+
   badgeClass(status?: string) {
-    if (!status) return 'badge-green';
+    if (!status) return 'badge-muted';
     const s = status.toUpperCase();
     if (s === 'CONNECTED' || s === 'APPROVED' || s === 'LIVE') return 'badge-green';
     if (s === 'PENDING') return 'badge-warn';

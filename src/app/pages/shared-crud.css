@@ -146,9 +146,10 @@
   text-transform: uppercase; letter-spacing: .08em;
 }
 .stat-value {
-  font-family: 'Syne', sans-serif; font-weight: 800;
-  /* line-height 1.15 pelo mesmo motivo do .kpi-value: a Syne 800 estoura o em
-     e o numero aparecia cortado no topo. */
+  /* Mesma troca do .kpi-value: fonte de texto no lugar da Syne, porque o zero dela
+     no peso 800 nao tem contorno interno legivel em tamanho de cartao. */
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;
+  font-variant-numeric: tabular-nums; letter-spacing: -.01em;
   font-size: 1.65rem; line-height: 1.15; margin-top: 4px;
 }
 .stat-value.green  { color: var(--green); }
