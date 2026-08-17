@@ -123,6 +123,12 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.tratarMensagemEmTempoReal(mensagemRecebida);
     });
 
+    // Mensagem que a PLATAFORMA enviou (resposta do bot, disparo, boas-vindas). Sem escutar
+    // isso, a resposta do flow só aparecia depois de recarregar a página.
+    this.hubConnection.on('ReceberMensagemEnviada', (evt: any) => {
+      this.tratarMensagemEnviadaEmTempoReal(evt);
+    });
+
     this.hubConnection.on('AtualizaStatusEntrega', (evt: any) => {
       this.tratarStatusEntregaEmTempoReal(evt);
     });
@@ -160,7 +166,15 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.shouldScrollToBottom = true;
     }
 
-    // 2. Atualiza a lista lateral com a última mensagem e contador
+    // 2. Conversa de contato que ainda nao esta na lista (todo lead novo, por exemplo):
+    // recarrega do servidor, senao ela so aparecia ao trocar de aba e voltar -- era o caso
+    // de quem chega por anuncio.
+    if (contatoIdMsg && !this.chats().some(c => c.contatoId === contatoIdMsg)) {
+      this.carregarConversas();
+      return;
+    }
+
+    // 3. Atualiza a lista lateral com a última mensagem e contador
     this.chats.update(lista =>
       lista.map(c => {
         if (c.contatoId === contatoIdMsg) {
@@ -176,6 +190,35 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
       })
     );
     this.chatNotification.setFromChats(this.chats());
+  }
+
+  // Bolha do nosso lado: entra no chat aberto e atualiza a previa na lista lateral.
+  private tratarMensagemEnviadaEmTempoReal(evt: any) {
+    const contatoIdMsg = evt?.contatoId || evt?.ContatoId;
+    const conteudo = evt?.conteudo || evt?.Conteudo;
+    if (!contatoIdMsg || !conteudo) return;
+
+    const agora = new Date();
+    const hora = `${agora.getHours()}:${String(agora.getMinutes()).padStart(2, '0')}`;
+
+    if (this.selectedId() === contatoIdMsg) {
+      this.activeMessages.update(msgs => [
+        ...msgs,
+        { from: 'bot', text: conteudo, time: hora, wamid: evt?.wamid || evt?.Wamid }
+      ]);
+      this.shouldScrollToBottom = true;
+    }
+
+    if (!this.chats().some(c => c.contatoId === contatoIdMsg)) {
+      this.carregarConversas();
+      return;
+    }
+
+    this.chats.update(lista => lista.map(c =>
+      c.contatoId === contatoIdMsg
+        ? { ...c, ultimaMensagem: conteudo, dataUltimaMensagem: agora.toISOString() }
+        : c
+    ));
   }
 
   private scrollToBottom(): void {
