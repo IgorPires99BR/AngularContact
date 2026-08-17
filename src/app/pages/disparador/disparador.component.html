@@ -15,9 +15,9 @@
 
     <div class="card-body">
       <div class="fg">
-        <label>Canal de Disparo (Número Conectado)</label>
+        <label>Número que vai enviar</label>
         <select [ngModel]="form().instanciaId" (ngModelChange)="updateForm('instanciaId', $event)">
-          <option value="">-- Selecione uma Instância Ativa --</option>
+          <option value="">Escolha um número conectado</option>
           <option *ngFor="let n of numerosAtivos()" [value]="n.id">
             {{ n.descricao }} ({{ n.telefone }})
           </option>
@@ -25,9 +25,9 @@
       </div>
 
       <div class="fg">
-        <label>Template (Meta)</label>
+        <label>Modelo de mensagem</label>
         <select [ngModel]="form().templateId" (ngModelChange)="onTemplateChange($event)">
-          <option value="">-- Selecione um Template --</option>
+          <option value="">Escolha um modelo aprovado</option>
           <option *ngFor="let t of templates()" [value]="t.id">
             {{ t.nomeTemplate }} ({{ t.idioma }})
           </option>
