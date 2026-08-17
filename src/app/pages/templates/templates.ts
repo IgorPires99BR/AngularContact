@@ -21,6 +21,15 @@ import {
   CODIGOS_IDIOMAS_MAIS_USADOS,
   STATUS_EDITAVEIS,
   TIPO_BOTAO_POR_INDICE,
+  OBJETIVOS_TEMPLATE,
+  ObjetivoTemplate,
+  ObjetivoInfo,
+  MODELOS_PRONTOS,
+  ModeloPronto,
+  gerarNomeTecnico,
+  explicarStatus,
+  motivoNaoEditavel,
+  StatusExplicado,
 } from './template.models';
 
 @Component({
@@ -51,6 +60,8 @@ export class TemplatesComponent implements OnInit {
   idiomasMaisUsados = IDIOMAS_META.filter(i => CODIGOS_IDIOMAS_MAIS_USADOS.includes(i.codigo));
   idiomasOutros = IDIOMAS_META.filter(i => !CODIGOS_IDIOMAS_MAIS_USADOS.includes(i.codigo));
 
+  objetivos = OBJETIVOS_TEMPLATE;
+
   form = signal({
     nomeTemplate: '',
     categoria: 'UTILITY',
@@ -67,10 +78,33 @@ export class TemplatesComponent implements OnInit {
   response = signal('');
   templates = signal<Template[]>([]);
   sincronizando = signal(false);
+  salvando = signal(false);
   search = signal('');
+
+  // --- Assistente em 3 passos (objetivo -> escrever -> revisar) ---
+  // A tela antiga jogava o formulário inteiro de uma vez, com o vocabulário da Meta
+  // (HSM, categoria, BODY). Quem nunca criou template errava a categoria e tomava rejeição.
+  passo = signal(1);
+  objetivo = signal<ObjetivoTemplate | null>(null);
+  nomeAmigavel = signal('');
+  mostrarAvancado = signal(false);
+  modeloAplicado = signal<string | null>(null);
 
   // Template em edição (null = formulário está em modo criação)
   modoEdicao = signal<Template | null>(null);
+
+  objetivoInfo = computed<ObjetivoInfo | null>(
+    () => this.objetivos.find(o => o.id === this.objetivo()) ?? null
+  );
+
+  modelosDoObjetivo = computed<ModeloPronto[]>(() => {
+    const obj = this.objetivo();
+    return obj ? MODELOS_PRONTOS.filter(m => m.objetivo === obj) : [];
+  });
+
+  nomeTecnico = computed(() => gerarNomeTecnico(this.nomeAmigavel()));
+
+  variaveis = computed(() => (this.form().conteudo.match(/\{\{\d+\}\}/g) || []).length);
 
   templatesFiltrados = computed(() => {
     const termo = this.search().toLowerCase().trim();
@@ -99,12 +133,144 @@ export class TemplatesComponent implements OnInit {
     });
   });
 
+  // Cada item vira uma linha da revisão final: o usuário vê o que falta antes de gastar
+  // uma submissão à Meta (template reprovado fica no histórico da conta).
+  conferencia = computed(() => {
+    const f = this.form();
+    const header = this.headerState();
+    const exemplos = this.exemplosBody();
+    const itens: { ok: boolean; texto: string }[] = [
+      { ok: !!this.objetivo(), texto: 'Objetivo escolhido (define a categoria enviada à Meta)' },
+      { ok: !!this.nomeTecnico() || !!this.modoEdicao(), texto: 'Nome do modelo preenchido' },
+      { ok: f.conteudo.trim().length >= 10, texto: 'Mensagem escrita' },
+      { ok: exemplos.length === 0 || exemplos.every(e => e.value.trim()), texto: 'Exemplo preenchido para cada campo que muda' },
+    ];
+    if (header.tipo === 'TEXT') {
+      itens.push({ ok: !!header.texto.trim(), texto: 'Texto do cabeçalho preenchido' });
+    }
+    if (header.tipo === 'IMAGE' || header.tipo === 'VIDEO' || header.tipo === 'DOCUMENT') {
+      itens.push({ ok: !!header.exemploHandle, texto: 'Arquivo de exemplo do cabeçalho enviado' });
+    }
+    for (const b of this.botoes()) {
+      if (b.tipo === 'COPY_CODE') {
+        itens.push({ ok: !!b.codigoExemplo?.trim(), texto: 'Código de exemplo do botão de cupom' });
+      } else {
+        itens.push({ ok: !!b.texto?.trim(), texto: `Texto do botão "${b.texto || 'sem nome'}"` });
+      }
+      if (b.tipo === 'URL') {
+        itens.push({ ok: !!b.url && /^https?:\/\/.+\..+/.test(b.url), texto: 'Link completo do botão (começando com https://)' });
+      }
+      if (b.tipo === 'PHONE_NUMBER') {
+        itens.push({ ok: !!b.numeroTelefone?.trim(), texto: 'Número de telefone do botão' });
+      }
+    }
+    return itens;
+  });
+
+  tudoConferido = computed(() => this.conferencia().every(i => i.ok));
+
   ngOnInit() {
     this.buscar();
   }
 
   update(field: string, value: any) {
     this.form.set({ ...this.form(), [field]: value });
+  }
+
+  // --- Navegação do assistente ---
+
+  escolherObjetivo(obj: ObjetivoTemplate) {
+    this.objetivo.set(obj);
+    const info = this.objetivos.find(o => o.id === obj);
+    if (info) this.update('categoria', info.categoria);
+    this.response.set('');
+    this.passo.set(2);
+  }
+
+  aplicarModelo(m: ModeloPronto) {
+    this.nomeAmigavel.set(m.nomeSugerido);
+    this.update('conteudo', m.conteudo);
+    this.exemplosBody.set(m.exemplos.map(value => ({ value })));
+    this.footerTexto.set(m.footer || '');
+    this.botoes.set((m.botoes || []).map(b => ({ ...b })));
+    this.headerState.set(headerStateVazio());
+    this.modeloAplicado.set(m.id);
+    this.passo.set(3);
+  }
+
+  comecarDoZero() {
+    this.nomeAmigavel.set('');
+    this.update('conteudo', '');
+    this.exemplosBody.set([]);
+    this.footerTexto.set('');
+    this.botoes.set([]);
+    this.headerState.set(headerStateVazio());
+    this.modeloAplicado.set(null);
+    this.passo.set(3);
+  }
+
+  irParaPasso(n: number) {
+    // Só deixa pular pra frente se o passo atual já estiver válido -- voltar é sempre livre.
+    if (n > this.passo() && this.erroDoPasso()) {
+      this.response.set(`❌ ${this.erroDoPasso()}`);
+      return;
+    }
+    this.response.set('');
+    this.passo.set(n);
+  }
+
+  avancar() {
+    const erro = this.erroDoPasso();
+    if (erro) {
+      this.response.set(`❌ ${erro}`);
+      return;
+    }
+    this.response.set('');
+    this.passo.update(p => Math.min(4, p + 1));
+  }
+
+  voltar() {
+    this.response.set('');
+    this.passo.update(p => Math.max(1, p - 1));
+  }
+
+  // Valida só o que pertence ao passo atual, pra mensagem de erro apontar o campo da vez
+  erroDoPasso(): string | null {
+    const f = this.form();
+
+    if (this.passo() === 1 && !this.objetivo()) {
+      return 'Escolha o que você quer enviar para continuar.';
+    }
+
+    if (this.passo() === 3) {
+      if (!this.modoEdicao() && !this.nomeTecnico()) {
+        return 'Dê um nome ao modelo (ex: Aviso de entrega).';
+      }
+      if (f.conteudo.trim().length < 10) {
+        return 'Escreva a mensagem que o cliente vai receber.';
+      }
+      const exemplos = this.exemplosBody();
+      if (exemplos.length > 0 && exemplos.some(e => !e.value.trim())) {
+        return 'Preencha um exemplo para cada campo que muda ({{1}}, {{2}}...).';
+      }
+      const header = this.headerState();
+      if (header.tipo === 'TEXT' && !header.texto.trim()) {
+        return 'Informe o texto do cabeçalho ou remova o cabeçalho.';
+      }
+      if ((header.tipo === 'IMAGE' || header.tipo === 'VIDEO' || header.tipo === 'DOCUMENT') && !header.exemploHandle) {
+        return 'Envie o arquivo de exemplo do cabeçalho antes de continuar.';
+      }
+      const botaoUrlInvalido = this.botoes().some(b => b.tipo === 'URL' && !/^https?:\/\/.+\..+/.test(b.url || ''));
+      if (botaoUrlInvalido) {
+        return 'Complete o endereço do botão de link (ex: https://sualoja.com.br/pedido).';
+      }
+      const botaoSemTexto = this.botoes().some(b => b.tipo !== 'COPY_CODE' && !b.texto?.trim());
+      if (botaoSemTexto) {
+        return 'Dê um texto a cada botão (o cliente vê esse texto no WhatsApp).';
+      }
+    }
+
+    return null;
   }
 
   buscar() {
@@ -122,26 +288,23 @@ export class TemplatesComponent implements OnInit {
     const empId = this.empresaId();
     const editando = this.modoEdicao();
 
-    if (!f.nomeTemplate || !f.conteudo || !empId) {
-      this.response.set('❌ Preencha os campos obrigatórios (Nome e Conteúdo).');
+    if (!empId) {
+      this.response.set('❌ Sessão sem empresa vinculada. Entre novamente para continuar.');
+      return;
+    }
+
+    // A revisão final repete as checagens dos passos anteriores: dá pra chegar aqui e
+    // depois voltar e apagar um campo.
+    this.passo.set(3);
+    const erro = this.erroDoPasso();
+    this.passo.set(4);
+    if (erro) {
+      this.response.set(`❌ ${erro}`);
       return;
     }
 
     const header = this.headerState();
-    if (header.tipo === 'TEXT' && !header.texto.trim()) {
-      this.response.set('❌ Informe o texto do cabeçalho.');
-      return;
-    }
-    if ((header.tipo === 'IMAGE' || header.tipo === 'VIDEO' || header.tipo === 'DOCUMENT') && !header.exemploHandle) {
-      this.response.set('❌ Envie o arquivo de exemplo do cabeçalho antes de cadastrar o template.');
-      return;
-    }
-
     const exemplos = this.exemplosBody().map(e => e.value.trim());
-    if (exemplos.length > 0 && exemplos.some(e => !e)) {
-      this.response.set('❌ Preencha um valor de exemplo para cada variável {{n}} do corpo.');
-      return;
-    }
 
     const botoesPayload = this.botoes().map(b => ({
       tipo: b.tipo,
@@ -162,40 +325,43 @@ export class TemplatesComponent implements OnInit {
       exemplosBody: exemplos.length > 0 ? exemplos : null
     };
 
+    this.salvando.set(true);
+
     if (editando) {
-      this.response.set('⏳ Salvando alterações na Meta...');
+      this.response.set('⏳ Salvando alterações e reenviando para a Meta...');
       this.templateService.atualizar(editando.id, componentesPayload).subscribe({
         next: () => {
-          this.response.set('✅ Template atualizado e reenviado para análise da Meta!');
+          this.response.set('✅ Alterações enviadas! A Meta vai analisar de novo — acompanhe o status na lista ao lado.');
+          this.salvando.set(false);
           this.cancelarEdicao();
           this.buscar();
         },
         error: (err) => {
+          this.salvando.set(false);
           this.response.set(`❌ Erro: ${extrairMensagemErro(err, 'Não foi possível salvar as alterações.')}`);
         }
       });
       return;
     }
 
-    // Força o nome a seguir o padrão estrito de snake_case exigido pela Meta
-    const nomeTratado = f.nomeTemplate.trim().toLowerCase().replace(/\s+/g, '_');
-
     const payload = {
       idEmpresa: empId,
-      nomeTemplate: nomeTratado,
+      nomeTemplate: this.nomeTecnico(),
       idioma: f.idioma,
       ...componentesPayload
     };
 
-    this.response.set('⏳ Registrando template no ecossistema da Meta...');
+    this.response.set('⏳ Enviando seu modelo para a Meta...');
 
     this.templateService.incluir(payload).subscribe({
       next: () => {
-        this.response.set('✅ Template enviado com sucesso para análise da Meta e salvo localmente!');
+        this.response.set('✅ Modelo enviado! A Meta costuma responder em até 24h — o status aparece na lista ao lado.');
+        this.salvando.set(false);
         this.limparForm();
         this.buscar();
       },
       error: (err) => {
+        this.salvando.set(false);
         this.response.set(`❌ Erro: ${extrairMensagemErro(err, 'Não foi possível salvar.')}`);
       }
     });
@@ -206,16 +372,16 @@ export class TemplatesComponent implements OnInit {
     if (!empId) return;
 
     this.sincronizando.set(true);
-    this.response.set('⏳ Buscando atualizações e sincronizando com o WABA...');
+    this.response.set('⏳ Buscando a situação mais recente dos seus modelos na Meta...');
 
     this.templateService.sincronizarComMeta(empId).subscribe({
       next: () => {
-        this.response.set('✅ Painel de templates atualizado com a Meta!');
+        this.response.set('✅ Lista atualizada com o que está na Meta.');
         this.sincronizando.set(false);
         this.buscar();
       },
       error: (err) => {
-        this.response.set(`❌ Falha ao sincronizar: ${extrairMensagemErro(err, 'Falha ao processar sincronização via PUT.')}`);
+        this.response.set(`❌ Falha ao atualizar: ${extrairMensagemErro(err, 'Falha ao processar sincronização via PUT.')}`);
         this.sincronizando.set(false);
       }
     });
@@ -223,6 +389,14 @@ export class TemplatesComponent implements OnInit {
 
   podeEditar(t: Template): boolean {
     return STATUS_EDITAVEIS.includes((t.status || '').toUpperCase());
+  }
+
+  motivoNaoEditavel(t: Template): string {
+    return motivoNaoEditavel(t.status);
+  }
+
+  statusInfo(t: Template): StatusExplicado {
+    return explicarStatus(t.status);
   }
 
   iniciarEdicao(t: Template) {
@@ -239,6 +413,9 @@ export class TemplatesComponent implements OnInit {
       idioma: t.idioma,
       conteudo: t.conteudo
     });
+
+    this.nomeAmigavel.set(t.nomeTemplate);
+    this.objetivo.set(this.objetivos.find(o => o.categoria === (t.categoria || '').toUpperCase())?.id ?? null);
 
     if (headerComp) {
       const tipoPorFormat: HeaderState['tipo'][] = ['NONE', 'TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'];
@@ -266,7 +443,10 @@ export class TemplatesComponent implements OnInit {
     this.exemplosBody.set(Array.from({ length: quantidadeVariaveis }, () => ({ value: '' })));
 
     this.modoEdicao.set(t);
+    this.mostrarAvancado.set(true);
+    this.passo.set(3);
     this.response.set('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   cancelarEdicao() {
@@ -275,13 +455,13 @@ export class TemplatesComponent implements OnInit {
   }
 
   excluir(id: string) {
-    if (!confirm('Tem certeza que deseja excluir este template? Isso remove o template da Meta (todas as variantes de idioma desse nome) e do cadastro local.')) {
+    if (!confirm('Tem certeza que deseja excluir este modelo? Ele sai da Meta (todas as versões de idioma com esse nome) e do seu cadastro. Disparos e flows que usam esse modelo param de funcionar.')) {
       return;
     }
 
     this.templateService.excluir(id).subscribe({
       next: () => {
-        this.response.set('✅ Template excluído.');
+        this.response.set('✅ Modelo excluído.');
         this.templates.update(list => list.filter(t => t.id !== id));
       },
       error: (err) => {
@@ -301,14 +481,15 @@ export class TemplatesComponent implements OnInit {
     this.headerState.set(headerStateVazio());
     this.footerTexto.set('');
     this.exemplosBody.set([]);
+    this.nomeAmigavel.set('');
+    this.objetivo.set(null);
+    this.modeloAplicado.set(null);
+    this.mostrarAvancado.set(false);
+    this.passo.set(1);
   }
 
   badgeClass(status?: string) {
-    if (!status) return 'badge-warn';
-    const s = status.toUpperCase();
-    if (s === 'APPROVED' || s === 'APPROVED_META') return 'badge-green';
-    if (s === 'PENDING') return 'badge-warn';
-    return 'badge-danger'; // REJECTED
+    return explicarStatus(status).classe;
   }
 
   // Extrai os botões salvos (ComponentesJson) de um template da lista, pra exibir no preview

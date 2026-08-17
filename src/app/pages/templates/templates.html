@@ -1,93 +1,224 @@
 <div class="ph">
   <div>
-    <h1 class="ph-title">Modelos de Mensagem (Templates)</h1>
-    <div class="ph-sub">Crie e gerencie os modelos de mensagens HSM aprovados pela Meta</div>
+    <h1 class="ph-title">Modelos de Mensagem</h1>
+    <div class="ph-sub">Mensagens prontas que a Meta precisa aprovar antes de você enviar para seus clientes</div>
   </div>
   <a class="btn btn-ghost btn-sm" routerLink="/templates/mapa">🧠 Mapa Mental 3D</a>
 </div>
 
 <div class="stats-grid">
   <div class="stat-card">
-    <div class="stat-label">Aprovados</div>
-    <div class="stat-value green">{{ aprovados() }}</div>
+    <div class="stat-icon green">✅</div>
+    <div class="tpl-stat-body">
+      <div class="stat-label">Prontos para enviar</div>
+      <div class="stat-value green">{{ aprovados() }}</div>
+      <div class="tpl-stat-hint">Aprovados pela Meta</div>
+    </div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">Em Análise</div>
-    <div class="stat-value warn">{{ pendentes() }}</div>
+    <div class="stat-icon warn">⏳</div>
+    <div class="tpl-stat-body">
+      <div class="stat-label">Esperando a Meta</div>
+      <div class="stat-value warn">{{ pendentes() }}</div>
+      <div class="tpl-stat-hint">Costuma sair em até 24h</div>
+    </div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">Rejeitados</div>
-    <div class="stat-value danger">{{ rejeitados() }}</div>
+    <div class="stat-icon danger">🚫</div>
+    <div class="tpl-stat-body">
+      <div class="stat-label">Recusados</div>
+      <div class="stat-value danger">{{ rejeitados() }}</div>
+      <div class="tpl-stat-hint">Dá para editar e reenviar</div>
+    </div>
   </div>
 </div>
 
-<div class="g2">
+<div class="tpl-layout">
+  <!-- ===================== Assistente de criação ===================== -->
   <div class="card">
     <div class="card-head">
-      <div class="card-title">{{ modoEdicao() ? '✏️ Editando Template: ' + modoEdicao()!.nomeTemplate : '📝 Novo Template HSM' }}</div>
+      <div>
+        <div class="card-title">{{ modoEdicao() ? '✏️ Editando: ' + modoEdicao()!.nomeTemplate : '✨ Criar um modelo de mensagem' }}</div>
+        <div class="card-sub" *ngIf="!modoEdicao()">Três passos. Nenhum termo técnico necessário.</div>
+        <div class="card-sub" *ngIf="modoEdicao()">Ao salvar, a Meta analisa o modelo de novo.</div>
+      </div>
       <button class="btn btn-ghost btn-sm" *ngIf="modoEdicao()" (click)="cancelarEdicao()">Cancelar edição</button>
     </div>
+
+    <!-- Trilha de passos -->
+    <div class="tpl-steps" *ngIf="!modoEdicao()">
+      <button type="button" class="tpl-step" [class.ativo]="passo() === 1" [class.feito]="passo() > 1" (click)="irParaPasso(1)">
+        <span class="tpl-step-num">{{ passo() > 1 ? '✓' : '1' }}</span>
+        <span class="tpl-step-txt">O que você quer enviar</span>
+      </button>
+      <button type="button" class="tpl-step" [class.ativo]="passo() === 2" [class.feito]="passo() > 2" [disabled]="!objetivo()" (click)="irParaPasso(2)">
+        <span class="tpl-step-num">{{ passo() > 2 ? '✓' : '2' }}</span>
+        <span class="tpl-step-txt">Escolher um exemplo</span>
+      </button>
+      <button type="button" class="tpl-step" [class.ativo]="passo() === 3" [class.feito]="passo() > 3" [disabled]="passo() < 3" (click)="irParaPasso(3)">
+        <span class="tpl-step-num">{{ passo() > 3 ? '✓' : '3' }}</span>
+        <span class="tpl-step-txt">Escrever a mensagem</span>
+      </button>
+      <button type="button" class="tpl-step" [class.ativo]="passo() === 4" [disabled]="passo() < 4" (click)="irParaPasso(4)">
+        <span class="tpl-step-num">4</span>
+        <span class="tpl-step-txt">Conferir e enviar</span>
+      </button>
+    </div>
+
     <div class="card-body">
       <div class="tpl-editor">
-        <!-- Formulário -->
         <div class="tpl-form">
-          <div class="fg">
-            <label>Nome do Template (Minúsculas sem espaço)</label>
-            <input type="text" placeholder="Ex: atualizacao_pedido_cliente" [ngModel]="form().nomeTemplate" (ngModelChange)="update('nomeTemplate', $event)" [disabled]="!!modoEdicao()">
-            <div class="tpl-header-upload-hint" *ngIf="modoEdicao()">O nome e o idioma não podem ser alterados numa edição — crie um novo template pra isso.</div>
-          </div>
 
-          <div class="fg-row">
-            <div class="fg">
-              <label>Categoria Meta</label>
-              <select [ngModel]="form().categoria" (ngModelChange)="update('categoria', $event)">
-                <option value="UTILITY">📦 Utilidade — avisos e atualizações de pedido</option>
-                <option value="MARKETING">📣 Marketing — promoções e ofertas</option>
-                <option value="AUTHENTICATION">🔐 Autenticação — código de verificação (OTP)</option>
-              </select>
-              <div class="tpl-header-upload-hint">A categoria errada é a causa mais comum de rejeição de template pela Meta — escolha a que melhor descreve a intenção real da mensagem.</div>
+          <!-- PASSO 1: objetivo -->
+          <ng-container *ngIf="passo() === 1 && !modoEdicao()">
+            <div class="tpl-passo-titulo">O que você quer mandar para o cliente?</div>
+            <div class="tpl-passo-ajuda">
+              A Meta separa as mensagens por finalidade e recusa quem escolhe errado. Responda aqui e a gente
+              preenche isso por você.
             </div>
-            <div class="fg">
-              <label>Idioma</label>
-              <select [ngModel]="form().idioma" (ngModelChange)="update('idioma', $event)" [disabled]="!!modoEdicao()">
-                <optgroup label="Mais usados">
-                  <option *ngFor="let idioma of idiomasMaisUsados" [value]="idioma.codigo">{{ idioma.rotulo }}</option>
-                </optgroup>
-                <optgroup label="Outros idiomas">
-                  <option *ngFor="let idioma of idiomasOutros" [value]="idioma.codigo">{{ idioma.rotulo }}</option>
-                </optgroup>
-              </select>
+
+            <div class="tpl-objetivos">
+              <button type="button" class="tpl-objetivo" *ngFor="let o of objetivos"
+                      [class.selecionado]="objetivo() === o.id" (click)="escolherObjetivo(o.id)">
+                <span class="tpl-objetivo-emoji">{{ o.emoji }}</span>
+                <span class="tpl-objetivo-titulo">{{ o.titulo }}</span>
+                <span class="tpl-objetivo-desc">{{ o.descricao }}</span>
+                <span class="tpl-objetivo-ex">{{ o.exemplo }}</span>
+              </button>
             </div>
-          </div>
+          </ng-container>
 
-          <app-template-header-editor
-            [value]="headerState()"
-            (valueChange)="headerState.set($event)"
-            [empresaId]="empresaIdAtual()"
-            (uploadingChange)="uploadingHeader.set($event)">
-          </app-template-header-editor>
+          <!-- PASSO 2: modelos prontos -->
+          <ng-container *ngIf="passo() === 2 && !modoEdicao()">
+            <div class="tpl-passo-titulo">Comece de um exemplo pronto</div>
+            <div class="tpl-passo-ajuda">
+              Todos já vêm com os campos que mudam a cada envio (nome do cliente, número do pedido...).
+              Você edita o texto no próximo passo.
+            </div>
 
-          <app-template-body-editor
-            [conteudo]="form().conteudo"
-            (conteudoChange)="update('conteudo', $event)"
-            [exemplos]="exemplosBody()"
-            (exemplosChange)="exemplosBody.set($event)"
-            [categoria]="form().categoria">
-          </app-template-body-editor>
+            <div class="tpl-modelos">
+              <button type="button" class="tpl-modelo" *ngFor="let m of modelosDoObjetivo()" (click)="aplicarModelo(m)">
+                <span class="tpl-modelo-titulo">{{ m.titulo }}</span>
+                <span class="tpl-modelo-texto">{{ m.conteudo }}</span>
+                <span class="tpl-modelo-tags">
+                  <span class="badge badge-muted">{{ m.exemplos.length }} campos que mudam</span>
+                  <span class="badge badge-muted" *ngIf="m.botoes?.length">{{ m.botoes!.length }} botão(ões)</span>
+                </span>
+              </button>
+            </div>
 
-          <app-template-footer-editor
-            [texto]="footerTexto()"
-            (textoChange)="footerTexto.set($event)">
-          </app-template-footer-editor>
+            <div class="tpl-passo-acoes">
+              <button class="btn btn-ghost btn-sm" (click)="voltar()">← Voltar</button>
+              <button class="btn btn-ghost btn-sm" (click)="comecarDoZero()">Prefiro escrever do zero →</button>
+            </div>
+          </ng-container>
 
-          <app-template-botoes-editor
-            [botoes]="botoes()"
-            (botoesChange)="botoes.set($event)">
-          </app-template-botoes-editor>
+          <!-- PASSO 3: escrever -->
+          <ng-container *ngIf="passo() === 3">
+            <div class="tpl-passo-titulo" *ngIf="!modoEdicao()">Escreva a mensagem</div>
+            <div class="tpl-passo-ajuda" *ngIf="objetivoInfo()">
+              {{ objetivoInfo()!.emoji }} {{ objetivoInfo()!.titulo }} ·
+              enviaremos à Meta como <b>{{ form().categoria }}</b>
+              <button type="button" class="tpl-link" *ngIf="!modoEdicao()" (click)="irParaPasso(1)">trocar</button>
+            </div>
 
-          <button class="btn btn-primary" (click)="salvar()" [disabled]="uploadingHeader()">
-            {{ modoEdicao() ? '💾 Salvar alterações' : '🚀 Enviar para Meta e Cadastrar' }}
-          </button>
+            <div class="fg">
+              <label>Nome do modelo (só você vê)</label>
+              <input type="text" placeholder="Ex: Aviso de entrega"
+                     [ngModel]="nomeAmigavel()" (ngModelChange)="nomeAmigavel.set($event)"
+                     [disabled]="!!modoEdicao()">
+              <div class="tpl-header-upload-hint" *ngIf="!modoEdicao() && nomeTecnico()">
+                Na Meta ele fica como <code>{{ nomeTecnico() }}</code> — sem acento e sem espaço, é a regra deles.
+              </div>
+              <div class="tpl-header-upload-hint" *ngIf="modoEdicao()">
+                O nome e o idioma não mudam depois de criado. Para outro nome, crie um novo modelo.
+              </div>
+            </div>
+
+            <app-template-body-editor
+              [conteudo]="form().conteudo"
+              (conteudoChange)="update('conteudo', $event)"
+              [exemplos]="exemplosBody()"
+              (exemplosChange)="exemplosBody.set($event)"
+              [categoria]="form().categoria">
+            </app-template-body-editor>
+
+            <div class="tpl-dica" *ngIf="variaveis() === 0">
+              💡 Quer personalizar? Escreva <code>&#123;&#123;1&#125;&#125;</code> onde entra o nome do cliente —
+              a cada envio esse pedaço é trocado pelo valor de verdade.
+            </div>
+
+            <!-- Opções avançadas: escondidas até quem quiser mexer -->
+            <button type="button" class="tpl-avancado-toggle" (click)="mostrarAvancado.set(!mostrarAvancado())">
+              {{ mostrarAvancado() ? '▾' : '▸' }} Opções extras (cabeçalho, rodapé, botões e idioma)
+            </button>
+
+            <div class="tpl-avancado" *ngIf="mostrarAvancado()">
+              <app-template-header-editor
+                [value]="headerState()"
+                (valueChange)="headerState.set($event)"
+                [empresaId]="empresaIdAtual()"
+                (uploadingChange)="uploadingHeader.set($event)">
+              </app-template-header-editor>
+
+              <app-template-footer-editor
+                [texto]="footerTexto()"
+                (textoChange)="footerTexto.set($event)">
+              </app-template-footer-editor>
+
+              <app-template-botoes-editor
+                [botoes]="botoes()"
+                (botoesChange)="botoes.set($event)">
+              </app-template-botoes-editor>
+
+              <div class="fg">
+                <label>Idioma da mensagem</label>
+                <select [ngModel]="form().idioma" (ngModelChange)="update('idioma', $event)" [disabled]="!!modoEdicao()">
+                  <optgroup label="Mais usados">
+                    <option *ngFor="let idioma of idiomasMaisUsados" [value]="idioma.codigo">{{ idioma.rotulo }}</option>
+                  </optgroup>
+                  <optgroup label="Outros idiomas">
+                    <option *ngFor="let idioma of idiomasOutros" [value]="idioma.codigo">{{ idioma.rotulo }}</option>
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+
+            <div class="tpl-passo-acoes">
+              <button class="btn btn-ghost btn-sm" *ngIf="!modoEdicao()" (click)="voltar()">← Voltar</button>
+              <button class="btn btn-primary" (click)="avancar()" [disabled]="uploadingHeader()">Conferir e enviar →</button>
+            </div>
+          </ng-container>
+
+          <!-- PASSO 4: revisão -->
+          <ng-container *ngIf="passo() === 4">
+            <div class="tpl-passo-titulo">Confira antes de enviar</div>
+            <div class="tpl-passo-ajuda">
+              A Meta guarda o histórico de recusas da sua conta, então vale conferir agora.
+              Do lado direito está exatamente o que o cliente vê.
+            </div>
+
+            <div class="tpl-check">
+              <div class="tpl-check-item" *ngFor="let item of conferencia()" [class.falhou]="!item.ok">
+                <span>{{ item.ok ? '✅' : '⚠️' }}</span> {{ item.texto }}
+              </div>
+            </div>
+
+            <div class="tpl-resumo">
+              <div><span>Nome na Meta</span><b>{{ modoEdicao() ? modoEdicao()!.nomeTemplate : nomeTecnico() }}</b></div>
+              <div><span>Finalidade</span><b>{{ objetivoInfo()?.titulo || form().categoria }}</b></div>
+              <div><span>Idioma</span><b>{{ form().idioma }}</b></div>
+              <div><span>Campos que mudam</span><b>{{ variaveis() }}</b></div>
+            </div>
+
+            <div class="tpl-passo-acoes">
+              <button class="btn btn-ghost btn-sm" (click)="voltar()">← Voltar e ajustar</button>
+              <button class="btn btn-primary" (click)="salvar()" [disabled]="salvando() || uploadingHeader() || !tudoConferido()">
+                {{ salvando() ? '⏳ Enviando...' : (modoEdicao() ? '💾 Salvar e reenviar para análise' : '🚀 Enviar para a Meta') }}
+              </button>
+            </div>
+          </ng-container>
+
           <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
         </div>
 
@@ -99,29 +230,31 @@
             [footerTexto]="footerTexto()"
             [botoes]="botoes()">
           </app-template-preview>
+          <div class="tpl-preview-nota">Assim a mensagem chega no celular do cliente.</div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- ===================== Lista ===================== -->
   <div class="card">
     <div class="card-head">
       <div>
-        <div class="card-title">Templates Sincronizados</div>
-        <div class="card-sub">{{ templates().length }} registros em banco</div>
+        <div class="card-title">Seus modelos</div>
+        <div class="card-sub">{{ templates().length }} cadastrado(s)</div>
       </div>
       <div style="display: flex; gap: 6px;">
-        <button class="btn btn-ghost btn-sm" title="Sincronizar com Painel da Meta via PUT" (click)="sincronizarComMeta()" [disabled]="sincronizando()">
-          {{ sincronizando() ? '⏳ Sincronizando...' : '🔄 Sincronizar Meta' }}
+        <button class="btn btn-ghost btn-sm" title="Busca na Meta a situação atual de cada modelo" (click)="sincronizarComMeta()" [disabled]="sincronizando()">
+          {{ sincronizando() ? '⏳ Atualizando...' : '🔄 Atualizar da Meta' }}
         </button>
-        <button class="btn btn-ghost btn-sm" title="Atualizar Grade Local" (click)="buscar()">Local 🔁</button>
+        <button class="btn btn-ghost btn-sm" title="Recarrega a lista salva aqui na plataforma" (click)="buscar()">🔁 Recarregar</button>
       </div>
     </div>
 
     <div class="crud-search-bar">
       <span class="crud-search-icon">🔍</span>
       <input class="crud-search-input"
-             placeholder="Buscar por nome, categoria ou status..."
+             placeholder="Buscar por nome, finalidade ou situação..."
              [ngModel]="search()"
              (ngModelChange)="search.set($event)">
       <span class="crud-search-count" *ngIf="search()">{{ templatesFiltrados().length }} de {{ templates().length }}</span>
@@ -137,8 +270,10 @@
               <span class="badge badge-muted">{{ t.idioma }}</span>
             </div>
           </div>
-          <span class="badge" [ngClass]="badgeClass(t.status)">{{ t.status || 'PENDING' }}</span>
+          <span class="badge" [ngClass]="statusInfo(t).classe" [title]="statusInfo(t).ajuda">{{ statusInfo(t).rotulo }}</span>
         </div>
+
+        <div class="tpl-item-status-ajuda">{{ statusInfo(t).ajuda }}</div>
 
         <div class="tpl-bubble tpl-bubble-mini">
           <span [innerHTML]="t.conteudo | whatsappFormat"></span>
@@ -157,14 +292,16 @@
         <div class="tpl-item-actions">
           <button class="btn btn-ghost btn-xs"
                   [disabled]="!podeEditar(t)"
-                  [title]="podeEditar(t) ? 'Editar template' : 'Só templates pendentes ou rejeitados podem ser editados'"
+                  [title]="podeEditar(t) ? 'Editar modelo e reenviar para a Meta' : motivoNaoEditavel(t)"
                   (click)="iniciarEdicao(t)">✏️ Editar</button>
-          <button class="btn btn-ghost btn-xs" title="Excluir template" (click)="excluir(t.id)">🗑 Excluir</button>
+          <button class="btn btn-ghost btn-xs" title="Excluir modelo" (click)="excluir(t.id)">🗑 Excluir</button>
         </div>
       </div>
 
-      <div class="crud-empty" *ngIf="templates().length === 0">Nenhum template retornado do servidor. Clique em "Sincronizar Meta" para carregar.</div>
-      <div class="crud-empty" *ngIf="templates().length > 0 && templatesFiltrados().length === 0">Nenhum template encontrado para "{{ search() }}".</div>
+      <div class="crud-empty" *ngIf="templates().length === 0">
+        Você ainda não tem modelos. Crie o primeiro ao lado, ou clique em "Atualizar da Meta" para trazer os que já existem na sua conta.
+      </div>
+      <div class="crud-empty" *ngIf="templates().length > 0 && templatesFiltrados().length === 0">Nenhum modelo encontrado para "{{ search() }}".</div>
     </div>
   </div>
 </div>

@@ -1,4 +1,22 @@
 /* ============================================================
+   LAYOUT DA TELA — assistente largo + lista ao lado
+   O grid genérico .g2 (50/50) espremia o formulário a ponto de cortar o texto
+   dos selects; o assistente precisa de mais largura que a lista.
+   ============================================================ */
+.tpl-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 1180px) {
+  .tpl-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
    EDITOR DE TEMPLATE — formulário + prévia lado a lado
    ============================================================ */
 .tpl-editor {
@@ -6,6 +24,221 @@
   grid-template-columns: 1fr 260px;
   gap: 24px;
   align-items: start;
+}
+
+/* ============================================================
+   ASSISTENTE EM PASSOS
+   ============================================================ */
+.tpl-steps {
+  display: flex;
+  gap: 6px;
+  padding: 0 18px 14px;
+  flex-wrap: wrap;
+}
+
+.tpl-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.tpl-step:disabled { opacity: .45; cursor: not-allowed; }
+.tpl-step:not(:disabled):hover { border-color: var(--border2); color: var(--text); }
+
+.tpl-step.ativo {
+  border-color: var(--blue3);
+  color: var(--text);
+  background: var(--blue-light);
+}
+
+.tpl-step.feito { color: var(--green); border-color: var(--green); }
+
+.tpl-step-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, .07);
+}
+
+.tpl-step.ativo .tpl-step-num { background: var(--blue3); color: #fff; }
+.tpl-step.feito .tpl-step-num { background: var(--green-light); color: var(--green); }
+
+.tpl-passo-titulo {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.tpl-passo-ajuda {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+
+.tpl-passo-acoes {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.tpl-link {
+  background: none;
+  border: none;
+  color: var(--blue3);
+  cursor: pointer;
+  font-size: 12.5px;
+  text-decoration: underline;
+  padding: 0 4px;
+}
+
+/* --- Passo 1: escolha do objetivo --- */
+.tpl-objetivos {
+  display: grid;
+  gap: 10px;
+}
+
+.tpl-objetivo {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, .015);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.tpl-objetivo:hover { border-color: var(--blue3); background: rgba(255, 255, 255, .04); }
+.tpl-objetivo.selecionado { border-color: var(--blue3); background: var(--blue-light); }
+
+.tpl-objetivo-emoji { font-size: 22px; }
+.tpl-objetivo-titulo { font-size: 14.5px; font-weight: 700; color: var(--text); }
+.tpl-objetivo-desc { font-size: 12.5px; color: var(--muted); }
+.tpl-objetivo-ex { font-size: 12px; color: var(--muted); opacity: .75; font-style: italic; }
+
+/* --- Passo 2: exemplos prontos --- */
+.tpl-modelos {
+  display: grid;
+  gap: 10px;
+}
+
+.tpl-modelo {
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, .015);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.tpl-modelo:hover { border-color: var(--blue3); background: rgba(255, 255, 255, .04); }
+.tpl-modelo-titulo { font-size: 13.5px; font-weight: 700; color: var(--text); }
+.tpl-modelo-texto { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.tpl-modelo-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* --- Passo 3: opções extras --- */
+.tpl-avancado-toggle {
+  background: none;
+  border: none;
+  color: var(--blue3);
+  cursor: pointer;
+  font-size: 12.5px;
+  padding: 10px 0;
+  text-align: left;
+}
+
+.tpl-avancado {
+  border-left: 2px solid var(--border);
+  padding-left: 14px;
+  margin-bottom: 6px;
+}
+
+.tpl-dica {
+  font-size: 12.5px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, .03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+/* --- Passo 4: conferência --- */
+.tpl-check {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.tpl-check-item {
+  font-size: 12.5px;
+  color: var(--muted);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.tpl-check-item.falhou { color: var(--warn); }
+
+.tpl-resumo {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.tpl-resumo > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+}
+
+.tpl-resumo span { color: var(--muted); }
+.tpl-resumo b { color: var(--text); word-break: break-all; text-align: right; }
+
+.tpl-stat-body { min-width: 0; }
+
+.tpl-stat-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.tpl-preview-nota {
+  font-size: 11.5px;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 8px;
+  line-height: 1.45;
+}
+
+.tpl-item-status-ajuda {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin: -2px 0 8px;
 }
 
 .tpl-form {

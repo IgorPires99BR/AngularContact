@@ -1,5 +1,5 @@
 <div class="fg">
-  <label>Conteúdo do Corpo (BODY)</label>
+  <label>Mensagem que o cliente recebe</label>
 
   <div class="tpl-body-toolbar">
     <button type="button" class="tpl-format-btn" title="Negrito" [disabled]="disabled()" (click)="aplicarNegrito()"><b>B</b></button>
@@ -29,9 +29,12 @@
 </div>
 
 <div class="fg" *ngIf="exemplos().length > 0">
-  <label>Valores de exemplo (exigidos pela Meta para aprovar o template)</label>
+  <label>O que entra em cada campo que muda</label>
+  <div class="tpl-body-hint" style="margin-bottom: 8px;">
+    Só um exemplo, para a Meta entender a mensagem. No envio de verdade, cada cliente recebe o valor dele.
+  </div>
   <div class="tpl-exemplo-row" *ngFor="let ex of exemplos(); let i = index; trackBy: trackByIndex">
     <span class="badge badge-muted">{{ '{{' + (i + 1) + '}}' }}</span>
-    <input type="text" [placeholder]="'Exemplo para a variável ' + (i + 1)" [ngModel]="ex.value" (ngModelChange)="updateExemplo(i, $event)" [disabled]="disabled()">
+    <input type="text" [placeholder]="'Exemplo para o campo ' + (i + 1) + ' (ex: Maria)'" [ngModel]="ex.value" (ngModelChange)="updateExemplo(i, $event)" [disabled]="disabled()">
   </div>
 </div>

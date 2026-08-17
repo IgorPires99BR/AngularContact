@@ -1,8 +1,8 @@
 <div class="fg">
-  <label>Cabeçalho (opcional)</label>
+  <label>Cabeçalho — aparece acima da mensagem (opcional)</label>
   <select [ngModel]="value().tipo" (ngModelChange)="onTipoChange($event)" [disabled]="disabled()">
-    <option value="NONE">Nenhum (só texto)</option>
-    <option value="TEXT">Texto fixo</option>
+    <option value="NONE">Sem cabeçalho</option>
+    <option value="TEXT">Um título em texto</option>
     <option value="IMAGE">🖼️ Imagem (JPG/PNG)</option>
     <option value="VIDEO">🎬 Vídeo (MP4)</option>
     <option value="DOCUMENT">📄 Documento (PDF/DOC)</option>

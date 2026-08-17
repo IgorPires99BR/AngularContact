@@ -1,5 +1,8 @@
 <div class="fg">
-  <label>Botões (opcional, até 3)</label>
+  <label>Botões que o cliente pode tocar (opcional, até 3)</label>
+  <div class="tpl-body-hint" style="margin-bottom: 8px;">
+    Resposta rápida devolve a palavra pro seu atendimento ou flow. Link abre um site. Telefone liga. Cupom copia um código.
+  </div>
   <div class="tpl-btn-picker">
     <button type="button" class="tpl-btn-chip" [disabled]="disabled()" (click)="adicionarBotao('QUICK_REPLY')">+ Resposta Rápida</button>
     <button type="button" class="tpl-btn-chip" [disabled]="disabled()" (click)="adicionarBotao('URL')">+ Link</button>
