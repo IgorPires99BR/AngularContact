@@ -3,6 +3,11 @@
     <h1 class="ph-title">Chats Ativos</h1>
     <div class="ph-sub">Conversas em andamento com seus leads</div>
   </div>
+  <button type="button" class="btn btn-ghost btn-sm"
+          [title]="notificacaoSonora.ativa() ? 'Som de notificação ligado — clique pra desligar' : 'Som de notificação desligado — clique pra ligar'"
+          (click)="notificacaoSonora.alternar()">
+    {{ notificacaoSonora.ativa() ? '🔔 Som ligado' : '🔕 Som desligado' }}
+  </button>
 </div>
 
 <!-- Container para exibir erros de autenticação ou carregamento se houver -->

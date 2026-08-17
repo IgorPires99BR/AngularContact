@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth';
 import { ChatNotificationService } from '../../core/services/chat-notification';
+import { NotificacaoSonoraService } from '../../core/services/notificacao-sonora';
 import { environment } from '../../../environments/environment';
 import * as signalR from '@microsoft/signalr';
 import { TemplateMessagePipe } from '../../shared/pipes/template-message.pipe';
@@ -49,6 +50,7 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   private chatNotification = inject(ChatNotificationService);
+  notificacaoSonora = inject(NotificacaoSonoraService);
 
   private empresaId = this.authService.empresaIdSignal;
 
@@ -120,6 +122,7 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
       .catch(err => console.error('Erro ao conectar SignalR:', err));
 
     this.hubConnection.on('ReceberNovaMensagem', (mensagemRecebida: any) => {
+      this.notificacaoSonora.tocar();
       this.tratarMensagemEmTempoReal(mensagemRecebida);
     });
 
