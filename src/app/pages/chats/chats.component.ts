@@ -630,6 +630,34 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
       });
   }
 
+  // Pausa o robô sem precisar mandar mensagem: dá para assumir e ler a conversa com calma
+  // antes de responder, em vez de ser obrigado a escrever algo só para travar o bot.
+  assumirConversa() {
+    const idContato = this.selectedId();
+    const idEmpresa = this.empresaId();
+    if (!idContato || !idEmpresa) return;
+
+    this.http.post<any>(`${this.API_URL}/assumir`, { empresaId: idEmpresa, contatoId: idContato })
+      .subscribe({
+        next: (res) => {
+          if (res?.assumida === false) {
+            this.response.set('Esta conversa não tem um flow ativo para pausar.');
+            return;
+          }
+
+          this.chats.update(lista =>
+            lista.map(c => c.contatoId === idContato
+              ? { ...c, respondendoPorFlow: false, flowAssumido: true }
+              : c
+            )
+          );
+        },
+        error: (err) => {
+          this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao assumir a conversa.')}`);
+        }
+      });
+  }
+
   // Reativa o flow automático numa conversa que tinha sido assumida manualmente
   devolverAoFlow() {
     const idContato = this.selectedId();

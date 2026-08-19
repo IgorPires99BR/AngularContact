@@ -74,6 +74,7 @@
           </div>
         </div>
         <div class="chat-win-actions">
+          <button class="btn btn-ghost btn-sm" *ngIf="selected()!.respondendoPorFlow" (click)="assumirConversa()" title="Pausar o robô e atender você mesmo esta conversa">🧑‍💼 Assumir conversa</button>
           <button class="btn btn-ghost btn-sm" *ngIf="selected()!.flowAssumido" (click)="devolverAoFlow()" title="Reativar o flow automático nesta conversa">↩️ Devolver ao Flow</button>
           <button class="btn btn-ghost btn-xs">📞</button>
           <button class="btn btn-ghost btn-xs">⋮</button>
