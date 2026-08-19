@@ -16,6 +16,7 @@
   flex-direction: column;
   min-width: 0;
   height: 100%;
+  min-height: 0;
 }
 
 .chat-list-head {
@@ -47,6 +48,9 @@
 .chat-list {
   flex: 1;
   overflow-y: auto;
+  /* Sem isto o painel cresce pra caber TODAS as conversas em vez de rolar por dentro,
+     estourando a altura do grid (ver .chat-window). */
+  min-height: 0;
 }
 
 .chat-item {
@@ -160,6 +164,10 @@
   min-width: 0;
   height: 100%;
   overflow: hidden;
+  /* Item de grid tem min-height:auto por padrao: sem forcar 0, a janela crescia ate caber
+     todas as mensagens (1637px medidos com 30 mensagens) e a barra de digitar ficava fora
+     da area visivel, como se tivesse sumido da tela. */
+  min-height: 0;
 }
 
 .chat-win-head {
@@ -228,6 +236,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 0;
 }
 
 .chat-loading-mais {
