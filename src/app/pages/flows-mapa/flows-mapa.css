@@ -99,3 +99,113 @@
   font-size: .78rem;
   line-height: 1.5;
 }
+
+/* Seção "Ver Fluxo em Texto" -- fica escondida (*ngIf) até o botão do cabeçalho ser
+   clicado, aparece abaixo do mapa 3D sem sobrepor nada nem mudar o layout existente. */
+.detalhes-fluxo {
+  margin-top: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+  animation: detalhes-fluxo-in .2s ease both;
+}
+
+@keyframes detalhes-fluxo-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.detalhes-fluxo-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  gap: 12px;
+}
+
+.detalhes-fluxo-vazio {
+  font-size: 13px;
+  color: var(--text-muted, #888);
+}
+
+.passo-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-card2);
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+
+.passo-card:last-child {
+  margin-bottom: 0;
+}
+
+.passo-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.passo-numero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--violet-light);
+  color: var(--violet);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.passo-nome {
+  font-weight: 600;
+}
+
+.passo-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+}
+
+.passo-badge-inicial {
+  color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.passo-badge-fim {
+  color: #2ecc71;
+  border-color: #2ecc71;
+}
+
+.passo-conteudo {
+  margin-top: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px 10px 10px 2px;
+  padding: 8px 12px;
+  white-space: pre-wrap;
+  font-size: .78rem;
+  line-height: 1.5;
+}
+
+.passo-caminhos {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: .78rem;
+  color: var(--text);
+}
+
+.passo-caminhos code {
+  background: var(--bg-deep);
+  padding: 1px 5px;
+  border-radius: 4px;
+}

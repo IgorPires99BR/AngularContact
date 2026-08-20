@@ -4,6 +4,7 @@
     <div class="ph-sub">Visualize o caminho que o lead percorre na conversa até a venda</div>
   </div>
   <div style="display:flex; gap:6px;">
+    <button class="btn btn-ghost btn-sm" (click)="alternarDetalhes()">📖 Ver Fluxo em Texto</button>
     <button class="btn btn-ghost btn-sm" (click)="voltar()">⬅ Voltar para lista</button>
   </div>
 </div>
@@ -48,6 +49,46 @@
       <div *ngIf="e.ehEtapaInicial"><strong>Etapa inicial</strong></div>
       <div *ngIf="e.templateNome"><strong>Template de gatilho:</strong> {{ e.templateNome }}</div>
       <div class="mapa-painel-conteudo">{{ e.conteudo }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Seção escondida com a versão em texto do flow, pro dono da empresa entender o
+     processo sem precisar interpretar o grafo 3D. Só aparece ao clicar no botão do
+     cabeçalho -- não altera o mapa 3D nem o restante da tela. -->
+<div class="detalhes-fluxo" *ngIf="detalhesAbertos() && flowSelecionado() as flow">
+  <div class="detalhes-fluxo-head">
+    <div>
+      <div class="crud-name">📖 Fluxo em texto — {{ flow.nome }}</div>
+      <div class="ph-sub" *ngIf="flow.descricao">{{ flow.descricao }}</div>
+    </div>
+    <button class="btn btn-ghost btn-xs" (click)="fecharDetalhes()">✕</button>
+  </div>
+
+  <div class="detalhes-fluxo-vazio" *ngIf="passosLegiveis().length === 0">
+    Este flow ainda não tem etapas cadastradas.
+  </div>
+
+  <div class="passo-card" *ngFor="let p of passosLegiveis()">
+    <div class="passo-cabecalho">
+      <span class="passo-numero">{{ p.numero }}</span>
+      <span class="passo-nome">{{ p.etapa.nomeEtapa }}</span>
+      <span class="passo-badge passo-badge-inicial" *ngIf="p.etapa.ehEtapaInicial">🏁 Início</span>
+      <span class="passo-badge passo-badge-fim" *ngIf="p.terminal">🔚 Encerra o fluxo</span>
+    </div>
+
+    <div class="passo-conteudo" *ngIf="p.etapa.conteudoLivre">{{ p.etapa.conteudoLivre }}</div>
+
+    <div class="passo-caminhos" *ngIf="p.etapa.variavelSaida || p.etapa.gatilhoResposta || p.etapa.botao1 || p.etapa.botao2">
+      <div *ngIf="p.etapa.variavelSaida">💾 Guarda a resposta do cliente como <code>{{ '{{' + p.etapa.variavelSaida + '}}' }}</code></div>
+      <div *ngIf="p.etapa.botao1 && p.destinoBotao1Nome">🔘 Se clicar em "<strong>{{ p.etapa.botao1 }}</strong>" → vai para "{{ p.destinoBotao1Nome }}"</div>
+      <div *ngIf="p.etapa.botao2 && p.destinoBotao2Nome">🔘 Se clicar em "<strong>{{ p.etapa.botao2 }}</strong>" → vai para "{{ p.destinoBotao2Nome }}"</div>
+      <div *ngIf="!p.etapa.botao1 && !p.etapa.botao2 && p.etapa.gatilhoResposta && p.destinoPrincipalNome">
+        ➡️ Se a resposta do cliente for "<strong>{{ p.etapa.gatilhoResposta }}</strong>" → vai para "{{ p.destinoPrincipalNome }}"
+      </div>
+      <div *ngIf="!p.etapa.botao1 && !p.etapa.botao2 && !p.etapa.gatilhoResposta && p.destinoPrincipalNome">
+        ➡️ Segue direto para "{{ p.destinoPrincipalNome }}"
+      </div>
     </div>
   </div>
 </div>

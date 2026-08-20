@@ -25,6 +25,22 @@ interface FlowEtapa {
   proximaEtapaId: string | null;
   ehEtapaInicial: boolean;
   templateId: string | null;
+  variavelSaida: string | null;
+  botao1: string | null;
+  botao2: string | null;
+  proximaEtapaIdB: string | null;
+}
+
+// Um "passo" da versão legível do flow: a etapa em si, mais os caminhos de saída já
+// resolvidos pro nome da etapa de destino, pra montar frases tipo "se clicar em X, vai
+// para Y" sem o dono da empresa precisar entender IDs.
+interface PassoLegivel {
+  numero: number;
+  etapa: FlowEtapa;
+  destinoPrincipalNome: string | null;
+  destinoBotao1Nome: string | null;
+  destinoBotao2Nome: string | null;
+  terminal: boolean;
 }
 
 interface Flow {
@@ -92,6 +108,44 @@ export class FlowsMapaComponent implements OnInit, AfterViewInit {
   etapaSelecionada = signal<GraphNode | null>(null);
   mensagem = signal('');
   carregando = signal(true);
+
+  // Seção escondida com a versão em texto do flow selecionado, pro dono da empresa
+  // entender o processo sem precisar interpretar o grafo 3D.
+  detalhesAbertos = signal(false);
+
+  // Segue a corrente a partir da etapa inicial pelo caminho principal (proximaEtapaId),
+  // igual ordenarPelaCorrente() do flow-builder -- mantém a leitura na mesma ordem em que
+  // a conversa realmente acontece, mesmo sem coluna "Ordem" persistida no banco.
+  passosLegiveis = computed<PassoLegivel[]>(() => {
+    const etapas = this.flowSelecionado()?.etapas ?? [];
+    if (etapas.length === 0) return [];
+
+    const porId = new Map(etapas.map(e => [e.id, e]));
+    const nomePorId = (id: string | null) => id ? (porId.get(id)?.nomeEtapa ?? '(etapa removida)') : null;
+
+    const inicial = etapas.find(e => e.ehEtapaInicial) ?? etapas[0];
+    const ordenadas: FlowEtapa[] = [];
+    const visitadas = new Set<string>();
+
+    let atual: FlowEtapa | undefined = inicial;
+    while (atual && !visitadas.has(atual.id)) {
+      visitadas.add(atual.id);
+      ordenadas.push(atual);
+      atual = atual.proximaEtapaId ? porId.get(atual.proximaEtapaId) : undefined;
+    }
+    for (const etapa of etapas) {
+      if (!visitadas.has(etapa.id)) ordenadas.push(etapa);
+    }
+
+    return ordenadas.map((etapa, index) => ({
+      numero: index + 1,
+      etapa,
+      destinoPrincipalNome: nomePorId(etapa.proximaEtapaId),
+      destinoBotao1Nome: etapa.botao1 ? nomePorId(etapa.proximaEtapaId) : null,
+      destinoBotao2Nome: etapa.botao2 ? nomePorId(etapa.proximaEtapaIdB) : null,
+      terminal: !etapa.proximaEtapaId && !etapa.proximaEtapaIdB
+    }));
+  });
 
   ngOnInit() {
     this.carregarDados();
@@ -172,7 +226,11 @@ export class FlowsMapaComponent implements OnInit, AfterViewInit {
       gatilhoResposta: e.gatilhoResposta || e.GatilhoResposta || '',
       proximaEtapaId: e.proximaEtapaId || e.ProximaEtapaId || null,
       ehEtapaInicial: e.ehEtapaInicial !== undefined ? e.ehEtapaInicial : e.EhEtapaInicial,
-      templateId: e.templateId || e.TemplateId || null
+      templateId: e.templateId || e.TemplateId || null,
+      variavelSaida: e.variavelSaida || e.VariavelSaida || null,
+      botao1: e.botao1 || e.Botao1 || null,
+      botao2: e.botao2 || e.Botao2 || null,
+      proximaEtapaIdB: e.proximaEtapaIdB || e.ProximaEtapaIdB || null
     }));
 
     return {
@@ -254,5 +312,13 @@ export class FlowsMapaComponent implements OnInit, AfterViewInit {
 
   fecharPainel() {
     this.etapaSelecionada.set(null);
+  }
+
+  alternarDetalhes() {
+    this.detalhesAbertos.update(v => !v);
+  }
+
+  fecharDetalhes() {
+    this.detalhesAbertos.set(false);
   }
 }
