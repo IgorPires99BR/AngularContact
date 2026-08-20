@@ -38,6 +38,7 @@
           <div class="chat-name">
             {{ c.nomeContato || 'Sem nome' }}
             <span class="badge badge-violet chat-flow-badge" *ngIf="c.respondendoPorFlow" title="Essa conversa está sendo respondida automaticamente pelo Flow">🤖 Flow</span>
+            <span class="badge badge-amber chat-flow-badge" *ngIf="c.aguardandoAtendente" title="O robô não conseguiu conduzir e passou esta conversa para uma pessoa">🙋 Precisa de você</span>
           </div>
           <div class="chat-last">{{ c.ultimaMensagem | templateMessage }}</div>
         </div>

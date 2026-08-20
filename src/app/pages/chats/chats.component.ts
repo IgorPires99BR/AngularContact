@@ -22,6 +22,7 @@ interface ChatItem {
   initials?: string;
   respondendoPorFlow?: boolean;
   flowAssumido?: boolean;
+  aguardandoAtendente?: boolean;
 }
 
 interface Message {
@@ -531,9 +532,15 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   filtered = computed(() => {
     const q = this.search().toLowerCase().trim();
-    if (!q) return this.chats();
-    return this.chats().filter(c =>
-      c.nomeContato.toLowerCase().includes(q) || c.telefone.includes(q)
+    const lista = q
+      ? this.chats().filter(c => c.nomeContato.toLowerCase().includes(q) || c.telefone.includes(q))
+      : this.chats();
+
+    // Quem o robô não conseguiu atender sobe pro topo: é a conversa que só anda se uma
+    // pessoa entrar, e no meio de dezenas de conversas ela passaria despercebida.
+    // O resto mantém a ordem que veio da API (mensagem mais recente primeiro).
+    return [...lista].sort((a, b) =>
+      Number(b.aguardandoAtendente ?? false) - Number(a.aguardandoAtendente ?? false)
     );
   });
 

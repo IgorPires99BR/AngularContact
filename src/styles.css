@@ -383,6 +383,17 @@ a {
     background: var(--violet);
   }
 
+/* Conversa que o robô não conseguiu conduzir e passou para uma pessoa. Âmbar de propósito:
+   precisa saltar no meio da lista sem parecer erro (vermelho) nem estado normal (violeta). */
+.badge-amber {
+  background: var(--warn-light);
+  color: var(--warn);
+}
+
+  .badge-amber::before {
+    background: var(--warn);
+  }
+
 /* ============================================================
    BUTTONS — Responsivo
    ============================================================ */
