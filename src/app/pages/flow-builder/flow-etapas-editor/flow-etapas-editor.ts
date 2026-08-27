@@ -13,6 +13,14 @@ export interface Step {
   proximaEtapaId?: string | null;
   ehEtapaInicial?: boolean;
   templateId?: string;
+
+  // Botões de resposta rápida e o segundo caminho da ramificação. A tela ainda não os edita,
+  // mas precisa carregá-los e devolvê-los ao salvar: sem isso, abrir um flow com botões e
+  // clicar em salvar apagava silenciosamente o que foi configurado pela API.
+  botao1?: string;
+  botao2?: string;
+  ordemDestinoB?: number | null;
+  proximaEtapaIdB?: string | null;
 }
 
 // Editor das etapas de um Flow, extraido do antigo flows.component.ts (que concentrava

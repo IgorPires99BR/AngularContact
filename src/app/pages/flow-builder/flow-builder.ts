@@ -17,6 +17,9 @@ interface Flow {
   gatilhoPalavraChave: string;
   ativo: boolean;
   numeroId: string | null;
+  // Anúncio que leva a este flow. A tela ainda não edita, mas carrega e devolve ao salvar
+  // para não desfazer o roteamento configurado pela API.
+  sourceIdAnuncio?: string | null;
   etapas: Step[];
 }
 
@@ -65,6 +68,7 @@ export class FlowBuilderComponent implements OnInit {
     gatilhoPalavraChave: '',
     ativo: true,
     numeroId: null,
+    sourceIdAnuncio: null,
     etapas: []
   });
 
@@ -164,6 +168,12 @@ export class FlowBuilderComponent implements OnInit {
     });
   }
 
+  // Id da etapa de destino -> ordem dela na lista. Null quando a etapa não ramifica.
+  private ordemDaEtapa(etapas: Step[], idDestino?: string | null): number | null {
+    if (!idDestino) return null;
+    return etapas.find(e => e.id === idDestino)?.ordem ?? null;
+  }
+
   private mapearFlow(f: any): Flow {
     const etapasRaw = f.etapas || f.Etapas || [];
     const etapasMapeadas: Step[] = etapasRaw.map((e: any) => ({
@@ -175,7 +185,10 @@ export class FlowBuilderComponent implements OnInit {
       gatilhoResposta: e.gatilhoResposta || e.GatilhoResposta,
       proximaEtapaId: e.proximaEtapaId || e.ProximaEtapaId,
       ehEtapaInicial: e.ehEtapaInicial !== undefined ? e.ehEtapaInicial : e.EhEtapaInicial,
-      templateId: e.templateId || e.TemplateId
+      templateId: e.templateId || e.TemplateId,
+      botao1: e.botao1 || e.Botao1,
+      botao2: e.botao2 || e.Botao2,
+      proximaEtapaIdB: e.proximaEtapaIdB || e.ProximaEtapaIdB
     }));
 
     return {
@@ -186,6 +199,7 @@ export class FlowBuilderComponent implements OnInit {
       gatilhoPalavraChave: f.gatilhoPalavraChave || f.GatilhoPalavraChave || '',
       ativo: f.ativo !== undefined ? f.ativo : f.Ativo,
       numeroId: f.numeroId || f.NumeroId || null,
+      sourceIdAnuncio: f.sourceIdAnuncio || f.SourceIdAnuncio || null,
       etapas: this.ordenarPelaCorrente(etapasMapeadas)
     };
   }
@@ -247,6 +261,9 @@ export class FlowBuilderComponent implements OnInit {
       gatilhoPalavraChave: f.gatilhoPalavraChave,
       ativo: f.ativo,
       numeroId: f.numeroId || null,
+      // Preserva o vínculo com o anúncio: quem chega por ele cai neste flow direto, e salvar
+      // pela tela não pode desfazer isso sem querer.
+      sourceIdAnuncio: f.sourceIdAnuncio || null,
       etapas: f.etapas.map(e => ({
         id: e.id,
         ordem: e.ordem,
@@ -256,7 +273,13 @@ export class FlowBuilderComponent implements OnInit {
         gatilhoResposta: e.gatilhoResposta,
         proximaEtapaId: e.proximaEtapaId,
         ehEtapaInicial: e.ehEtapaInicial,
-        templateId: e.templateId
+        templateId: e.templateId,
+        botao1: e.botao1 || null,
+        botao2: e.botao2 || null,
+        // O backend recria as etapas com Guids novos a cada salvamento, então a ramificação
+        // é referenciada pela ORDEM da etapa de destino, não pelo Id antigo (que deixa de
+        // existir). Traduz aqui o Id carregado para a ordem correspondente.
+        ordemDestinoB: this.ordemDaEtapa(f.etapas, e.proximaEtapaIdB)
       }))
     };
 
