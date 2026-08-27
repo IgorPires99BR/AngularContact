@@ -19,6 +19,7 @@ import { FlowBuilderComponent } from './pages/flow-builder/flow-builder';
 import { EmpresasComponent } from './pages/empresas/empresas.component';
 import { ContatosComponent } from './pages/contatos/contatos.component';
 import { NumerosComponent } from './pages/numeros/numeros.component';
+import { TrocarSenhaComponent } from './pages/trocar-senha/trocar-senha.component';
 import { UsuariosComponent } from './pages/usuarios/usuarios.component';
 import { TemplatesComponent } from './pages/templates/templates'; // <--- IMPORTADO AQUI
 import { TemplatesMapaComponent } from './pages/templates-mapa/templates-mapa';
@@ -59,6 +60,8 @@ export const routes: Routes = [
       { path: 'contatos', component: ContatosComponent },
       { path: 'numeros', component: NumerosComponent },
       { path: 'usuarios', component: UsuariosComponent, canActivate: [adminGuard] },
+      // Sem adminGuard de proposito: operador tambem tem senha para trocar.
+      { path: 'trocar-senha', component: TrocarSenhaComponent },
       { path: 'templates', component: TemplatesComponent }, // <--- INSERIDO DENTRO DO SHELL PROTEGIDO
       { path: 'templates/mapa', component: TemplatesMapaComponent },
       { path: 'relatorio', component: RelatorioMensagensComponent },

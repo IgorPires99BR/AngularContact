@@ -1,0 +1,84 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">Trocar senha</h1>
+    <div class="ph-sub">Escolha uma senha que só você saiba</div>
+  </div>
+</div>
+
+<div class="card" style="max-width: 520px;">
+  <div class="card-head">
+    <div class="card-title">🔒 Sua senha</div>
+  </div>
+
+  <div class="card-body">
+
+    @if (sucesso()) {
+      <div class="aviso aviso-ok">
+        <strong>Pronto, senha alterada.</strong>
+        <div style="margin-top: 6px;">
+          Da próxima vez que entrar, use a senha nova. Continue usando a plataforma
+          normalmente — não precisa entrar de novo agora.
+        </div>
+      </div>
+      <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-primary" (click)="voltar()">Voltar ao início</button>
+        <button class="btn btn-outline" (click)="sucesso.set(false)">Trocar de novo</button>
+      </div>
+    } @else {
+
+      <div class="fg">
+        <label>Senha atual</label>
+        <input [type]="mostrarSenhas() ? 'text' : 'password'"
+               autocomplete="current-password"
+               placeholder="A senha que você usa hoje"
+               [ngModel]="form().senhaAtual"
+               (ngModelChange)="update('senhaAtual', $event)">
+        <small class="dica">
+          Se você entrou com a senha que chegou por e-mail, é ela.
+        </small>
+      </div>
+
+      <div class="fg">
+        <label>Nova senha</label>
+        <input [type]="mostrarSenhas() ? 'text' : 'password'"
+               autocomplete="new-password"
+               placeholder="Ao menos 6 caracteres"
+               [ngModel]="form().senhaNova"
+               (ngModelChange)="update('senhaNova', $event)">
+      </div>
+
+      <div class="fg">
+        <label>Repita a nova senha</label>
+        <input [type]="mostrarSenhas() ? 'text' : 'password'"
+               autocomplete="new-password"
+               placeholder="A mesma coisa de novo"
+               [ngModel]="form().confirmacaoSenhaNova"
+               (ngModelChange)="update('confirmacaoSenhaNova', $event)">
+      </div>
+
+      <label class="mostrar-senha">
+        <input type="checkbox"
+               [checked]="mostrarSenhas()"
+               (change)="mostrarSenhas.set(!mostrarSenhas())">
+        <span>Mostrar o que estou digitando</span>
+      </label>
+
+      @if (erro()) {
+        <div class="aviso aviso-erro">{{ erro() }}</div>
+      }
+
+      <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-primary" (click)="salvar()" [disabled]="!podeSalvar()">
+          {{ salvando() ? 'Salvando...' : '✅ Salvar nova senha' }}
+        </button>
+        <button class="btn btn-outline" (click)="voltar()" [disabled]="salvando()">
+          Cancelar
+        </button>
+      </div>
+
+      @if (problema() && !erro()) {
+        <div class="dica" style="margin-top: 10px;">{{ problema() }}</div>
+      }
+    }
+  </div>
+</div>
