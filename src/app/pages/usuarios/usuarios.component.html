@@ -34,9 +34,8 @@
       <div class="fg">
         <label>Perfil de Acesso</label>
         <select [ngModel]="form().perfil" (ngModelChange)="update('perfil', $event)">
-          <option value="admin">Administrador (Total)</option>
-          <option value="operador">Operador (Uso)</option>
-          <option value="viewer">Visualizador (Leitura)</option>
+          <option value="operador">Operador — Disparos, Contatos, Números e Templates</option>
+          <option value="admin">Administrador — acesso total, inclusive Chats e Flows</option>
         </select>
       </div>
 

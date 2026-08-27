@@ -7,7 +7,7 @@ import { environment } from '../../../environments/environment';
 import { isEmailValido } from '../../shared/utils/validators';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
-type Perfil = 'admin' | 'operador' | 'viewer';
+type Perfil = 'admin' | 'operador';
 
 interface Usuario {
   id: number;
@@ -37,7 +37,7 @@ export class UsuariosComponent implements OnInit {
     nome: '',
     email: '',
     senhaHash: '',
-    perfil: 'admin' as Perfil
+    perfil: 'operador' as Perfil
   });
 
   response = signal('');
@@ -143,7 +143,7 @@ export class UsuariosComponent implements OnInit {
       nome: '',
       email: '',
       senhaHash: '',
-      perfil: 'admin'
+      perfil: 'operador'
     });
   }
 
@@ -162,8 +162,7 @@ export class UsuariosComponent implements OnInit {
   perfilBadge(p: Perfil) {
     const classes: Record<Perfil, string> = {
       admin: 'badge-blue',
-      operador: 'badge-green',
-      viewer: 'badge-muted'
+      operador: 'badge-green'
     };
     return classes[p];
   }
