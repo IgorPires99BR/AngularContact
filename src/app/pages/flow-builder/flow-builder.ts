@@ -265,6 +265,8 @@ export class FlowBuilderComponent implements OnInit {
       // pela tela não pode desfazer isso sem querer.
       sourceIdAnuncio: f.sourceIdAnuncio || null,
       etapas: f.etapas.map(e => ({
+        // O id vai junto de propósito: é por ele que o backend reconhece a etapa que já existe
+        // e a atualiza em vez de recriar. Etapa nova nasce sem id na tela e o backend gera.
         id: e.id,
         ordem: e.ordem,
         tipoStep: e.tipoStep,
