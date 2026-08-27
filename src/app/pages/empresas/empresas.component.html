@@ -32,6 +32,14 @@
       </div>
     } @else {
 
+      @if (contaForm().empresaId) {
+        <div class="alvo-empresa">
+          Criando o acesso de <strong>{{ contaForm().nome }}</strong>, que já está cadastrada.
+          Nenhuma empresa nova será criada.
+          <button class="btn btn-ghost btn-xs" (click)="cancelarAcesso()">Cancelar</button>
+        </div>
+      }
+
       <div class="fg-row">
         <div class="fg">
           <label>Nome do cliente ou da empresa</label>
@@ -227,6 +235,9 @@
           </div>
         </div>
         <div class="crud-actions">
+          @if (ehAdminDaPlataforma()) {
+            <button class="btn btn-ghost btn-xs" (click)="prepararAcesso(e)" title="Criar o acesso do dono desta empresa">🔑 Acesso</button>
+          }
           <button class="btn btn-ghost btn-xs" (click)="prepararEdicao(e)">Editar</button>
           <button class="btn btn-danger btn-xs" (click)="excluir(e.id)">🗑</button>
         </div>

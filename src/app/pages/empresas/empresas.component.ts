@@ -39,7 +39,7 @@ export class EmpresasComponent implements OnInit {
   // a tela de Usuarios sempre usa a empresa de quem esta logado.
   ehAdminDaPlataforma = this.authService.ehAdminDaPlataforma;
 
-  contaForm = signal({ nome: '', email: '', telefone: '', cnpj: '', plano: 'STARTER', pagamentoJaConfirmado: false });
+  contaForm = signal<any>({ nome: '', email: '', telefone: '', cnpj: '', plano: 'STARTER', pagamentoJaConfirmado: false, empresaId: null });
   criandoConta = signal(false);
   erroConta = signal('');
   contaCriada = signal<{ email: string; senhaProvisoria: string } | null>(null);
@@ -64,7 +64,7 @@ export class EmpresasComponent implements OnInit {
         this.criandoConta.set(false);
         const dados = Array.isArray(r) ? r[0] : (r?.value ?? r);
         this.contaCriada.set({ email: dados?.email ?? f.email, senhaProvisoria: dados?.senhaProvisoria ?? '' });
-        this.contaForm.set({ nome: '', email: '', telefone: '', cnpj: '', plano: 'STARTER', pagamentoJaConfirmado: false });
+        this.contaForm.set({ nome: '', email: '', telefone: '', cnpj: '', plano: 'STARTER', pagamentoJaConfirmado: false, empresaId: null });
         this.obterEmpresas();
       },
       error: (err) => {
@@ -72,6 +72,27 @@ export class EmpresasComponent implements OnInit {
         this.erroConta.set(extrairMensagemErro(err, 'Não foi possível criar a conta.'));
       }
     });
+  }
+
+  // Empresa cadastrada que nunca teve usuario e peso morto: ninguem entra nela. Isto cria o
+  // acesso dela sem duplicar a empresa ao lado.
+  prepararAcesso(e: any) {
+    this.contaCriada.set(null);
+    this.erroConta.set('');
+    this.contaForm.set({
+      nome: e.nome ?? '',
+      email: e.email ?? '',
+      telefone: e.telefone ?? '',
+      cnpj: e.cnpj ?? '',
+      plano: e.planoId || 'STARTER',
+      pagamentoJaConfirmado: false,
+      empresaId: e.id,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  cancelarAcesso() {
+    this.contaForm.set({ nome: '', email: '', telefone: '', cnpj: '', plano: 'STARTER', pagamentoJaConfirmado: false, empresaId: null });
   }
 
   copiarAcesso() {
