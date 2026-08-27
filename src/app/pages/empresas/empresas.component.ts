@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { AuthService } from '../../core/services/auth';
 import { isEmailValido } from '../../shared/utils/validators';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
@@ -25,11 +26,60 @@ interface Empresa {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './empresas.component.html',
-  styleUrls: ['../shared-crud.css'],
+  styleUrls: ['../shared-crud.css', './empresas.component.css'],
 })
 export class EmpresasComponent implements OnInit {
   private http = inject(HttpClient);
+  private authService = inject(AuthService);
   private readonly BASE_URL = `${environment.apiUrl}/v2/empresa`;
+
+  // Cadastro rapido: cria empresa + usuario admin + senha + e-mail de acesso de uma vez.
+  // Antes so o webhook de pagamento da Cakto fazia a conta inteira; cadastrar um cliente que
+  // fechou por fora exigia criar a empresa aqui e o usuario admin dela direto no banco, porque
+  // a tela de Usuarios sempre usa a empresa de quem esta logado.
+  ehAdminDaPlataforma = this.authService.ehAdminDaPlataforma;
+
+  contaForm = signal({ nome: '', email: '', telefone: '', cnpj: '', plano: 'STARTER', pagamentoJaConfirmado: false });
+  criandoConta = signal(false);
+  erroConta = signal('');
+  contaCriada = signal<{ email: string; senhaProvisoria: string } | null>(null);
+  senhaCopiada = signal(false);
+
+  atualizarConta(campo: string, valor: any) {
+    this.contaForm.update(f => ({ ...f, [campo]: valor }));
+    if (this.erroConta()) this.erroConta.set('');
+  }
+
+  criarContaCliente() {
+    const f = this.contaForm();
+
+    if (!f.nome.trim()) { this.erroConta.set('Informe o nome do cliente.'); return; }
+    if (!isEmailValido(f.email)) { this.erroConta.set('Informe um e-mail válido — é por ele que o cliente entra.'); return; }
+
+    this.criandoConta.set(true);
+    this.erroConta.set('');
+
+    this.http.post<any>(`${this.BASE_URL}/criar-conta-cliente`, f).subscribe({
+      next: (r) => {
+        this.criandoConta.set(false);
+        const dados = Array.isArray(r) ? r[0] : (r?.value ?? r);
+        this.contaCriada.set({ email: dados?.email ?? f.email, senhaProvisoria: dados?.senhaProvisoria ?? '' });
+        this.contaForm.set({ nome: '', email: '', telefone: '', cnpj: '', plano: 'STARTER', pagamentoJaConfirmado: false });
+        this.obterEmpresas();
+      },
+      error: (err) => {
+        this.criandoConta.set(false);
+        this.erroConta.set(extrairMensagemErro(err, 'Não foi possível criar a conta.'));
+      }
+    });
+  }
+
+  copiarAcesso() {
+    const c = this.contaCriada();
+    if (!c) return;
+    navigator.clipboard?.writeText(`Acesso Contact Solution\nSite: https://contactsolution.com.br/login\nE-mail: ${c.email}\nSenha: ${c.senhaProvisoria}`)
+      .then(() => { this.senhaCopiada.set(true); setTimeout(() => this.senhaCopiada.set(false), 2500); });
+  }
 
   empresas = signal<Empresa[]>([]);
   // DEPOIS (Correto):

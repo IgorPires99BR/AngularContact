@@ -8,6 +8,7 @@ export interface UserData {
   nome?: string;
   email: string;
   role?: string;
+  ehAdminDaPlataforma?: boolean;
   status?: string;
   token?: string;
 }
@@ -30,6 +31,10 @@ export class AuthService {
   // É só experiência de uso: quem manda de verdade é o backend, que devolve 403.
   readonly ehAdminSignal = computed(() => (this.userState()?.role ?? '').toLowerCase() === 'admin');
 
+  // Conta de operacao da propria Contact Solution: a unica que cadastra clientes novos.
+  // Diferente de ehAdminSignal, que e o admin da empresa do proprio cliente.
+  readonly ehAdminDaPlataforma = computed(() => this.userState()?.ehAdminDaPlataforma === true);
+
   getToken(): string | null {
     return this.userState()?.token ?? localStorage.getItem('token') ?? sessionStorage.getItem('token');
   }
@@ -47,6 +52,7 @@ export class AuthService {
         nome: apiResponse.nome,
         email: apiResponse.email,
         role: apiResponse.role,
+        ehAdminDaPlataforma: apiResponse.ehAdminDaPlataforma === true,
         status: apiResponse.status,
         token: apiResponse.token
       };

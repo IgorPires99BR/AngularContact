@@ -1,0 +1,109 @@
+/* O cadastro rapido e o caminho normal para nascer uma conta de cliente; o CRUD abaixo dele
+   existe para editar credenciais da Meta. A separacao visual diz qual e qual. */
+
+.cadastro-rapido {
+  border: 1px solid var(--border2);
+  margin-bottom: 22px;
+}
+
+.card-sub {
+  font-size: .8rem;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+
+.dica-campo {
+  display: block;
+  margin-top: 5px;
+  font-size: .74rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.opcao-pagamento {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 14px;
+  cursor: pointer;
+  font-size: .86rem;
+  color: var(--text2);
+}
+
+.opcao-pagamento input {
+  width: auto;
+  margin: 3px 0 0;
+  cursor: pointer;
+  accent-color: var(--blue);
+  flex-shrink: 0;
+}
+
+.opcao-pagamento small {
+  display: block;
+  margin-top: 3px;
+  font-size: .74rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.erro-conta {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--danger-light);
+  border: 1px solid rgba(239, 68, 68, .35);
+  font-size: .86rem;
+  color: var(--text);
+}
+
+/* A senha so existe nesta tela, neste momento: o banco guarda so o hash. Por isso o bloco
+   grita que e para anotar agora, em vez de parecer mais uma mensagem de sucesso. */
+.acesso-pronto {
+  padding: 18px;
+  border-radius: var(--r-md);
+  background: var(--green-light);
+  border: 1px solid rgba(34, 197, 94, .35);
+}
+
+.acesso-titulo {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 14px;
+  font-size: .92rem;
+}
+
+.acesso-linha {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.acesso-linha span {
+  color: var(--muted);
+  font-size: .76rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  min-width: 62px;
+}
+
+.acesso-linha strong {
+  color: var(--text);
+  font-size: .95rem;
+  word-break: break-all;
+}
+
+.acesso-senha {
+  font-family: 'Courier New', monospace;
+  letter-spacing: .06em;
+  font-size: 1.05rem;
+}
+
+.acesso-nota {
+  margin-top: 12px;
+  font-size: .78rem;
+  color: var(--text2);
+  line-height: 1.55;
+}

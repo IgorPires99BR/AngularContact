@@ -5,6 +5,93 @@
   </div>
 </div>
 
+@if (ehAdminDaPlataforma()) {
+<div class="card cadastro-rapido">
+  <div class="card-head">
+    <div>
+      <div class="card-title">⚡ Nova conta de cliente</div>
+      <div class="card-sub">Cria a empresa, o usuário administrador e a senha, e manda o acesso por e-mail — tudo de uma vez.</div>
+    </div>
+  </div>
+  <div class="card-body">
+
+    @if (contaCriada(); as conta) {
+      <div class="acesso-pronto">
+        <div class="acesso-titulo">Conta criada. Anote agora — a senha não aparece de novo.</div>
+        <div class="acesso-linha"><span>E-mail</span><strong>{{ conta.email }}</strong></div>
+        <div class="acesso-linha"><span>Senha</span><strong class="acesso-senha">{{ conta.senhaProvisoria }}</strong></div>
+        <div class="acesso-nota">
+          O acesso também foi enviado para esse e-mail. O cliente troca a senha pelo cadeado no menu, depois de entrar.
+        </div>
+        <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 14px;">
+          <button class="btn btn-primary" (click)="copiarAcesso()">
+            {{ senhaCopiada() ? '✅ Copiado' : '📋 Copiar acesso' }}
+          </button>
+          <button class="btn btn-outline" (click)="contaCriada.set(null)">Cadastrar outro cliente</button>
+        </div>
+      </div>
+    } @else {
+
+      <div class="fg-row">
+        <div class="fg">
+          <label>Nome do cliente ou da empresa</label>
+          <input type="text" placeholder="Ex: Padaria do Bairro" maxlength="120"
+                 [ngModel]="contaForm().nome" (ngModelChange)="atualizarConta('nome', $event)">
+        </div>
+        <div class="fg">
+          <label>E-mail de acesso</label>
+          <input type="email" placeholder="cliente@email.com"
+                 [ngModel]="contaForm().email" (ngModelChange)="atualizarConta('email', $event)">
+          <small class="dica-campo">É por aqui que o cliente entra e recebe a senha.</small>
+        </div>
+      </div>
+
+      <div class="fg-row">
+        <div class="fg">
+          <label>WhatsApp do cliente</label>
+          <input type="text" placeholder="5511987654321"
+                 [ngModel]="contaForm().telefone" (ngModelChange)="atualizarConta('telefone', $event)">
+          <small class="dica-campo">Com código do país. Sem isso, ele não recebe as boas-vindas no WhatsApp.</small>
+        </div>
+        <div class="fg">
+          <label>Plano</label>
+          <select [ngModel]="contaForm().plano" (ngModelChange)="atualizarConta('plano', $event)">
+            <option value="STARTER">Starter</option>
+            <option value="PRO">Pro</option>
+            <option value="ENTERPRISE">Enterprise</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label>CNPJ (opcional)</label>
+        <input type="text" placeholder="Somente números" maxlength="14"
+               [ngModel]="contaForm().cnpj" (ngModelChange)="atualizarConta('cnpj', $event)">
+      </div>
+
+      <label class="opcao-pagamento">
+        <input type="checkbox" [checked]="contaForm().pagamentoJaConfirmado"
+               (change)="atualizarConta('pagamentoJaConfirmado', !contaForm().pagamentoJaConfirmado)">
+        <span>
+          O cliente já pagou
+          <small>Marque só se o pagamento entrou. É o que dispara o WhatsApp avisando que um atendente vai ligar.</small>
+        </span>
+      </label>
+
+      @if (erroConta()) {
+        <div class="erro-conta">{{ erroConta() }}</div>
+      }
+
+      <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-primary" (click)="criarContaCliente()" [disabled]="criandoConta()">
+          {{ criandoConta() ? 'Criando...' : '⚡ Criar conta do cliente' }}
+        </button>
+      </div>
+    }
+  </div>
+</div>
+}
+
 <div class="g2">
   <div class="card">
     <div class="card-head">
