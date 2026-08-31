@@ -1,0 +1,10 @@
+/* Badge de origem pode carregar o headline inteiro do anuncio -- sem truncar, uma frase longa
+   estoura a coluna e empurra Ações pra fora da tela. */
+.origem-badge {
+  display: inline-block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}

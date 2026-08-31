@@ -14,6 +14,10 @@ interface Contato {
   nome?: string;
   email?: string;
   dataCriacao?: string;
+  // Preenchido so quando o contato chegou por um anuncio Click-to-WhatsApp -- null pra quem
+  // foi cadastrado manualmente ou escreveu organicamente.
+  origemAnuncio?: string | null;
+  origemData?: string | null;
 }
 
 @Component({
@@ -21,7 +25,7 @@ interface Contato {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './contatos.component.html',
-  styleUrls: ['../shared-crud.css'],
+  styleUrls: ['../shared-crud.css', './contatos.component.css'],
 })
 export class ContatosComponent implements OnInit {
   private http = inject(HttpClient);

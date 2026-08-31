@@ -73,6 +73,7 @@
           <th>Nome</th>
           <th>Telefone</th>
           <th>E-mail</th>
+          <th>Origem</th>
           <th style="width: 120px; text-align: center;">Ações</th>
         </tr>
       </thead>
@@ -81,6 +82,14 @@
           <td><strong>{{ c.nome || 'Sem nome' }}</strong></td>
           <td class="mono">{{ c.telefone }}</td>
           <td>{{ c.email }}</td>
+          <td>
+            <span class="badge badge-violet origem-badge" *ngIf="c.origemAnuncio; else semOrigem" [title]="c.origemAnuncio">
+              📣 {{ c.origemAnuncio }}
+            </span>
+            <ng-template #semOrigem>
+              <span class="badge badge-muted">—</span>
+            </ng-template>
+          </td>
           <td>
             <div class="btn-grp" style="justify-content: center;">
               <button class="btn btn-ghost btn-xs" (click)="prepararEdicao(c)">Editar</button>
