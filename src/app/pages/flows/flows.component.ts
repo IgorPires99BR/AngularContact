@@ -19,6 +19,27 @@ export interface Flow {
   totalEtapas: number;
 }
 
+export interface FunilEtapa {
+  etapaId: string;
+  ordem: number;
+  nomeEtapa: string;
+  rotulo: string | null;
+  ehEtapaFinal: boolean;
+  presas: number;
+  entreguesAoAtendente: number;
+  concluiram: number;
+}
+
+export interface Funil {
+  flowId: string;
+  nomeFlow: string;
+  totalConversas: number;
+  totalConcluiram: number;
+  totalEntreguesAoAtendente: number;
+  totalPresas: number;
+  etapas: FunilEtapa[];
+}
+
 // Lista de Flows da empresa, com filtro por número. A criação/edição virou uma tela
 // própria (/flows/novo, /flows/:id/editar) — antes tudo (lista + builder + monitor)
 // vivia num único componente com abas, o que ficava confuso conforme os flows cresciam.
@@ -35,6 +56,7 @@ export class FlowsComponent implements OnInit {
   private router = inject(Router);
 
   private readonly API_URL = `${environment.apiUrl}/config/flow`;
+  private readonly FUNIL_URL = `${environment.apiUrl}/relatorio/funil-flow`;
   private idEmpresaLogada = this.authService.empresaIdSignal;
 
   response = signal('');
@@ -42,6 +64,14 @@ export class FlowsComponent implements OnInit {
   flows = signal<Flow[]>([]);
   numeroFiltro = signal<string>('');
   busca = signal('');
+
+  // Em qual etapa as conversas param -- ate agora nao existia nenhuma forma de ver isso.
+  // Expande sob o proprio flow em vez de abrir uma tela separada: e um numero que so faz
+  // sentido junto do flow que ele descreve.
+  funilAberto = signal<string | null>(null);
+  funil = signal<Funil | null>(null);
+  carregandoFunil = signal(false);
+  erroFunil = signal('');
 
   ativos = computed(() => this.flows().filter(f => f.ativo).length);
   inativos = computed(() => this.flows().filter(f => !f.ativo).length);
@@ -96,6 +126,41 @@ export class FlowsComponent implements OnInit {
         this.carregando.set(false);
       }
     });
+  }
+
+  toggleFunil(flowId: string) {
+    if (this.funilAberto() === flowId) {
+      this.funilAberto.set(null);
+      return;
+    }
+
+    this.funilAberto.set(flowId);
+    this.funil.set(null);
+    this.erroFunil.set('');
+    this.carregandoFunil.set(true);
+
+    this.http.get<any>(`${this.FUNIL_URL}/${flowId}`).subscribe({
+      next: (res) => {
+        const d = res?.value ?? res;
+        this.funil.set(d as Funil);
+        this.carregandoFunil.set(false);
+      },
+      error: (err) => {
+        this.erroFunil.set(extrairMensagemErro(err, 'Não foi possível carregar o funil deste flow.'));
+        this.carregandoFunil.set(false);
+      }
+    });
+  }
+
+  // Maior valor entre as etapas, pra escalar as barras -- sem isso uma etapa com 2 pessoas e
+  // outra com 20 ficariam do mesmo tamanho visual, escondendo a queda que o funil existe pra
+  // mostrar.
+  maiorTotalEtapa(f: Funil): number {
+    return Math.max(1, ...f.etapas.map(e => this.totalEtapa(e)));
+  }
+
+  totalEtapa(e: FunilEtapa): number {
+    return e.presas + e.entreguesAoAtendente + e.concluiram;
   }
 
   novoFlow() {

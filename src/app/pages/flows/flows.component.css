@@ -97,3 +97,135 @@
 @media (max-width: 640px) {
   .flows-toolbar { flex-direction: column; align-items: stretch; }
 }
+
+/* Funil por etapa: expande sob a linha do flow, na tabela de cima. Cores emprestadas dos
+   badges que o resto da tela ja usa (blue = neutro, warn = atencao, green = sucesso) --
+   presa/atendente/concluiu tem o mesmo peso semantico. */
+
+.funil-row td {
+  padding: 0;
+  border-top: none;
+}
+
+.funil-painel {
+  padding: 18px 22px 22px;
+  background: var(--bg2, rgba(255, 255, 255, 0.02));
+  border-top: 1px solid var(--border);
+}
+
+.funil-carregando,
+.funil-vazio {
+  color: var(--muted);
+  font-size: 0.86rem;
+  padding: 8px 0;
+}
+
+.funil-erro {
+  color: var(--danger, #EF4444);
+  font-size: 0.86rem;
+  padding: 8px 0;
+}
+
+.funil-resumo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 18px;
+  font-size: 0.84rem;
+  color: var(--text2);
+}
+
+.funil-resumo-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.funil-resumo-item strong {
+  color: var(--text);
+}
+
+.funil-resumo-total {
+  color: var(--muted);
+  margin-left: auto;
+}
+
+.funil-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.funil-dot-presa, .funil-seg-presa { background: var(--blue, #3D6EE8); }
+.funil-dot-atendente, .funil-seg-atendente { background: var(--warn, #F59E0B); }
+.funil-dot-concluiu, .funil-seg-concluiu { background: var(--green, #22C55E); }
+
+.funil-etapas {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.funil-etapa-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 6px;
+}
+
+.funil-etapa-ordem {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg-card3, var(--bg2));
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-family: 'Courier New', monospace;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.funil-etapa-rotulo {
+  font-size: 0.86rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60ch;
+}
+
+/* Largura definida inline (%), proporcional ao maior total entre as etapas: uma etapa com
+   poucas pessoas fica visualmente mais curta que uma etapa cheia, e a queda salta aos olhos
+   sem precisar ler numero nenhum. */
+.funil-barra {
+  display: flex;
+  height: 10px;
+  min-width: 3%;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--border);
+}
+
+.funil-seg {
+  min-width: 3px;
+}
+
+.funil-seg-vazio {
+  flex-grow: 1;
+}
+
+.funil-etapa-numeros {
+  display: flex;
+  gap: 14px;
+  margin-top: 5px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.funil-etapa-sem {
+  font-style: italic;
+}

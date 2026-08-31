@@ -68,7 +68,8 @@
         <tr><th>Nome</th><th>Gatilho</th><th>Número</th><th>Steps</th><th>Status</th><th>Ações</th></tr>
       </thead>
       <tbody>
-        <tr *ngFor="let f of flowsFiltrados(); let i = index" class="fade-up" [style.animation-delay.ms]="i * 40">
+        <ng-container *ngFor="let f of flowsFiltrados(); let i = index">
+        <tr class="fade-up" [style.animation-delay.ms]="i * 40">
           <td><strong>{{ f.nome }}</strong></td>
           <td class="mono">{{ f.gatilhoPalavraChave || '—' }}</td>
           <td><span class="badge" [ngClass]="f.numeroId ? 'badge-violet' : 'badge-muted'">{{ numeroLabel(f.numeroId) }}</span></td>
@@ -80,11 +81,73 @@
           </td>
           <td>
             <div class="btn-grp">
+              <button class="btn btn-ghost btn-xs" (click)="toggleFunil(f.id)">
+                {{ funilAberto() === f.id ? '▲ Funil' : '📊 Funil' }}
+              </button>
               <button class="btn btn-ghost btn-xs" (click)="editar(f.id)">Editar</button>
               <button class="btn btn-danger btn-xs" (click)="excluir(f.id)">Excluir</button>
             </div>
           </td>
         </tr>
+        <tr *ngIf="funilAberto() === f.id" class="funil-row">
+          <td colspan="6">
+            <div class="funil-painel">
+              <div *ngIf="carregandoFunil()" class="funil-carregando">Calculando o funil...</div>
+
+              <div *ngIf="erroFunil()" class="funil-erro">{{ erroFunil() }}</div>
+
+              <ng-container *ngIf="funil() as fn">
+                <div class="funil-resumo">
+                  <div class="funil-resumo-item">
+                    <span class="funil-dot funil-dot-presa"></span>
+                    <strong>{{ fn.totalPresas }}</strong> no meio da conversa
+                  </div>
+                  <div class="funil-resumo-item">
+                    <span class="funil-dot funil-dot-atendente"></span>
+                    <strong>{{ fn.totalEntreguesAoAtendente }}</strong> entregues a um atendente
+                  </div>
+                  <div class="funil-resumo-item">
+                    <span class="funil-dot funil-dot-concluiu"></span>
+                    <strong>{{ fn.totalConcluiram }}</strong> concluíram o flow
+                  </div>
+                  <div class="funil-resumo-item funil-resumo-total">
+                    {{ fn.totalConversas }} conversa{{ fn.totalConversas === 1 ? '' : 's' }} no total
+                  </div>
+                </div>
+
+                <div *ngIf="fn.etapas.length === 0" class="funil-vazio">
+                  Este flow ainda não teve nenhuma conversa.
+                </div>
+
+                <div class="funil-etapas" *ngIf="fn.etapas.length > 0">
+                  <div class="funil-etapa" *ngFor="let e of fn.etapas">
+                    <div class="funil-etapa-cabecalho">
+                      <span class="funil-etapa-ordem">{{ e.ordem }}</span>
+                      <span class="funil-etapa-rotulo" [title]="e.rotulo || e.nomeEtapa">{{ e.rotulo || e.nomeEtapa }}</span>
+                      <span class="badge badge-muted" *ngIf="e.ehEtapaFinal">etapa final</span>
+                    </div>
+                    <div class="funil-barra" [style.width.%]="(totalEtapa(e) / maiorTotalEtapa(fn)) * 100">
+                      <div class="funil-seg funil-seg-presa" *ngIf="e.presas"
+                           [style.flex-grow]="e.presas" [title]="e.presas + ' no meio da conversa'"></div>
+                      <div class="funil-seg funil-seg-atendente" *ngIf="e.entreguesAoAtendente"
+                           [style.flex-grow]="e.entreguesAoAtendente" [title]="e.entreguesAoAtendente + ' entregues a atendente'"></div>
+                      <div class="funil-seg funil-seg-concluiu" *ngIf="e.concluiram"
+                           [style.flex-grow]="e.concluiram" [title]="e.concluiram + ' concluíram'"></div>
+                      <div class="funil-seg-vazio" *ngIf="!e.presas && !e.entreguesAoAtendente && !e.concluiram"></div>
+                    </div>
+                    <div class="funil-etapa-numeros">
+                      <span *ngIf="e.presas">{{ e.presas }} presas</span>
+                      <span *ngIf="e.entreguesAoAtendente">{{ e.entreguesAoAtendente }} p/ atendente</span>
+                      <span *ngIf="e.concluiram">{{ e.concluiram }} concluíram</span>
+                      <span *ngIf="!e.presas && !e.entreguesAoAtendente && !e.concluiram" class="funil-etapa-sem">ninguém parou aqui</span>
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
+            </div>
+          </td>
+        </tr>
+        </ng-container>
       </tbody>
     </table>
   </div>
