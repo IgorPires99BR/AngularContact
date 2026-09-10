@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/services/auth';
 import { isEmailValido } from '../../shared/utils/validators';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
+import { UsuariosDaEmpresaComponent } from '../usuarios/usuarios-da-empresa.component';
 
 interface Empresa {
   id: string;
@@ -24,7 +25,7 @@ interface Empresa {
 @Component({
   selector: 'app-empresas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, UsuariosDaEmpresaComponent],
   templateUrl: './empresas.component.html',
   styleUrls: ['../shared-crud.css', './empresas.component.css'],
 })
@@ -233,6 +234,16 @@ export class EmpresasComponent implements OnInit {
         error: (err) => this.response.set('❌ ' + extrairMensagemErro(err, 'Falha ao salvar empresa.'))
       });
     }
+  }
+
+  // Qual empresa esta com o painel de usuarios aberto embaixo da linha (uma so por vez, pra
+  // nao acumular varios paineis na tela). null = nenhum.
+  empresaComUsuariosAbertos = signal<string | null>(null);
+
+  toggleUsuarios(empresaId: string) {
+    this.empresaComUsuariosAbertos.set(
+      this.empresaComUsuariosAbertos() === empresaId ? null : empresaId
+    );
   }
 
   excluir(id: string) {

@@ -214,34 +214,45 @@
     </div>
 
     <div class="crud-list">
-      <div class="crud-item" *ngFor="let e of empresasFiltradas()">
-        <div class="crud-avatar" style="background: linear-gradient(135deg, #3D6EE8, #4B7BFF)">
-          {{ e.nome ? e.nome.substring(0, 2).toUpperCase() : 'EP' }}
-        </div>
-        <div class="crud-info">
-          <div class="crud-name">{{ e.nome }}</div>
-          <div class="crud-meta">
-            <span *ngIf="e.cnpj">{{ e.cnpj }}</span>
-            <span *ngIf="e.email"> · {{ e.email }}</span>
-            <span *ngIf="e.telefone"> · {{ e.telefone }}</span>
+      <ng-container *ngFor="let e of empresasFiltradas()">
+        <div class="crud-item">
+          <div class="crud-avatar" style="background: linear-gradient(135deg, #3D6EE8, #4B7BFF)">
+            {{ e.nome ? e.nome.substring(0, 2).toUpperCase() : 'EP' }}
           </div>
-          <div class="crud-meta" style="display: flex; gap: 10px; margin-top: 4px;">
-            <span *ngIf="e.wabaId" style="color: #25D366; font-size: 11px; font-weight: 500;">
-              WABA ID: {{ e.wabaId }}
-            </span>
-            <span *ngIf="e.phoneNumberId" style="color: #3d6ee8; font-size: 11px; font-weight: 500;">
-              PHONE ID: {{ e.phoneNumberId }}
-            </span>
+          <div class="crud-info">
+            <div class="crud-name">{{ e.nome }}</div>
+            <div class="crud-meta">
+              <span *ngIf="e.cnpj">{{ e.cnpj }}</span>
+              <span *ngIf="e.email"> · {{ e.email }}</span>
+              <span *ngIf="e.telefone"> · {{ e.telefone }}</span>
+            </div>
+            <div class="crud-meta" style="display: flex; gap: 10px; margin-top: 4px;">
+              <span *ngIf="e.wabaId" style="color: #25D366; font-size: 11px; font-weight: 500;">
+                WABA ID: {{ e.wabaId }}
+              </span>
+              <span *ngIf="e.phoneNumberId" style="color: #3d6ee8; font-size: 11px; font-weight: 500;">
+                PHONE ID: {{ e.phoneNumberId }}
+              </span>
+            </div>
+          </div>
+          <div class="crud-actions">
+            @if (ehAdminDaPlataforma()) {
+              <button class="btn btn-ghost btn-xs" (click)="toggleUsuarios(e.id)" title="Ver e gerenciar os usuários desta empresa">
+                {{ empresaComUsuariosAbertos() === e.id ? '👥 Fechar' : '👥 Usuários' }}
+              </button>
+              <button class="btn btn-ghost btn-xs" (click)="prepararAcesso(e)" title="Criar o acesso do dono desta empresa">🔑 Acesso</button>
+            }
+            <button class="btn btn-ghost btn-xs" (click)="prepararEdicao(e)">Editar</button>
+            <button class="btn btn-danger btn-xs" (click)="excluir(e.id)">🗑</button>
           </div>
         </div>
-        <div class="crud-actions">
-          @if (ehAdminDaPlataforma()) {
-            <button class="btn btn-ghost btn-xs" (click)="prepararAcesso(e)" title="Criar o acesso do dono desta empresa">🔑 Acesso</button>
-          }
-          <button class="btn btn-ghost btn-xs" (click)="prepararEdicao(e)">Editar</button>
-          <button class="btn btn-danger btn-xs" (click)="excluir(e.id)">🗑</button>
-        </div>
-      </div>
+
+        @if (empresaComUsuariosAbertos() === e.id) {
+          <div class="usuarios-da-linha">
+            <app-usuarios-da-empresa [empresaId]="e.id" />
+          </div>
+        }
+      </ng-container>
       <div class="crud-empty" *ngIf="empresas().length === 0">
         Nenhuma empresa cadastrada
       </div>

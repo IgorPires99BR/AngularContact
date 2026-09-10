@@ -108,6 +108,16 @@
   line-height: 1.55;
 }
 
+/* Painel de usuarios embutido embaixo da linha da empresa (app-usuarios-da-empresa). Borda a
+   esquerda e recuo pra ficar claro que pertence aquela empresa especifica, nao a lista toda. */
+.usuarios-da-linha {
+  margin: 4px 0 14px 14px;
+  padding: 16px 16px 4px;
+  border-left: 2px solid var(--border2);
+  background: var(--bg-card2);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+
 .alvo-empresa {
   display: flex;
   gap: 10px;

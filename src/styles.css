@@ -114,6 +114,14 @@ a {
   gap: 16px;
 }
 
+/* app-usuarios-da-empresa embutido dentro da linha de uma empresa (tela de Empresas) usa o
+   proprio .g2 por dentro, mas ali a coluna da tela ja e so metade da largura -- formulario e
+   tabela lado a lado ficariam espremidos. Regra global de proposito (nao no CSS do componente
+   pai): estilo de componente com View Encapsulation nao alcanca o DOM de um componente filho. */
+.usuarios-da-empresa .g2 {
+  grid-template-columns: 1fr;
+}
+
 .g3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
