@@ -6,11 +6,12 @@ import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 import { TemplateService } from '../templates/template.service';
-import { Template } from '../templates/template.models';
+import { Template, TemplateComponente, TemplateBotaoForm, HeaderState, headerStateVazio, parseComponentes } from '../templates/template.models';
+import { TemplatePreviewComponent } from '../templates/template-preview/template-preview';
 import { AgendamentoService } from './agendamento.service';
 import {
   Agendamento, AgendamentoExecucao, AgendamentoVariavel, OrigemVariavelAgendamento,
-  ROTULO_RECORRENCIA, TipoRecorrencia
+  DIAS_DA_SEMANA, ROTULO_RECORRENCIA, TipoRecorrencia, descricaoRecorrencia, resumoDiasSemana
 } from './agendamento.models';
 
 interface Contato {
@@ -21,10 +22,14 @@ interface Contato {
   checked?: boolean;
 }
 
+interface TemplateAgendamento extends Template {
+  componentesParsed?: TemplateComponente[]; // Cache local pós-parse
+}
+
 @Component({
   selector: 'app-agendamentos',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TemplatePreviewComponent],
   templateUrl: './agendamentos.component.html',
   styleUrls: ['../shared-crud.css', './agendamentos.component.css'],
 })
@@ -40,9 +45,12 @@ export class AgendamentosComponent implements OnInit {
   private userId = this.authService.usuarioIdSignal;
 
   readonly rotuloRecorrencia = ROTULO_RECORRENCIA;
+  readonly diasDaSemana = DIAS_DA_SEMANA;
+  readonly descricaoRecorrencia = descricaoRecorrencia;
+  readonly diasDoMes = Array.from({ length: 31 }, (_, i) => i + 1);
 
   agendamentos = signal<Agendamento[]>([]);
-  templates = signal<Template[]>([]);
+  templates = signal<TemplateAgendamento[]>([]);
   contatos = signal<Contato[]>([]);
   search = signal('');
   response = signal('');
@@ -60,6 +68,8 @@ export class AgendamentosComponent implements OnInit {
     dataInicio: '',
     dataFim: '',
     dataReferencia: '',
+    diasSemana: [] as number[],
+    diaDoMes: null as number | null,
   });
 
   variaveis = signal<AgendamentoVariavel[]>([]);
@@ -82,6 +92,100 @@ export class AgendamentosComponent implements OnInit {
     return filtrados.every(c => c.checked);
   });
 
+  // Captura o objeto de template atualmente ativo e faz o parse do componentesJson (header/
+  // footer/botões) -- mesmo padrão do Disparador, pra prévia funcionar com qualquer tipo de
+  // template (texto puro, com mídia no cabeçalho, com botões...), não só o corpo.
+  templateAtivo = computed(() => {
+    const tplId = this.form().templateId;
+    const tpl = this.templates().find(t => t.id === tplId);
+    if (!tpl) return null;
+
+    if (!tpl.componentesParsed) {
+      tpl.componentesParsed = parseComponentes(tpl.componentesJson);
+    }
+    return tpl;
+  });
+
+  headerPreview = computed<HeaderState>(() => {
+    const tpl = this.templateAtivo();
+    if (!tpl?.componentesParsed) return headerStateVazio();
+
+    const headerComp = tpl.componentesParsed.find(c => c.Tipo === 0);
+    if (!headerComp || headerComp.FormatMidia === 0) return headerStateVazio();
+
+    const tipoPorFormato: HeaderState['tipo'][] = ['NONE', 'TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'];
+    return {
+      tipo: tipoPorFormato[headerComp.FormatMidia] ?? 'NONE',
+      texto: headerComp.Texto || '',
+      exemploHandle: '',
+      exemploNomeArquivo: '',
+    };
+  });
+
+  footerPreview = computed(() => {
+    const tpl = this.templateAtivo();
+    const footerComp = tpl?.componentesParsed?.find(c => c.Tipo === 2);
+    return footerComp?.Texto || '';
+  });
+
+  botoesPreview = computed(() => {
+    const tpl = this.templateAtivo();
+    const botoesComp = tpl?.componentesParsed?.find(c => c.Tipo === 3);
+    if (!botoesComp?.Botoes) return [];
+    const tipoPorIndice: TemplateBotaoForm['tipo'][] = ['QUICK_REPLY', 'URL', 'PHONE_NUMBER', 'COPY_CODE'];
+    return botoesComp.Botoes.map(b => ({
+      tipo: tipoPorIndice[b.Tipo] ?? 'QUICK_REPLY',
+      texto: b.Texto,
+      url: b.Url,
+      numeroTelefone: b.NumeroTelefone,
+      codigoExemplo: b.CodigoExemplo,
+    }));
+  });
+
+  // Como a mensagem fica pra um contato de exemplo (o primeiro selecionado, se houver), com as
+  // variáveis já resolvidas -- é o que a tela pedia: "mostre um preview de como ficaria esse
+  // template, aplicando as variáveis".
+  contatoDaPrevia = computed(() => this.selecionados()[0] || null);
+
+  textoPreview = computed(() => {
+    const tpl = this.templateAtivo();
+    if (!tpl) return '';
+
+    const exemplo = this.contatoDaPrevia();
+    let texto = tpl.conteudo;
+
+    this.variaveis().forEach((v, index) => {
+      const valor = (this.valorDaVariavel(v, exemplo) || `campo ${index + 1}`).trim();
+      texto = texto.replace(new RegExp(`\\{\\{${index + 1}\\}\\}`, 'g'), valor);
+    });
+
+    return texto;
+  });
+
+  // Frase pronta explicando quando o disparo acontece, pra não depender do usuário decifrar
+  // "Semanal" + os chips marcados + a data de referência mentalmente.
+  resumoRecorrenciaTexto = computed(() => {
+    const f = this.form();
+    if (!f.dataReferencia) return 'Informe a data e hora de referência para ver o resumo.';
+
+    const hora = f.dataReferencia.slice(11, 16);
+    if (!hora) return '';
+
+    if (f.tipoRecorrencia === 'DIARIA') return `Todos os dias, às ${hora}.`;
+
+    if (f.tipoRecorrencia === 'SEMANAL') {
+      if (f.diasSemana.length === 0) return 'Marque ao menos um dia da semana abaixo.';
+      return `Toda(o) ${resumoDiasSemana(f.diasSemana)}, às ${hora}.`;
+    }
+
+    if (f.tipoRecorrencia === 'MENSAL') {
+      const dia = f.diaDoMes ?? (f.dataReferencia ? new Date(f.dataReferencia).getDate() : null);
+      return dia ? `Todo dia ${dia} do mês, às ${hora}.` : '';
+    }
+
+    return '';
+  });
+
   ngOnInit() {
     this.buscarAgendamentos();
     this.buscarTemplates();
@@ -101,7 +205,7 @@ export class AgendamentosComponent implements OnInit {
     const empId = this.empresaId();
     if (!empId) return;
     this.templateService.listar(empId).subscribe({
-      next: (res) => this.templates.set((res as Template[]).filter(t => t.status?.toUpperCase() === 'APPROVED')),
+      next: (res) => this.templates.set((res as TemplateAgendamento[]).filter(t => t.status?.toUpperCase() === 'APPROVED')),
       error: () => this.response.set('❌ Erro ao carregar modelos de mensagem.')
     });
   }
@@ -152,6 +256,15 @@ export class AgendamentosComponent implements OnInit {
     return 'valor fixo';
   }
 
+  // Resolve o valor de uma variável para um contato de exemplo. Sem contato selecionado (prévia
+  // sem seleção), devolve um exemplo visível em vez de vazio -- senão a prévia mostra "campo N"
+  // pra tudo antes do usuário marcar alguém na lista.
+  private valorDaVariavel(v: AgendamentoVariavel, contato: Contato | null): string {
+    if (v.origem === 'nome') return contato ? (contato.nome || '') : 'Maria';
+    if (v.origem === 'telefone') return contato ? contato.telefone : '5511999990000';
+    return v.valorFixo;
+  }
+
   trackByIndex(index: number): number {
     return index;
   }
@@ -172,6 +285,14 @@ export class AgendamentosComponent implements OnInit {
     this.contatos.update(list => list.map(c =>
       filtradosIds.includes(c.id) ? { ...c, checked: marcarTodos } : c
     ));
+  }
+
+  toggleDiaSemana(valor: number) {
+    const atual = this.form().diasSemana;
+    const diasSemana = atual.includes(valor)
+      ? atual.filter(d => d !== valor)
+      : [...atual, valor].sort((a, b) => a - b);
+    this.update('diasSemana', diasSemana);
   }
 
   salvar() {
@@ -195,6 +316,10 @@ export class AgendamentosComponent implements OnInit {
       this.response.set('❌ Informe a data e hora de referência do disparo.');
       return;
     }
+    if (f.tipoRecorrencia === 'SEMANAL' && f.diasSemana.length === 0) {
+      this.response.set('❌ Marque ao menos um dia da semana para a recorrência semanal.');
+      return;
+    }
     if (this.variaveis().some(v => v.origem === 'fixo' && !v.valorFixo.trim())) {
       this.response.set('❌ Preencha o que entra em cada campo variável da mensagem.');
       return;
@@ -212,6 +337,11 @@ export class AgendamentosComponent implements OnInit {
     const dataInicio = `${f.dataInicio}T00:00:00`;
     const dataFim = f.dataFim ? `${f.dataFim}T23:59:59` : null;
     const variaveis = this.variaveis();
+    // Só manda o que é relevante pro tipo escolhido -- diasSemana só faz sentido em SEMANAL,
+    // diaDoMes só em MENSAL; mandar os dois sempre deixaria estado velho gravado no banco caso
+    // o usuário troque de tipo de recorrência antes de salvar.
+    const diasSemana = f.tipoRecorrencia === 'SEMANAL' ? f.diasSemana : [];
+    const diaDoMes = f.tipoRecorrencia === 'MENSAL' ? f.diaDoMes : null;
 
     this.salvando.set(true);
 
@@ -226,6 +356,8 @@ export class AgendamentosComponent implements OnInit {
           dataReferencia: f.dataReferencia,
           contatoIds,
           variaveis,
+          diasSemana,
+          diaDoMes,
         })
       : this.agendamentoService.incluir({
           empresaId: empId,
@@ -238,6 +370,8 @@ export class AgendamentosComponent implements OnInit {
           contatoIds,
           usuarioCriacaoId: this.userId(),
           variaveis,
+          diasSemana,
+          diaDoMes,
         });
 
     request.subscribe({
@@ -265,6 +399,8 @@ export class AgendamentosComponent implements OnInit {
           dataInicio: paraDataCurta(detalhe.dataInicio),
           dataFim: detalhe.dataFim ? paraDataCurta(detalhe.dataFim) : '',
           dataReferencia: paraDatetimeLocal(detalhe.dataReferencia),
+          diasSemana: detalhe.diasSemana || [],
+          diaDoMes: detalhe.diaDoMes ?? null,
         });
         this.variaveis.set(detalhe.variaveis || []);
         this.contatos.update(list => list.map(c => ({ ...c, checked: detalhe.contatoIds.includes(c.id) })));
@@ -277,7 +413,10 @@ export class AgendamentosComponent implements OnInit {
 
   cancelarEdicao() {
     this.editingId.set(null);
-    this.form.set({ nome: '', templateId: '', tipoRecorrencia: 'DIARIA', dataInicio: '', dataFim: '', dataReferencia: '' });
+    this.form.set({
+      nome: '', templateId: '', tipoRecorrencia: 'DIARIA', dataInicio: '', dataFim: '', dataReferencia: '',
+      diasSemana: [], diaDoMes: null,
+    });
     this.variaveis.set([]);
     this.contatos.update(list => list.map(c => ({ ...c, checked: false })));
   }

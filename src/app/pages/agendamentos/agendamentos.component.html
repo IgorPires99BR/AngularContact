@@ -5,130 +5,202 @@
   </div>
 </div>
 
-<div class="card">
-  <div class="card-head">
-    <div>
-      <div class="card-title">{{ editingId() ? '📝 Editar Agendamento' : '🗓️ Novo Agendamento' }}</div>
-      <div class="card-sub">O disparo é feito automaticamente pelo servidor, no horário e na recorrência escolhidos</div>
+<div class="g2 agenda-grid">
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">{{ editingId() ? '📝 Editar Agendamento' : '🗓️ Novo Agendamento' }}</div>
+        <div class="card-sub">O disparo é feito automaticamente pelo servidor, no horário e na recorrência escolhidos</div>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="agenda-secao-titulo">1. Mensagem</div>
+
+      <div class="fg">
+        <label>Nome do agendamento</label>
+        <input type="text" placeholder="Ex: Lembrete semanal de pagamento" maxlength="200"
+               [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
+      </div>
+
+      <div class="fg">
+        <label>Modelo de mensagem</label>
+        <select [ngModel]="form().templateId" (ngModelChange)="onTemplateChange($event)">
+          <option value="">Escolha um modelo aprovado</option>
+          <option *ngFor="let t of templates()" [value]="t.id">{{ t.nomeTemplate }} ({{ t.idioma }})</option>
+        </select>
+        <div class="disp-hint" *ngIf="templates().length === 0">
+          Você ainda não tem modelo aprovado. Crie um em <b>Templates</b> — a Meta costuma responder em até 24h.
+        </div>
+      </div>
+
+      <div class="fg" *ngFor="let v of variaveis(); let i = index; trackBy: trackByIndex">
+        <label>Campo {{ i + 1 }} da mensagem</label>
+        <div class="disp-origem">
+          <button type="button" class="disp-chip" [class.ativo]="v.origem === 'nome'" (click)="updateVariavel(i, { origem: 'nome' })">Nome do contato</button>
+          <button type="button" class="disp-chip" [class.ativo]="v.origem === 'telefone'" (click)="updateVariavel(i, { origem: 'telefone' })">Telefone do contato</button>
+          <button type="button" class="disp-chip" [class.ativo]="v.origem === 'fixo'" (click)="updateVariavel(i, { origem: 'fixo' })">Escrever um texto</button>
+        </div>
+        <input type="text" *ngIf="v.origem === 'fixo'"
+               placeholder="Ex: 20% de desconto"
+               [ngModel]="v.valorFixo"
+               (ngModelChange)="updateVariavel(i, { valorFixo: $event })" />
+        <div class="disp-hint" *ngIf="v.origem !== 'fixo'">
+          Cada contato recebe o {{ rotuloOrigem(v.origem) }} dele, preenchido a cada disparo.
+        </div>
+      </div>
+
+      <div class="agenda-secao-titulo">2. Recorrência</div>
+
+      <div class="fg">
+        <label>Repetir</label>
+        <div class="disp-origem">
+          <button type="button" class="disp-chip" [class.ativo]="form().tipoRecorrencia === 'DIARIA'" (click)="update('tipoRecorrencia', 'DIARIA')">Todo dia</button>
+          <button type="button" class="disp-chip" [class.ativo]="form().tipoRecorrencia === 'SEMANAL'" (click)="update('tipoRecorrencia', 'SEMANAL')">Em dias da semana</button>
+          <button type="button" class="disp-chip" [class.ativo]="form().tipoRecorrencia === 'MENSAL'" (click)="update('tipoRecorrencia', 'MENSAL')">Uma vez por mês</button>
+        </div>
+
+        <div class="agenda-dias-semana" *ngIf="form().tipoRecorrencia === 'SEMANAL'">
+          <div class="disp-hint" style="margin: 8px 0 6px;">Em quais dias:</div>
+          <div class="dia-semana-chips">
+            <button type="button" *ngFor="let d of diasDaSemana" class="dia-chip"
+                    [class.ativo]="form().diasSemana.includes(d.valor)"
+                    (click)="toggleDiaSemana(d.valor)" [title]="d.rotulo">
+              {{ d.curto }}
+            </button>
+          </div>
+          <div class="disp-hint" *ngIf="form().diasSemana.length === 0">
+            Ex: marque Segunda, Quarta e Sexta para repetir três vezes por semana.
+          </div>
+        </div>
+
+        <div class="fg" style="margin-top: 10px" *ngIf="form().tipoRecorrencia === 'MENSAL'">
+          <label>Em qual dia do mês</label>
+          <select [ngModel]="form().diaDoMes" (ngModelChange)="update('diaDoMes', $event)">
+            <option [ngValue]="null">Mesmo dia da data de referência (abaixo)</option>
+            <option *ngFor="let d of diasDoMes" [ngValue]="d">Dia {{ d }}</option>
+          </select>
+          <div class="disp-hint">
+            Em meses mais curtos que o dia escolhido, dispara no último dia do mês.
+          </div>
+        </div>
+
+        <div class="agenda-resumo" *ngIf="resumoRecorrenciaTexto()">
+          🔁 {{ resumoRecorrenciaTexto() }}
+        </div>
+      </div>
+
+      <div class="agenda-secao-titulo">3. Vigência</div>
+
+      <div class="fg-row">
+        <div class="fg">
+          <label>Data de início</label>
+          <input type="date" [ngModel]="form().dataInicio" (ngModelChange)="update('dataInicio', $event)">
+        </div>
+        <div class="fg">
+          <label>Data de término (opcional)</label>
+          <input type="date" [ngModel]="form().dataFim" (ngModelChange)="update('dataFim', $event)">
+          <div class="disp-hint">Deixe em branco para repetir indefinidamente.</div>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label>Data e hora de referência do disparo</label>
+        <input type="datetime-local" [ngModel]="form().dataReferencia" (ngModelChange)="update('dataReferencia', $event)">
+        <div class="disp-hint">
+          Horário do 1º disparo e referência para os próximos (a hora do dia sempre se repete).
+        </div>
+      </div>
+
+      <div class="agenda-secao-titulo">4. Destinatários</div>
+
+      <div class="fg">
+        <label>Contatos que vão receber ({{ selecionados().length }} selecionado(s))</label>
+
+        <div class="crud-search-bar">
+          <span class="crud-search-icon">🔍</span>
+          <input class="crud-search-input" placeholder="Buscar por nome, telefone ou e-mail..."
+                 [ngModel]="search()" (ngModelChange)="search.set($event)">
+        </div>
+
+        <div class="tbl-wrap disp-tabela">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width: 46px; text-align: center;">
+                  <button type="button" class="contato-toggle contato-toggle-todos"
+                          [class.marcado]="isAllSelected()"
+                          (click)="selAll()"
+                          [title]="isAllSelected() ? 'Desmarcar todos' : 'Marcar todos'">
+                    <span *ngIf="isAllSelected()">✓</span>
+                  </button>
+                </th>
+                <th>Nome</th>
+                <th>Telefone</th>
+                <th>E-mail</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of contatosFiltrados(); trackBy: trackByContatoId" [class.selecionado]="c.checked">
+                <td style="text-align: center;">
+                  <button type="button" class="contato-toggle" [class.marcado]="c.checked"
+                          (click)="toggleContato(c)"
+                          [attr.aria-label]="c.checked ? 'Selecionado, clique para remover' : 'Não selecionado, clique para marcar'">
+                    {{ c.checked ? '✓' : '✕' }}
+                  </button>
+                </td>
+                <td><strong>{{ c.nome || 'Sem nome' }}</strong></td>
+                <td class="mono">{{ c.telefone }}</td>
+                <td>{{ c.email || '-' }}</td>
+              </tr>
+              <tr *ngIf="contatosFiltrados().length === 0">
+                <td colspan="4" class="crud-empty" style="text-align: center; padding: 20px;">
+                  Nenhum contato encontrado.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-primary" (click)="salvar()" [disabled]="salvando()">
+          {{ salvando() ? '⏳ Salvando...' : (editingId() ? '✅ Salvar Alterações' : '✅ Criar Agendamento') }}
+        </button>
+        <button *ngIf="editingId()" class="btn btn-ghost" (click)="cancelarEdicao()">Cancelar</button>
+      </div>
+
+      <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
     </div>
   </div>
 
-  <div class="card-body">
-    <div class="fg">
-      <label>Nome do agendamento</label>
-      <input type="text" placeholder="Ex: Lembrete semanal de pagamento" maxlength="200"
-             [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
-    </div>
-
-    <div class="fg">
-      <label>Modelo de mensagem</label>
-      <select [ngModel]="form().templateId" (ngModelChange)="onTemplateChange($event)">
-        <option value="">Escolha um modelo aprovado</option>
-        <option *ngFor="let t of templates()" [value]="t.id">{{ t.nomeTemplate }} ({{ t.idioma }})</option>
-      </select>
-      <div class="disp-hint" *ngIf="templates().length === 0">
-        Você ainda não tem modelo aprovado. Crie um em <b>Templates</b> — a Meta costuma responder em até 24h.
+  <!-- Prévia -->
+  <div class="card agenda-preview-card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">Como o contato vai ver</div>
+        <div class="card-sub" *ngIf="contatoDaPrevia()">Exemplo com {{ contatoDaPrevia()!.nome || contatoDaPrevia()!.telefone }}</div>
+        <div class="card-sub" *ngIf="!contatoDaPrevia()">Marque um contato para ver com dados reais</div>
       </div>
     </div>
+    <div class="card-body">
+      <ng-container *ngIf="templateAtivo(); else semTemplate">
+        <app-template-preview
+          [header]="headerPreview()"
+          [textoPreview]="textoPreview()"
+          [footerTexto]="footerPreview()"
+          [botoes]="botoesPreview()">
+        </app-template-preview>
+      </ng-container>
+      <ng-template #semTemplate>
+        <div class="disp-hint">Escolha um modelo de mensagem para ver a prévia aqui.</div>
+      </ng-template>
 
-    <div class="fg" *ngFor="let v of variaveis(); let i = index; trackBy: trackByIndex">
-      <label>Campo {{ i + 1 }} da mensagem</label>
-      <div class="disp-origem">
-        <button type="button" class="disp-chip" [class.ativo]="v.origem === 'nome'" (click)="updateVariavel(i, { origem: 'nome' })">Nome do contato</button>
-        <button type="button" class="disp-chip" [class.ativo]="v.origem === 'telefone'" (click)="updateVariavel(i, { origem: 'telefone' })">Telefone do contato</button>
-        <button type="button" class="disp-chip" [class.ativo]="v.origem === 'fixo'" (click)="updateVariavel(i, { origem: 'fixo' })">Escrever um texto</button>
-      </div>
-      <input type="text" *ngIf="v.origem === 'fixo'"
-             placeholder="Ex: 20% de desconto"
-             [ngModel]="v.valorFixo"
-             (ngModelChange)="updateVariavel(i, { valorFixo: $event })" />
-      <div class="disp-hint" *ngIf="v.origem !== 'fixo'">
-        Cada contato recebe o {{ rotuloOrigem(v.origem) }} dele, preenchido a cada disparo.
-      </div>
-    </div>
-
-    <div class="fg">
-      <label>Repetir</label>
-      <div class="disp-origem">
-        <button type="button" class="disp-chip" [class.ativo]="form().tipoRecorrencia === 'DIARIA'" (click)="update('tipoRecorrencia', 'DIARIA')">Uma vez por dia</button>
-        <button type="button" class="disp-chip" [class.ativo]="form().tipoRecorrencia === 'SEMANAL'" (click)="update('tipoRecorrencia', 'SEMANAL')">Uma vez por semana</button>
-        <button type="button" class="disp-chip" [class.ativo]="form().tipoRecorrencia === 'MENSAL'" (click)="update('tipoRecorrencia', 'MENSAL')">Uma vez por mês</button>
-      </div>
-      <div class="disp-hint">
-        A recorrência usa como referência a data e hora de referência do disparo: semanal repete
-        no mesmo dia da semana, mensal no mesmo dia do mês (ajustando para o último dia em meses menores).
+      <div class="agenda-resumo agenda-resumo-preview" *ngIf="form().templateId">
+        <div><span>Recorrência</span><b>{{ resumoRecorrenciaTexto() || '—' }}</b></div>
+        <div><span>Destinatários</span><b>{{ selecionados().length }} contato(s)</b></div>
       </div>
     </div>
-
-    <div class="fg-row">
-      <div class="fg">
-        <label>Data de início (vigência)</label>
-        <input type="date" [ngModel]="form().dataInicio" (ngModelChange)="update('dataInicio', $event)">
-      </div>
-      <div class="fg">
-        <label>Data de término (vigência, opcional)</label>
-        <input type="date" [ngModel]="form().dataFim" (ngModelChange)="update('dataFim', $event)">
-        <div class="disp-hint">Deixe em branco para repetir indefinidamente.</div>
-      </div>
-    </div>
-
-    <div class="fg">
-      <label>Data e hora de referência do disparo</label>
-      <input type="datetime-local" [ngModel]="form().dataReferencia" (ngModelChange)="update('dataReferencia', $event)">
-      <div class="disp-hint">
-        Horário do 1º disparo e referência para os próximos (mesma hora do dia, e no caso mensal
-        também o mesmo dia do mês).
-      </div>
-    </div>
-
-    <div class="fg">
-      <label>Contatos que vão receber ({{ selecionados().length }} selecionado(s))</label>
-
-      <div class="crud-search-bar">
-        <span class="crud-search-icon">🔍</span>
-        <input class="crud-search-input" placeholder="Buscar por nome, telefone ou e-mail..."
-               [ngModel]="search()" (ngModelChange)="search.set($event)">
-      </div>
-
-      <div class="tbl-wrap disp-tabela">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th style="width: 50px; text-align: center;">
-                <input type="checkbox" [checked]="isAllSelected()" (change)="selAll()">
-              </th>
-              <th>Nome</th>
-              <th>Telefone</th>
-              <th>E-mail</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let c of contatosFiltrados(); trackBy: trackByContatoId" [class.selecionado]="c.checked">
-              <td style="text-align: center;">
-                <input type="checkbox" [checked]="c.checked" (change)="toggleContato(c)">
-              </td>
-              <td><strong>{{ c.nome || 'Sem nome' }}</strong></td>
-              <td class="mono">{{ c.telefone }}</td>
-              <td>{{ c.email || '-' }}</td>
-            </tr>
-            <tr *ngIf="contatosFiltrados().length === 0">
-              <td colspan="4" class="crud-empty" style="text-align: center; padding: 20px;">
-                Nenhum contato encontrado.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 16px;">
-      <button class="btn btn-primary" (click)="salvar()" [disabled]="salvando()">
-        {{ salvando() ? '⏳ Salvando...' : (editingId() ? '✅ Salvar Alterações' : '✅ Criar Agendamento') }}
-      </button>
-      <button *ngIf="editingId()" class="btn btn-ghost" (click)="cancelarEdicao()">Cancelar</button>
-    </div>
-
-    <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
   </div>
 </div>
 
@@ -158,7 +230,7 @@
           <tr>
             <td><strong>{{ a.nome }}</strong></td>
             <td>{{ a.nomeTemplate || '—' }}</td>
-            <td>{{ rotuloRecorrencia[a.tipoRecorrencia] }}</td>
+            <td>{{ descricaoRecorrencia(a) }}</td>
             <td class="mono">{{ a.proximaExecucao | date: 'dd/MM/yyyy HH:mm' }}</td>
             <td>{{ a.totalContatos }}</td>
             <td>

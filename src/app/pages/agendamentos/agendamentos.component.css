@@ -24,7 +24,105 @@
 
 .disp-tabela { max-height: 320px; overflow-y: auto; margin-top: 10px; }
 
-/* Contato marcado precisa ficar visualmente óbvio na lista, não só o checkbox marcado --
+/* Contato marcado precisa ficar visualmente óbvio na lista, não só o círculo marcado --
    fácil de passar batido rolando uma lista longa. */
 .disp-tabela tr.selecionado { background: var(--blue-light); }
 .disp-tabela tr.selecionado td { color: var(--text); }
+
+/* Separador entre os blocos do formulário (mensagem / recorrência / vigência / destinatários) --
+   a tela cresceu bastante depois de virar "qualquer tipo de template" + recorrência detalhada,
+   então precisa de marcos visuais claros pra não virar uma parede única de campos. */
+.agenda-secao-titulo {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--muted);
+  margin: 22px 0 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.agenda-secao-titulo:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+/* Seletor de dias da semana: um círculo por dia (D S T Q Q S S), múltipla escolha -- pensado
+   pra recorrência tipo "toda segunda, quarta e sexta". */
+.dia-semana-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.dia-chip {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.dia-chip:hover { border-color: var(--blue3); color: var(--text); }
+.dia-chip.ativo { border-color: var(--blue3); background: var(--blue3); color: #fff; }
+
+/* Resumo em texto corrido da recorrência escolhida ("Toda Seg, Qua, Sex, às 14:30") -- feedback
+   imediato de que a combinação de campos faz sentido, sem o usuário ter que montar a frase
+   mentalmente a partir dos chips marcados. */
+.agenda-resumo {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--blue-light);
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.agenda-resumo-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+  background: rgba(255, 255, 255, .03);
+}
+
+.agenda-resumo-preview > div { display: flex; justify-content: space-between; gap: 12px; }
+.agenda-resumo-preview span { color: var(--muted); }
+.agenda-resumo-preview b { color: var(--text); text-align: right; }
+
+/* Círculo de seleção do contato: ✕ cinza quando não selecionado, ✓ verde preenchido quando
+   selecionado -- estado visível de longe na lista, sem depender de olhar um checkbox pequeno. */
+.contato-toggle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border2, var(--border));
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s ease;
+}
+
+.contato-toggle:hover { border-color: var(--blue3); color: var(--text); }
+
+.contato-toggle.marcado {
+  border-color: var(--green);
+  background: var(--green);
+  color: #fff;
+}
+
+.contato-toggle-todos.marcado { background: var(--blue3); border-color: var(--blue3); }
+
+/* Prévia acompanha a rolagem do formulário, que é bem mais longo -- sem isto o card de prévia
+   ficava lá no topo enquanto o usuário preenchia recorrência/vigência/contatos mais embaixo. */
+.agenda-preview-card { align-self: flex-start; position: sticky; top: 16px; }
+
+@media (max-width: 900px) {
+  .agenda-grid { grid-template-columns: 1fr; }
+  .agenda-preview-card { position: static; }
+}
