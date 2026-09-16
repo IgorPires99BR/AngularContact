@@ -23,3 +23,8 @@
 }
 
 .disp-tabela { max-height: 320px; overflow-y: auto; margin-top: 10px; }
+
+/* Contato marcado precisa ficar visualmente óbvio na lista, não só o checkbox marcado --
+   fácil de passar batido rolando uma lista longa. */
+.disp-tabela tr.selecionado { background: var(--blue-light); }
+.disp-tabela tr.selecionado td { color: var(--text); }

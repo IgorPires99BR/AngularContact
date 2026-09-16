@@ -1,5 +1,14 @@
 export type TipoRecorrencia = 'DIARIA' | 'SEMANAL' | 'MENSAL';
 
+// De onde sai o valor de cada variável do corpo do template. "fixo" = o mesmo texto para todo
+// mundo; "nome"/"telefone" = o dado de cada contato, resolvido a cada disparo recorrente.
+export type OrigemVariavelAgendamento = 'fixo' | 'nome' | 'telefone';
+
+export interface AgendamentoVariavel {
+  origem: OrigemVariavelAgendamento;
+  valorFixo: string;
+}
+
 export interface Agendamento {
   id: string;
   nome: string;
@@ -8,6 +17,7 @@ export interface Agendamento {
   tipoRecorrencia: TipoRecorrencia;
   dataInicio: string;
   dataFim?: string | null;
+  dataReferencia: string;
   proximaExecucao: string;
   ativo: boolean;
   totalContatos: number;
@@ -20,9 +30,11 @@ export interface AgendamentoDetalhe {
   tipoRecorrencia: TipoRecorrencia;
   dataInicio: string;
   dataFim?: string | null;
+  dataReferencia: string;
   proximaExecucao: string;
   ativo: boolean;
   contatoIds: string[];
+  variaveis: AgendamentoVariavel[];
 }
 
 export interface AgendamentoExecucao {

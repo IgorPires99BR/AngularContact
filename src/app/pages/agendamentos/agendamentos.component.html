@@ -22,12 +22,28 @@
 
     <div class="fg">
       <label>Modelo de mensagem</label>
-      <select [ngModel]="form().templateId" (ngModelChange)="update('templateId', $event)">
+      <select [ngModel]="form().templateId" (ngModelChange)="onTemplateChange($event)">
         <option value="">Escolha um modelo aprovado</option>
         <option *ngFor="let t of templates()" [value]="t.id">{{ t.nomeTemplate }} ({{ t.idioma }})</option>
       </select>
       <div class="disp-hint" *ngIf="templates().length === 0">
         Você ainda não tem modelo aprovado. Crie um em <b>Templates</b> — a Meta costuma responder em até 24h.
+      </div>
+    </div>
+
+    <div class="fg" *ngFor="let v of variaveis(); let i = index; trackBy: trackByIndex">
+      <label>Campo {{ i + 1 }} da mensagem</label>
+      <div class="disp-origem">
+        <button type="button" class="disp-chip" [class.ativo]="v.origem === 'nome'" (click)="updateVariavel(i, { origem: 'nome' })">Nome do contato</button>
+        <button type="button" class="disp-chip" [class.ativo]="v.origem === 'telefone'" (click)="updateVariavel(i, { origem: 'telefone' })">Telefone do contato</button>
+        <button type="button" class="disp-chip" [class.ativo]="v.origem === 'fixo'" (click)="updateVariavel(i, { origem: 'fixo' })">Escrever um texto</button>
+      </div>
+      <input type="text" *ngIf="v.origem === 'fixo'"
+             placeholder="Ex: 20% de desconto"
+             [ngModel]="v.valorFixo"
+             (ngModelChange)="updateVariavel(i, { valorFixo: $event })" />
+      <div class="disp-hint" *ngIf="v.origem !== 'fixo'">
+        Cada contato recebe o {{ rotuloOrigem(v.origem) }} dele, preenchido a cada disparo.
       </div>
     </div>
 
@@ -39,20 +55,29 @@
         <button type="button" class="disp-chip" [class.ativo]="form().tipoRecorrencia === 'MENSAL'" (click)="update('tipoRecorrencia', 'MENSAL')">Uma vez por mês</button>
       </div>
       <div class="disp-hint">
-        A recorrência usa como referência a data e hora de início: semanal repete no mesmo dia da
-        semana, mensal no mesmo dia do mês (ajustando para o último dia em meses menores).
+        A recorrência usa como referência a data e hora de referência do disparo: semanal repete
+        no mesmo dia da semana, mensal no mesmo dia do mês (ajustando para o último dia em meses menores).
       </div>
     </div>
 
     <div class="fg-row">
       <div class="fg">
-        <label>Data e hora de início</label>
-        <input type="datetime-local" [ngModel]="form().dataInicio" (ngModelChange)="update('dataInicio', $event)">
+        <label>Data de início (vigência)</label>
+        <input type="date" [ngModel]="form().dataInicio" (ngModelChange)="update('dataInicio', $event)">
       </div>
       <div class="fg">
-        <label>Data de término (opcional)</label>
+        <label>Data de término (vigência, opcional)</label>
         <input type="date" [ngModel]="form().dataFim" (ngModelChange)="update('dataFim', $event)">
         <div class="disp-hint">Deixe em branco para repetir indefinidamente.</div>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label>Data e hora de referência do disparo</label>
+      <input type="datetime-local" [ngModel]="form().dataReferencia" (ngModelChange)="update('dataReferencia', $event)">
+      <div class="disp-hint">
+        Horário do 1º disparo e referência para os próximos (mesma hora do dia, e no caso mensal
+        também o mesmo dia do mês).
       </div>
     </div>
 
@@ -78,7 +103,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let c of contatosFiltrados()">
+            <tr *ngFor="let c of contatosFiltrados(); trackBy: trackByContatoId" [class.selecionado]="c.checked">
               <td style="text-align: center;">
                 <input type="checkbox" [checked]="c.checked" (change)="toggleContato(c)">
               </td>

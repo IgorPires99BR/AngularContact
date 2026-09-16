@@ -8,7 +8,10 @@ import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 import { TemplateService } from '../templates/template.service';
 import { Template } from '../templates/template.models';
 import { AgendamentoService } from './agendamento.service';
-import { Agendamento, AgendamentoExecucao, ROTULO_RECORRENCIA, TipoRecorrencia } from './agendamento.models';
+import {
+  Agendamento, AgendamentoExecucao, AgendamentoVariavel, OrigemVariavelAgendamento,
+  ROTULO_RECORRENCIA, TipoRecorrencia
+} from './agendamento.models';
 
 interface Contato {
   id: string;
@@ -56,7 +59,10 @@ export class AgendamentosComponent implements OnInit {
     tipoRecorrencia: 'DIARIA' as TipoRecorrencia,
     dataInicio: '',
     dataFim: '',
+    dataReferencia: '',
   });
+
+  variaveis = signal<AgendamentoVariavel[]>([]);
 
   contatosFiltrados = computed(() => {
     const termo = this.search().toLowerCase().trim();
@@ -114,6 +120,46 @@ export class AgendamentosComponent implements OnInit {
     this.form.set({ ...this.form(), [field]: value });
   }
 
+  // Ao trocar o modelo, detecta as variáveis {{n}} do corpo e monta um campo para cada uma --
+  // {{1}} quase sempre é o nome do cliente, então já sai marcado assim (mesmo comportamento
+  // do Disparador). Sem isto, um agendamento com template de variável saía sem nenhum
+  // parâmetro e a Meta recusava o disparo.
+  onTemplateChange(templateId: string) {
+    this.update('templateId', templateId);
+
+    const tpl = this.templates().find(t => t.id === templateId);
+    if (!tpl) {
+      this.variaveis.set([]);
+      return;
+    }
+
+    const matches = tpl.conteudo.match(/\{\{\d+\}\}/g) || [];
+    this.variaveis.set(matches.map((_, i) => ({
+      origem: (i === 0 ? 'nome' : 'fixo') as OrigemVariavelAgendamento,
+      valorFixo: ''
+    })));
+  }
+
+  updateVariavel(index: number, mudanca: Partial<AgendamentoVariavel>) {
+    const lista = [...this.variaveis()];
+    lista[index] = { ...lista[index], ...mudanca };
+    this.variaveis.set(lista);
+  }
+
+  rotuloOrigem(origem: OrigemVariavelAgendamento): string {
+    if (origem === 'nome') return 'nome do contato';
+    if (origem === 'telefone') return 'telefone do contato';
+    return 'valor fixo';
+  }
+
+  trackByIndex(index: number): number {
+    return index;
+  }
+
+  trackByContatoId(_index: number, contato: Contato): string {
+    return contato.id;
+  }
+
   toggleContato(contato: Contato) {
     this.contatos.update(list => list.map(c =>
       c.id === contato.id ? { ...c, checked: !c.checked } : c
@@ -142,7 +188,15 @@ export class AgendamentosComponent implements OnInit {
       return;
     }
     if (!f.dataInicio) {
-      this.response.set('❌ Informe a data e hora de início.');
+      this.response.set('❌ Informe a data de início da vigência.');
+      return;
+    }
+    if (!f.dataReferencia) {
+      this.response.set('❌ Informe a data e hora de referência do disparo.');
+      return;
+    }
+    if (this.variaveis().some(v => v.origem === 'fixo' && !v.valorFixo.trim())) {
+      this.response.set('❌ Preencha o que entra em cada campo variável da mensagem.');
       return;
     }
     if (alvos.length === 0) {
@@ -155,7 +209,9 @@ export class AgendamentosComponent implements OnInit {
     }
 
     const contatoIds = alvos.map(c => c.id);
+    const dataInicio = `${f.dataInicio}T00:00:00`;
     const dataFim = f.dataFim ? `${f.dataFim}T23:59:59` : null;
+    const variaveis = this.variaveis();
 
     this.salvando.set(true);
 
@@ -165,19 +221,23 @@ export class AgendamentosComponent implements OnInit {
           nome: f.nome.trim(),
           templateId: f.templateId,
           tipoRecorrencia: f.tipoRecorrencia,
-          dataInicio: f.dataInicio,
+          dataInicio,
           dataFim,
+          dataReferencia: f.dataReferencia,
           contatoIds,
+          variaveis,
         })
       : this.agendamentoService.incluir({
           empresaId: empId,
           nome: f.nome.trim(),
           templateId: f.templateId,
           tipoRecorrencia: f.tipoRecorrencia,
-          dataInicio: f.dataInicio,
+          dataInicio,
           dataFim,
+          dataReferencia: f.dataReferencia,
           contatoIds,
           usuarioCriacaoId: this.userId(),
+          variaveis,
         });
 
     request.subscribe({
@@ -202,9 +262,11 @@ export class AgendamentosComponent implements OnInit {
           nome: detalhe.nome,
           templateId: detalhe.templateId,
           tipoRecorrencia: detalhe.tipoRecorrencia,
-          dataInicio: paraDatetimeLocal(detalhe.dataInicio),
+          dataInicio: paraDataCurta(detalhe.dataInicio),
           dataFim: detalhe.dataFim ? paraDataCurta(detalhe.dataFim) : '',
+          dataReferencia: paraDatetimeLocal(detalhe.dataReferencia),
         });
+        this.variaveis.set(detalhe.variaveis || []);
         this.contatos.update(list => list.map(c => ({ ...c, checked: detalhe.contatoIds.includes(c.id) })));
         this.response.set('');
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -215,7 +277,8 @@ export class AgendamentosComponent implements OnInit {
 
   cancelarEdicao() {
     this.editingId.set(null);
-    this.form.set({ nome: '', templateId: '', tipoRecorrencia: 'DIARIA', dataInicio: '', dataFim: '' });
+    this.form.set({ nome: '', templateId: '', tipoRecorrencia: 'DIARIA', dataInicio: '', dataFim: '', dataReferencia: '' });
+    this.variaveis.set([]);
     this.contatos.update(list => list.map(c => ({ ...c, checked: false })));
   }
 
