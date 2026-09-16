@@ -14,6 +14,7 @@ import { ExclusaoDadosComponent } from './features/legal/exclusao-dados';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { ChatsComponent } from './pages/chats/chats.component';
 import { DisparadorComponent } from './pages/disparador/disparador.component';
+import { AgendamentosComponent } from './pages/agendamentos/agendamentos.component';
 import { FlowsComponent } from './pages/flows/flows.component';
 import { FlowBuilderComponent } from './pages/flow-builder/flow-builder';
 import { EmpresasComponent } from './pages/empresas/empresas.component';
@@ -52,6 +53,7 @@ export const routes: Routes = [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'chats', component: ChatsComponent },
       { path: 'disparador', component: DisparadorComponent },
+      { path: 'agendamentos', component: AgendamentosComponent },
       { path: 'flows', component: FlowsComponent },
       { path: 'flows/novo', component: FlowBuilderComponent },
       { path: 'flows/:id/editar', component: FlowBuilderComponent },

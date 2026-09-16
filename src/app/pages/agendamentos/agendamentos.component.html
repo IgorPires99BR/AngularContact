@@ -1,0 +1,195 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">Agendamentos</h1>
+    <div class="ph-sub">Configure disparos recorrentes de template para os contatos que você escolher</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="card-title">{{ editingId() ? '📝 Editar Agendamento' : '🗓️ Novo Agendamento' }}</div>
+      <div class="card-sub">O disparo é feito automaticamente pelo servidor, no horário e na recorrência escolhidos</div>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div class="fg">
+      <label>Nome do agendamento</label>
+      <input type="text" placeholder="Ex: Lembrete semanal de pagamento" maxlength="200"
+             [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
+    </div>
+
+    <div class="fg">
+      <label>Modelo de mensagem</label>
+      <select [ngModel]="form().templateId" (ngModelChange)="update('templateId', $event)">
+        <option value="">Escolha um modelo aprovado</option>
+        <option *ngFor="let t of templates()" [value]="t.id">{{ t.nomeTemplate }} ({{ t.idioma }})</option>
+      </select>
+      <div class="disp-hint" *ngIf="templates().length === 0">
+        Você ainda não tem modelo aprovado. Crie um em <b>Templates</b> — a Meta costuma responder em até 24h.
+      </div>
+    </div>
+
+    <div class="fg">
+      <label>Repetir</label>
+      <div class="disp-origem">
+        <button type="button" class="disp-chip" [class.ativo]="form().tipoRecorrencia === 'DIARIA'" (click)="update('tipoRecorrencia', 'DIARIA')">Uma vez por dia</button>
+        <button type="button" class="disp-chip" [class.ativo]="form().tipoRecorrencia === 'SEMANAL'" (click)="update('tipoRecorrencia', 'SEMANAL')">Uma vez por semana</button>
+        <button type="button" class="disp-chip" [class.ativo]="form().tipoRecorrencia === 'MENSAL'" (click)="update('tipoRecorrencia', 'MENSAL')">Uma vez por mês</button>
+      </div>
+      <div class="disp-hint">
+        A recorrência usa como referência a data e hora de início: semanal repete no mesmo dia da
+        semana, mensal no mesmo dia do mês (ajustando para o último dia em meses menores).
+      </div>
+    </div>
+
+    <div class="fg-row">
+      <div class="fg">
+        <label>Data e hora de início</label>
+        <input type="datetime-local" [ngModel]="form().dataInicio" (ngModelChange)="update('dataInicio', $event)">
+      </div>
+      <div class="fg">
+        <label>Data de término (opcional)</label>
+        <input type="date" [ngModel]="form().dataFim" (ngModelChange)="update('dataFim', $event)">
+        <div class="disp-hint">Deixe em branco para repetir indefinidamente.</div>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label>Contatos que vão receber ({{ selecionados().length }} selecionado(s))</label>
+
+      <div class="crud-search-bar">
+        <span class="crud-search-icon">🔍</span>
+        <input class="crud-search-input" placeholder="Buscar por nome, telefone ou e-mail..."
+               [ngModel]="search()" (ngModelChange)="search.set($event)">
+      </div>
+
+      <div class="tbl-wrap disp-tabela">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th style="width: 50px; text-align: center;">
+                <input type="checkbox" [checked]="isAllSelected()" (change)="selAll()">
+              </th>
+              <th>Nome</th>
+              <th>Telefone</th>
+              <th>E-mail</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of contatosFiltrados()">
+              <td style="text-align: center;">
+                <input type="checkbox" [checked]="c.checked" (change)="toggleContato(c)">
+              </td>
+              <td><strong>{{ c.nome || 'Sem nome' }}</strong></td>
+              <td class="mono">{{ c.telefone }}</td>
+              <td>{{ c.email || '-' }}</td>
+            </tr>
+            <tr *ngIf="contatosFiltrados().length === 0">
+              <td colspan="4" class="crud-empty" style="text-align: center; padding: 20px;">
+                Nenhum contato encontrado.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 16px;">
+      <button class="btn btn-primary" (click)="salvar()" [disabled]="salvando()">
+        {{ salvando() ? '⏳ Salvando...' : (editingId() ? '✅ Salvar Alterações' : '✅ Criar Agendamento') }}
+      </button>
+      <button *ngIf="editingId()" class="btn btn-ghost" (click)="cancelarEdicao()">Cancelar</button>
+    </div>
+
+    <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
+  </div>
+</div>
+
+<div class="card mb-14" style="margin-top: 16px">
+  <div class="card-head">
+    <div>
+      <div class="card-title">📋 Agendamentos cadastrados</div>
+      <div class="card-sub">{{ agendamentos().length }} agendamento(s)</div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Modelo</th>
+          <th>Recorrência</th>
+          <th>Próxima execução</th>
+          <th>Contatos</th>
+          <th>Status</th>
+          <th style="width: 220px; text-align: center;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let a of agendamentos()">
+          <tr>
+            <td><strong>{{ a.nome }}</strong></td>
+            <td>{{ a.nomeTemplate || '—' }}</td>
+            <td>{{ rotuloRecorrencia[a.tipoRecorrencia] }}</td>
+            <td class="mono">{{ a.proximaExecucao | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td>{{ a.totalContatos }}</td>
+            <td>
+              <span class="badge" [class.badge-green]="a.ativo" [class.badge-muted]="!a.ativo">
+                {{ a.ativo ? 'Ativo' : 'Pausado' }}
+              </span>
+            </td>
+            <td>
+              <div class="btn-grp" style="justify-content: center; flex-wrap: wrap;">
+                <button class="btn btn-ghost btn-xs" (click)="prepararEdicao(a)">Editar</button>
+                <button class="btn btn-ghost btn-xs" (click)="pausarRetomar(a)">{{ a.ativo ? 'Pausar' : 'Retomar' }}</button>
+                <button class="btn btn-ghost btn-xs" (click)="toggleHistorico(a)">{{ historicoAbertoId() === a.id ? 'Ocultar' : 'Histórico' }}</button>
+                <button class="btn btn-danger btn-xs" (click)="excluir(a)">🗑</button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="historicoAbertoId() === a.id">
+            <td colspan="7" style="background: rgba(255,255,255,.02)">
+              <div *ngIf="carregandoHistorico()" class="disp-hint">Carregando histórico...</div>
+              <div *ngIf="!carregandoHistorico() && execucoes().length === 0" class="disp-hint">
+                Nenhuma execução registrada ainda para este agendamento.
+              </div>
+              <table class="tbl" *ngIf="!carregandoHistorico() && execucoes().length > 0">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Total</th>
+                    <th>Sucessos</th>
+                    <th>Falhas</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let e of execucoes()">
+                    <td class="mono">{{ e.dataExecucao | date: 'dd/MM/yyyy HH:mm' }}</td>
+                    <td>{{ e.totalContatos }}</td>
+                    <td>{{ e.sucessos }}</td>
+                    <td>{{ e.falhas }}</td>
+                    <td>
+                      <span class="badge" [class.badge-green]="e.status === 'CONCLUIDA'" [class.badge-danger]="e.status === 'ERRO'">
+                        {{ e.status === 'CONCLUIDA' ? 'Concluída' : 'Com falhas' }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </ng-container>
+
+        <tr *ngIf="agendamentos().length === 0">
+          <td colspan="7" class="crud-empty" style="text-align: center; padding: 20px;">
+            Nenhum agendamento cadastrado ainda.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

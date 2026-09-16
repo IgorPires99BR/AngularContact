@@ -1,0 +1,25 @@
+/* Mesmo padrão visual do seletor de origem de variável do Disparador (chips de escolha única) */
+.disp-origem { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+
+.disp-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.disp-chip:hover { border-color: var(--blue3); color: var(--text); }
+.disp-chip.ativo { border-color: var(--blue3); background: var(--blue-light); color: var(--text); }
+
+.disp-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.45;
+  margin-top: 6px;
+}
+
+.disp-tabela { max-height: 320px; overflow-y: auto; margin-top: 10px; }

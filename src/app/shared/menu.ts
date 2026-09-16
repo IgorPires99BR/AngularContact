@@ -35,6 +35,10 @@ const MENU_RAW: MenuSection[] = [
         icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>`,
       },
       {
+        id: 'agendamentos', label: 'Agendamentos', route: '/agendamentos',
+        icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+      },
+      {
         id: 'flows', label: 'Flows', route: '/flows',
         icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2"/><path d="M12 7v3"/><path d="M7 13H5a2 2 0 00-2 2v1"/><path d="M17 13h2a2 2 0 012 2v1"/><circle cx="3" cy="19" r="2"/><circle cx="21" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><path d="M12 16v1"/></svg>`,
       },
@@ -89,7 +93,7 @@ export function getMenuByRole(role: string | undefined): MenuSection[] {
   }
 
   // IDs das telas permitidas para operador comum
-  const telasPermitidas = ['disparador', 'contatos', 'numeros', 'templates'];
+  const telasPermitidas = ['disparador', 'agendamentos', 'contatos', 'numeros', 'templates'];
 
   return MENU_RAW.map(section => ({
     ...section,
@@ -104,6 +108,7 @@ export const PAGE_TITLES: Record<string, string> = {
   dashboard: 'Dashboard',
   chats: 'Chats Ativos',
   disparador: 'Disparos em Massa',
+  agendamentos: 'Agendamentos',
   flows: 'Flows de Conversa',
   empresas: 'Empresas',
   contatos: 'Contatos',
