@@ -1,13 +1,14 @@
-export type TipoRecorrencia = 'DIARIA' | 'SEMANAL' | 'MENSAL';
+import { OrigemVariavel, VariavelTemplate } from '../../shared/variaveis/variavel-template';
 
-// De onde sai o valor de cada variável do corpo do template. "fixo" = o mesmo texto para todo
-// mundo; "nome"/"telefone" = o dado de cada contato, resolvido a cada disparo recorrente.
-export type OrigemVariavelAgendamento = 'fixo' | 'nome' | 'telefone';
+// VENCIMENTO_CONTATO: verificada todo dia, mas so dispara pros contatos cujo DiaVencimento
+// bate com o dia do mes de hoje (ver descricaoRecorrencia e o backend ProcessaAgendamentoHandler).
+export type TipoRecorrencia = 'DIARIA' | 'SEMANAL' | 'MENSAL' | 'VENCIMENTO_CONTATO';
 
-export interface AgendamentoVariavel {
-  origem: OrigemVariavelAgendamento;
-  valorFixo: string;
-}
+// De onde sai o valor de cada variável do corpo do template: texto fixo, um campo de cada
+// contato (resolvido a cada disparo recorrente) ou um Parâmetro cadastrado -- mesma definição
+// da tela de Disparos, ver shared/variaveis/variavel-template.ts.
+export type OrigemVariavelAgendamento = OrigemVariavel;
+export type AgendamentoVariavel = VariavelTemplate;
 
 export interface Agendamento {
   id: string;
@@ -56,6 +57,7 @@ export const ROTULO_RECORRENCIA: Record<TipoRecorrencia, string> = {
   DIARIA: 'Diária',
   SEMANAL: 'Semanal',
   MENSAL: 'Mensal',
+  VENCIMENTO_CONTATO: 'Por Dia de Vencimento do Contato',
 };
 
 // Domingo primeiro pra bater com DayOfWeek do .NET (0=Domingo), que é quem grava/lê o valor no banco.
@@ -90,6 +92,9 @@ export function descricaoRecorrencia(a: Pick<Agendamento, 'tipoRecorrencia' | 'd
   }
   if (a.tipoRecorrencia === 'MENSAL' && a.diaDoMes) {
     return `Mensal (dia ${a.diaDoMes})`;
+  }
+  if (a.tipoRecorrencia === 'VENCIMENTO_CONTATO') {
+    return 'Vencimento do contato (cada um no seu dia)';
   }
   return ROTULO_RECORRENCIA[a.tipoRecorrencia];
 }

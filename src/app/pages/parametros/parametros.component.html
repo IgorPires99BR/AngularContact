@@ -1,0 +1,135 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">Parâmetros</h1>
+    <div class="ph-sub">Cadastre valores fixos ou campos do contato para usar como variável nas telas de Disparos e Agendamentos</div>
+  </div>
+</div>
+
+<div class="card mb-14" *ngIf="ehAdminDaPlataforma()">
+  <div class="card-body">
+    <div class="fg" style="margin-bottom: 0;">
+      <label>Empresa</label>
+      <select [ngModel]="empresaSelecionadaId()" (ngModelChange)="trocarEmpresa($event)">
+        <option value="">Selecione...</option>
+        <option *ngFor="let e of empresas()" [value]="e.id">{{ e.nome }}</option>
+      </select>
+      <div class="ph-sub" style="margin-top: 4px;">Os parâmetros são separados por empresa — você está vendo e editando os da empresa escolhida.</div>
+    </div>
+  </div>
+</div>
+
+<div class="g2">
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">{{ editingId() ? '📝 Editar Parâmetro' : '🧩 Novo Parâmetro' }}</div>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="fg">
+        <label>Nome</label>
+        <input type="text" placeholder="Ex: Chave PIX, Juros de atraso" maxlength="100"
+               [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
+        <div class="ph-sub" style="margin-top: 4px;">É o nome que aparece na hora de escolher a variável do modelo de mensagem.</div>
+      </div>
+
+      <div class="fg">
+        <label>Descrição (opcional)</label>
+        <input type="text" placeholder="Ex: Chave do CNPJ usada nas cobranças" maxlength="255"
+               [ngModel]="form().descricao" (ngModelChange)="update('descricao', $event)">
+      </div>
+
+      <div class="fg">
+        <label>Tipo</label>
+        <select [ngModel]="form().tipo" (ngModelChange)="trocarTipo($event)">
+          <option value="FIXO">Fixo — o mesmo texto para todo mundo</option>
+          <option value="CAMPO_CONTATO">Variável — puxa um dado de cada contato</option>
+        </select>
+      </div>
+
+      <div class="fg" *ngIf="form().tipo === 'FIXO'">
+        <label>Texto</label>
+        <input type="text" placeholder="Ex: 12.345.678/0001-90" maxlength="500"
+               [ngModel]="form().valor" (ngModelChange)="update('valor', $event)">
+      </div>
+
+      <div class="fg" *ngIf="form().tipo === 'CAMPO_CONTATO'">
+        <label>Campo do contato</label>
+        <select [ngModel]="form().valor" (ngModelChange)="update('valor', $event)">
+          <option *ngFor="let c of camposDoContato" [value]="c.chave">{{ c.rotulo }}</option>
+        </select>
+        <div class="ph-sub" style="margin-top: 4px;">
+          Cada contato recebe o dele, no momento do envio. Em <b>Data de vencimento</b>, o dia cadastrado no
+          contato é aplicado ao mês atual (ex.: dia 20 em setembro → 20/09).
+        </div>
+      </div>
+
+      <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-primary" (click)="salvar()">
+          ✅ <span class="btn-label-long">{{ editingId() ? 'Salvar Alterações' : 'Criar Parâmetro' }}</span>
+        </button>
+        <button *ngIf="editingId()" class="btn btn-ghost" (click)="cancelarEdicao()">Cancelar</button>
+      </div>
+
+      <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-14" style="margin-top: 16px">
+  <div class="card-head">
+    <div>
+      <div class="card-title">📋 Parâmetros Cadastrados</div>
+      <div class="card-sub">{{ parametros().length }} parâmetro(s) nesta empresa</div>
+    </div>
+    <button class="btn btn-ghost btn-sm" (click)="listar()">🔄</button>
+  </div>
+
+  <div class="crud-search-bar">
+    <span class="crud-search-icon">🔍</span>
+    <input class="crud-search-input"
+           placeholder="Buscar por nome, descrição ou valor..."
+           [ngModel]="search()"
+           (ngModelChange)="search.set($event)">
+    <span class="crud-search-count" *ngIf="search()">{{ parametrosFiltrados().length }} de {{ parametros().length }}</span>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Tipo</th>
+          <th>Valor</th>
+          <th style="width: 120px; text-align: center;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of parametrosFiltrados()">
+          <td>
+            <strong>{{ p.nome }}</strong>
+            <div class="ph-sub" *ngIf="p.descricao">{{ p.descricao }}</div>
+          </td>
+          <td>
+            <span class="badge" [class.badge-muted]="p.tipo === 'FIXO'">{{ p.tipo === 'FIXO' ? 'Fixo' : 'Variável' }}</span>
+          </td>
+          <td>{{ descricaoDoValor(p) }}</td>
+          <td>
+            <div class="btn-grp" style="justify-content: center;">
+              <button class="btn btn-ghost btn-xs" (click)="prepararEdicao(p)">Editar</button>
+              <button class="btn btn-danger btn-xs" (click)="excluir(p.id)">🗑</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="crud-empty" *ngIf="!carregando() && parametros().length === 0">
+      Nenhum parâmetro cadastrado ainda. Crie o primeiro acima para usá-lo em Disparos e Agendamentos.
+    </div>
+    <div class="crud-empty" *ngIf="parametros().length > 0 && parametrosFiltrados().length === 0">
+      Nenhum parâmetro encontrado para "{{ search() }}".
+    </div>
+  </div>
+</div>

@@ -494,6 +494,7 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
     formData.append('empresaId', idEmpresa);
     formData.append('contatoId', idContato);
     formData.append('tipoMidia', tipoMidia);
+    formData.append('origem', 'Chat Manual');
 
     this.http.post<any>(`${this.DISPARADOR_URL}/enviar-midia-meta`, formData)
       .subscribe({
@@ -593,7 +594,8 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
       template: '',
       textoMensagem: text,
       empresaId: idEmpresa,
-      contatoId: idContato
+      contatoId: idContato,
+      origem: 'Chat Manual'
     };
 
     this.draft.set('');

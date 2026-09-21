@@ -4,7 +4,7 @@ import { filter } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../core/services/auth';
 import { ChatNotificationService } from '../core/services/chat-notification';
-import { MENU, getMenuByRole } from '../shared/menu';
+import { MENU, getMenuVisivel } from '../shared/menu';
 
 @Component({
   selector: 'app-shell',
@@ -22,7 +22,7 @@ export class ShellComponent {
   // real de não lidas (ver ChatNotificationService) em vez de um valor fixo.
   menu = computed(() => {
     const userData = this.auth.user();
-    const secoes = getMenuByRole(userData?.role);
+    const secoes = getMenuVisivel(userData?.role, this.auth.ehAdminDaPlataforma(), userData?.telasPermitidas);
     const totalNaoLidas = this.chatNotification.totalNaoLidas();
 
     return secoes.map(secao => ({

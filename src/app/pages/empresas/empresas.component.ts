@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, OnDestroy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -7,6 +7,8 @@ import { AuthService } from '../../core/services/auth';
 import { isEmailValido } from '../../shared/utils/validators';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 import { UsuariosDaEmpresaComponent } from '../usuarios/usuarios-da-empresa.component';
+
+declare var FB: any;
 
 interface Empresa {
   id: string;
@@ -29,7 +31,7 @@ interface Empresa {
   templateUrl: './empresas.component.html',
   styleUrls: ['../shared-crud.css', './empresas.component.css'],
 })
-export class EmpresasComponent implements OnInit {
+export class EmpresasComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   private readonly BASE_URL = `${environment.apiUrl}/v2/empresa`;
@@ -132,6 +134,88 @@ export class EmpresasComponent implements OnInit {
 
   ngOnInit() {
     this.obterEmpresas();
+    window.addEventListener('message', this.embeddedSignupListener);
+  }
+
+  ngOnDestroy() {
+    window.removeEventListener('message', this.embeddedSignupListener);
+  }
+
+  // --- Embedded Signup a nivel de Empresa: da pra ela sua propria conta Meta (WabaId,
+  // PhoneNumberId, AccessToken proprios), em vez de compartilhar o numero da Contact
+  // Solution. Mesmo mecanismo do fluxo de Numero (ver numeros.component.ts), so que o
+  // resultado e gravado na Empresa em vez de criar um Numero novo.
+  private phoneNumberIdSignup: string | null = null;
+  private wabaIdSignup: string | null = null;
+  conectandoMeta = signal<string | null>(null);
+
+  private embeddedSignupListener = (event: MessageEvent) => {
+    if (event.origin !== 'https://www.facebook.com') return;
+    try {
+      const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+      if (data?.type === 'WA_EMBEDDED_SIGNUP' && data?.event === 'FINISH') {
+        this.phoneNumberIdSignup = data?.data?.phone_number_id ?? null;
+        this.wabaIdSignup = data?.data?.waba_id ?? null;
+      }
+    } catch {
+      // Mensagens de outra origem/formato que não interessam a este fluxo são ignoradas.
+    }
+  };
+
+  conectarMeta(empresa: Empresa) {
+    if (typeof FB === 'undefined') {
+      this.response.set('❌ SDK da Meta não carregado.');
+      return;
+    }
+
+    this.phoneNumberIdSignup = null;
+    this.wabaIdSignup = null;
+
+    FB.login((resposta: any) => {
+      const code = resposta?.authResponse?.code;
+      if (code) {
+        this.concluirConexaoMeta(empresa.id, code);
+      } else {
+        this.response.set('❌ Conexão com a Meta cancelada ou sem código de autorização retornado.');
+      }
+    }, {
+      scope: 'whatsapp_business_management,whatsapp_business_messaging',
+      response_type: 'code',
+      override_default_response_type: true,
+      extras: {
+        feature: 'whatsapp_embedded_signup',
+        config_id: '2444573049378034'
+      }
+    });
+  }
+
+  private concluirConexaoMeta(empresaId: string, code: string) {
+    if (!this.phoneNumberIdSignup) {
+      this.response.set('❌ A Meta não retornou o identificador do número (phone_number_id). Tente novamente.');
+      return;
+    }
+
+    this.conectandoMeta.set(empresaId);
+    this.response.set('⏳ Conectando a empresa à conta Meta dela...');
+
+    const payload = {
+      empresaId,
+      code,
+      phoneNumberId: this.phoneNumberIdSignup,
+      wabaId: this.wabaIdSignup
+    };
+
+    this.http.post<any>(`${this.BASE_URL}/conectar-meta`, payload).subscribe({
+      next: () => {
+        this.conectandoMeta.set(null);
+        this.response.set('✅ Empresa conectada à própria conta Meta! Disparos dela agora saem pelo número próprio.');
+        this.obterEmpresas();
+      },
+      error: (err) => {
+        this.conectandoMeta.set(null);
+        this.response.set('❌ ' + extrairMensagemErro(err, 'Erro ao conectar a empresa à Meta.'));
+      }
+    });
   }
 
   update(field: string, value: string) {

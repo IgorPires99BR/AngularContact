@@ -8,13 +8,23 @@ import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 import { TemplateService } from '../templates/template.service';
 import { Template, TemplateComponente, parseComponentes } from '../templates/template.models';
 import { AssistenteIaBotaoComponent } from '../../shared/assistente-ia/assistente-ia-botao';
+import { ParametroService } from '../parametros/parametro.service';
+import {
+  CAMPOS_DO_CONTATO, ParametroEmpresa, VariavelTemplate, dependeDoContato, dicaDaVariavel,
+  selecaoDaVariavel, valorDaVariavel as resolverValorDaVariavel, variavelDaSelecao, variavelIncompleta
+} from '../../shared/variaveis/variavel-template';
 
 interface Contato {
   id: string;
-  nome?: string;
+  nomeContato?: string;
   telefone: string;
   email?: string;
   checked?: boolean;
+  nomeCliente?: string | null;
+  diaVencimento?: number | null;
+  valorFatura?: number | null;
+  taxaJuros?: number | null;
+  taxaJurosMensal?: number | null;
 }
 
 interface NumeroMeta {
@@ -32,14 +42,9 @@ interface TemplateMeta extends Template {
   componentesParsed?: TemplateComponente[]; // Cache local pós-parse
 }
 
-// De onde sai o valor de cada variável da mensagem. "fixo" = o mesmo texto para todo mundo;
-// "nome"/"telefone" = o dado de cada contato, resolvido na hora do envio.
-type OrigemVariavel = 'fixo' | 'nome' | 'telefone';
-
-interface VariavelBody {
-  origem: OrigemVariavel;
-  valorFixo: string;
-}
+// De onde sai o valor de cada variável da mensagem: texto fixo, um dado de cada contato
+// (resolvido na hora do envio) ou um Parâmetro cadastrado -- ver shared/variaveis/variavel-template.ts.
+type VariavelBody = VariavelTemplate;
 
 @Component({
   selector: 'app-disparador',
@@ -52,6 +57,7 @@ export class DisparadorComponent implements OnInit {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   private templateService = inject(TemplateService);
+  private parametroService = inject(ParametroService);
 
   private readonly API_CONTATO = `${environment.apiUrl}/contato`;
   private readonly API_NUMERO = `${environment.apiUrl}/numero`;
@@ -72,6 +78,9 @@ export class DisparadorComponent implements OnInit {
   });
 
   variaveis = signal<VariavelBody[]>([]);
+  // Parâmetros cadastrados da empresa (tela Parâmetros), oferecidos como origem de cada variável.
+  parametros = signal<ParametroEmpresa[]>([]);
+  readonly camposDoContato = CAMPOS_DO_CONTATO;
   buttonParams = signal<{ value: string }[]>([]);
   headerMediaUrl = signal('');
   temMediaHeader = signal(false);
@@ -90,7 +99,7 @@ export class DisparadorComponent implements OnInit {
     const termo = this.search().toLowerCase().trim();
     if (!termo) return this.contatos();
     return this.contatos().filter(c =>
-      (c.nome && c.nome.toLowerCase().includes(termo)) ||
+      (c.nomeContato && c.nomeContato.toLowerCase().includes(termo)) ||
       c.telefone.includes(termo) ||
       (c.email && c.email.toLowerCase().includes(termo))
     );
@@ -118,13 +127,13 @@ export class DisparadorComponent implements OnInit {
     return tpl;
   });
 
-  personalizado = computed(() => this.variaveis().some(v => v.origem !== 'fixo'));
+  personalizado = computed(() => this.variaveis().some(v => dependeDoContato(v, this.parametros())));
 
   // Contatos que ficariam com uma variável vazia (sem nome cadastrado, por exemplo): a Meta
   // recusaria só o envio deles, no meio do lote, com erro cru.
   selecionadosIncompletos = computed(() => {
     const vars = this.variaveis();
-    if (!vars.some(v => v.origem !== 'fixo')) return [];
+    if (!this.personalizado()) return [];
     return this.selecionados().filter(c => vars.some(v => !this.valorDaVariavel(v, c).trim()));
   });
 
@@ -167,6 +176,17 @@ export class DisparadorComponent implements OnInit {
     this.buscarContatos();
     this.buscarTemplates();
     this.buscarNumeros();
+    this.buscarParametros();
+  }
+
+  buscarParametros() {
+    const empId = this.empresaId();
+    if (!empId) return;
+    this.parametroService.listar(empId).subscribe({
+      next: (res) => this.parametros.set(res),
+      // Sem parâmetros o resto da tela continua funcionando (só some a opção no seletor).
+      error: () => this.parametros.set([])
+    });
   }
 
   buscarContatos() {
@@ -309,8 +329,8 @@ export class DisparadorComponent implements OnInit {
     }
 
     if (this.passo() === 2) {
-      const semValorFixo = this.variaveis().some(v => v.origem === 'fixo' && !v.valorFixo.trim());
-      if (semValorFixo) return 'Preencha o que entra em cada campo da mensagem.';
+      const semValor = this.variaveis().some(v => variavelIncompleta(v, this.parametros()));
+      if (semValor) return 'Preencha o que entra em cada campo da mensagem (texto ou parâmetro).';
       if (this.temMediaHeader() && !this.headerMediaUrl().trim()) {
         return 'Cole o link da imagem ou arquivo que vai no topo da mensagem.';
       }
@@ -326,18 +346,23 @@ export class DisparadorComponent implements OnInit {
     return null;
   }
 
-  rotuloOrigem(origem: OrigemVariavel): string {
-    if (origem === 'nome') return 'nome do contato';
-    if (origem === 'telefone') return 'telefone do contato';
-    return 'valor fixo';
+  // Valor do <select> de origem da variável ('fixo', campo do contato ou 'parametro:<id>').
+  selecaoDaVariavel(v: VariavelBody): string {
+    return selecaoDaVariavel(v);
+  }
+
+  trocarOrigem(index: number, selecao: string) {
+    this.updateVariavel(index, variavelDaSelecao(selecao));
+  }
+
+  dicaDaVariavel(v: VariavelBody): string {
+    return dicaDaVariavel(v, this.parametros());
   }
 
   // Resolve o valor de uma variável para um contato. Sem contato (prévia sem seleção),
   // devolve um exemplo visível em vez de vazio.
   private valorDaVariavel(v: VariavelBody, contato: Contato | null): string {
-    if (v.origem === 'nome') return contato ? (contato.nome || '') : 'Maria';
-    if (v.origem === 'telefone') return contato ? contato.telefone : '5511999990000';
-    return v.valorFixo;
+    return resolverValorDaVariavel(v, contato, this.parametros());
   }
 
   disparar() {
@@ -364,8 +389,11 @@ export class DisparadorComponent implements OnInit {
     const alvos = this.selecionados();
     const vars = this.variaveis();
 
-    // Valores globais (todos "fixo") e, quando há personalização, o mapa por telefone.
-    const parametrosBody = vars.map(v => (v.origem === 'fixo' ? v.valorFixo.trim() : ''));
+    // Valores globais (os que não dependem do contato) e, quando há personalização, o mapa
+    // por telefone. O backend refaz esse cálculo a partir de "variaveis" com os dados do banco
+    // (ex: valorFatura) e prevalece sobre estes -- aqui é só o mesmo resultado da prévia.
+    const parametrosBody = vars.map(v =>
+      dependeDoContato(v, this.parametros()) ? '' : this.valorDaVariavel(v, null).trim());
     const parametrosBodyPorTelefone: Record<string, string[]> = {};
 
     if (this.personalizado()) {
@@ -385,6 +413,7 @@ export class DisparadorComponent implements OnInit {
       parametroHeaderMediaUrl: this.temMediaHeader() ? this.headerMediaUrl().trim() : null,
       parametrosBody,
       parametrosBodyPorTelefone,
+      variaveis: vars.map(v => ({ origem: v.origem, valorFixo: v.valorFixo, parametroId: v.parametroId ?? null })),
       parametrosButton: this.buttonParams().map(bp => bp.value.trim()),
       contatoId: '00000000-0000-0000-0000-000000000000'
     };

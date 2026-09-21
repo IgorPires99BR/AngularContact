@@ -21,9 +21,15 @@
     </div>
 
     <div class="card-body">
-      <div class="fg">
-        <label>Nome Completo</label>
-        <input type="text" placeholder="Ex: Maria Silva" maxlength="100" [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
+      <div class="fg-row">
+        <div class="fg">
+          <label>Nome do Contato</label>
+          <input type="text" placeholder="Ex: Maria Silva" maxlength="100" [ngModel]="form().nomeContato" (ngModelChange)="update('nomeContato', $event)">
+        </div>
+        <div class="fg">
+          <label>Nome do Cliente (se diferente do contato)</label>
+          <input type="text" placeholder="Ex: João da Silva" maxlength="255" [ngModel]="form().nomeCliente" (ngModelChange)="update('nomeCliente', $event)">
+        </div>
       </div>
 
       <div class="fg-row">
@@ -34,6 +40,28 @@
         <div class="fg">
           <label>E-mail</label>
           <input type="email" placeholder="maria@email.com" [ngModel]="form().email" (ngModelChange)="update('email', $event)">
+        </div>
+      </div>
+
+      <div class="fg-row">
+        <div class="fg">
+          <label>Dia de Vencimento</label>
+          <input type="number" min="1" max="31" [ngModel]="form().diaVencimento" (ngModelChange)="update('diaVencimento', $event)">
+        </div>
+        <div class="fg">
+          <label>Valor da Fatura (R$)</label>
+          <input type="number" min="0" step="0.01" [ngModel]="form().valorFatura" (ngModelChange)="update('valorFatura', $event)">
+        </div>
+      </div>
+
+      <div class="fg-row">
+        <div class="fg">
+          <label>Taxa de Juros (%)</label>
+          <input type="number" min="0" step="0.01" [ngModel]="form().taxaJuros" (ngModelChange)="update('taxaJuros', $event)">
+        </div>
+        <div class="fg">
+          <label>Taxa de Juros ao Mês (%)</label>
+          <input type="number" min="0" step="0.01" [ngModel]="form().taxaJurosMensal" (ngModelChange)="update('taxaJurosMensal', $event)">
         </div>
       </div>
 
@@ -60,7 +88,7 @@
   <div class="crud-search-bar">
     <span class="crud-search-icon">🔍</span>
     <input class="crud-search-input"
-           placeholder="Buscar por nome, telefone ou e-mail..."
+           placeholder="Buscar por nome, cliente, telefone ou e-mail..."
            [ngModel]="search()"
            (ngModelChange)="search.set($event)">
     <span class="crud-search-count" *ngIf="search()">{{ contatosFiltrados().length }} de {{ contatos().length }}</span>
@@ -70,18 +98,24 @@
     <table class="tbl">
       <thead>
         <tr>
-          <th>Nome</th>
+          <th>Contato</th>
+          <th>Cliente</th>
           <th>Telefone</th>
           <th>E-mail</th>
+          <th>Vencimento</th>
+          <th>Fatura</th>
           <th>Origem</th>
           <th style="width: 120px; text-align: center;">Ações</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let c of contatosFiltrados()">
-          <td><strong>{{ c.nome || 'Sem nome' }}</strong></td>
+          <td><strong>{{ c.nomeContato || 'Sem nome' }}</strong></td>
+          <td>{{ c.nomeCliente || '—' }}</td>
           <td class="mono">{{ c.telefone }}</td>
           <td>{{ c.email }}</td>
+          <td class="mono">{{ c.diaVencimento ? 'Dia ' + c.diaVencimento : '—' }}</td>
+          <td class="mono">{{ c.valorFatura ? (c.valorFatura | currency:'BRL':'symbol':'1.2-2':'pt-BR') : '—' }}</td>
           <td>
             <span class="badge badge-violet origem-badge" *ngIf="c.origemAnuncio; else semOrigem" [title]="c.origemAnuncio">
               📣 {{ c.origemAnuncio }}

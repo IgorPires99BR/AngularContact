@@ -5,6 +5,8 @@
   </div>
 </div>
 
-@if (empresaIdLogada(); as eid) {
+@if (ehAdminDaPlataforma()) {
+  <app-usuarios-da-empresa [todasAsEmpresas]="true" />
+} @else if (empresaIdLogada(); as eid) {
   <app-usuarios-da-empresa [empresaId]="eid" />
 }

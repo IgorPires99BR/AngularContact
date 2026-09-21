@@ -11,6 +11,9 @@ export interface UserData {
   ehAdminDaPlataforma?: boolean;
   status?: string;
   token?: string;
+  // Estrutura de acesso modular: telas que o Perfil do usuario libera. Nulo/ausente =
+  // usuario sem perfil atribuido, cai no comportamento legado (ver shared/menu.ts).
+  telasPermitidas?: string[] | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -35,6 +38,9 @@ export class AuthService {
   // Diferente de ehAdminSignal, que e o admin da empresa do proprio cliente.
   readonly ehAdminDaPlataforma = computed(() => this.userState()?.ehAdminDaPlataforma === true);
 
+  // Ver UserData.telasPermitidas.
+  readonly telasPermitidasSignal = computed(() => this.userState()?.telasPermitidas ?? null);
+
   getToken(): string | null {
     return this.userState()?.token ?? localStorage.getItem('token') ?? sessionStorage.getItem('token');
   }
@@ -54,7 +60,8 @@ export class AuthService {
         role: apiResponse.role,
         ehAdminDaPlataforma: apiResponse.ehAdminDaPlataforma === true,
         status: apiResponse.status,
-        token: apiResponse.token
+        token: apiResponse.token,
+        telasPermitidas: apiResponse.telasPermitidas ?? null
       };
 
       // Limpa os dois storages antes de gravar, evitando sessão "fantasma" de um login anterior

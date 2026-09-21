@@ -1,0 +1,123 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">Perfis de Acesso</h1>
+    <div class="ph-sub">Defina, por empresa, quais telas cada perfil enxerga — depois atribua o perfil a um usuário na tela de Usuários daquela empresa</div>
+  </div>
+</div>
+
+<div class="g2">
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">{{ editingId() ? '📝 Editar Perfil' : '🔐 Novo Perfil' }}</div>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="fg-row">
+        <div class="fg">
+          <label>Empresa</label>
+          <select [ngModel]="form().empresaId" (ngModelChange)="update('empresaId', $event)" [disabled]="!!editingId()">
+            <option value="">Selecione...</option>
+            <option *ngFor="let e of empresas()" [value]="e.id">{{ e.nome }}</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Nome do Perfil</label>
+          <input type="text" placeholder="Ex: Cobrança, Atendimento" maxlength="100" [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
+        </div>
+      </div>
+
+      <div class="fg">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label>Telas deste perfil</label>
+          <button type="button" class="btn btn-ghost btn-xs" (click)="marcarTodasAsTelas()">
+            {{ todasAsTelasMarcadas() ? 'Bloquear todas' : 'Liberar todas' }}
+          </button>
+        </div>
+        <div class="telas-resumo">
+          <b>{{ form().telas.length }}</b> de {{ telasDisponiveis.length }} telas liberadas — clique para liberar ou bloquear
+        </div>
+        <div class="telas-grid">
+          <button type="button" class="tela-toggle" *ngFor="let tela of telasDisponiveis"
+                  role="switch"
+                  [class.ativa]="form().telas.includes(tela.id)"
+                  [attr.aria-checked]="form().telas.includes(tela.id)"
+                  (click)="toggleTela(tela.id)">
+            <span class="tela-info">
+              <span class="tela-nome">{{ tela.label }}</span>
+              <span class="tela-estado">{{ form().telas.includes(tela.id) ? 'Liberada' : 'Bloqueada' }}</span>
+            </span>
+            <span class="tela-switch" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-primary" (click)="salvar()">
+          ✅ <span class="btn-label-long">{{ editingId() ? 'Salvar Alterações' : 'Criar Perfil' }}</span>
+        </button>
+        <button *ngIf="editingId()" class="btn btn-ghost" (click)="cancelarEdicao()">Cancelar</button>
+      </div>
+
+      <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-14" style="margin-top: 16px">
+  <div class="card-head">
+    <div>
+      <div class="card-title">📋 Perfis Cadastrados</div>
+      <div class="card-sub">{{ perfis().length }} perfis, em todas as empresas</div>
+    </div>
+  </div>
+
+  <div class="crud-search-bar" style="gap: 10px;">
+    <span class="crud-search-icon">🔍</span>
+    <input class="crud-search-input"
+           placeholder="Buscar por nome..."
+           [ngModel]="search()"
+           (ngModelChange)="search.set($event)">
+    <select [ngModel]="filtroEmpresaId()" (ngModelChange)="filtroEmpresaId.set($event)" style="max-width: 220px;">
+      <option value="">Todas as empresas</option>
+      <option *ngFor="let e of empresas()" [value]="e.id">{{ e.nome }}</option>
+    </select>
+    <span class="crud-search-count" *ngIf="search() || filtroEmpresaId()">{{ perfisFiltrados().length }} de {{ perfis().length }}</span>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Empresa</th>
+          <th>Nome</th>
+          <th>Telas Liberadas</th>
+          <th style="width: 120px; text-align: center;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of perfisFiltrados()">
+          <td>{{ nomeDaEmpresa(p.empresaId) }}</td>
+          <td><strong>{{ p.nome }}</strong></td>
+          <td style="max-width: 480px;">
+            <span class="badge badge-muted" style="margin: 2px;" *ngFor="let telaId of p.telas">{{ labelDaTela(telaId) }}</span>
+          </td>
+          <td>
+            <div class="btn-grp" style="justify-content: center;">
+              <button class="btn btn-ghost btn-xs" (click)="prepararEdicao(p)">Editar</button>
+              <button class="btn btn-danger btn-xs" (click)="excluir(p.id)">🗑</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="crud-empty" *ngIf="!carregando() && perfis().length === 0">
+      Nenhum perfil cadastrado ainda. Sem um perfil atribuído, o usuário continua no acesso padrão (Administrador ou Operador).
+    </div>
+    <div class="crud-empty" *ngIf="perfis().length > 0 && perfisFiltrados().length === 0">
+      Nenhum perfil encontrado para "{{ search() }}".
+    </div>
+  </div>
+</div>

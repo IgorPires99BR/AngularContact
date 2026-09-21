@@ -69,6 +69,7 @@
           <th>Número Origem</th>
           <th>Número Destino</th>
           <th>Conteúdo</th>
+          <th style="width: 140px;">Origem</th>
           <th style="width: 150px;">Data/Hora</th>
           <th style="width: 100px;">Status</th>
         </tr>
@@ -83,6 +84,10 @@
           <td class="mono">{{ m.numeroOrigem || '—' }}</td>
           <td class="mono">{{ m.numeroDestino || '—' }}</td>
           <td class="rel-conteudo">{{ m.conteudo }}</td>
+          <td>
+            <span class="badge" [ngClass]="origemBadgeClass(m.origem)" *ngIf="m.origem; else semOrigem">{{ m.origem }}</span>
+            <ng-template #semOrigem>—</ng-template>
+          </td>
           <td class="mono">{{ m.dataHora | date:'dd/MM/yy HH:mm' }}</td>
           <td>
             <span class="badge" [ngClass]="statusBadgeClass(m.status)">{{ statusLabel(m.status) }}</span>

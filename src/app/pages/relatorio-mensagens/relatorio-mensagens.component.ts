@@ -13,6 +13,8 @@ interface RelatorioMensagem {
   conteudo: string;
   dataHora: string;
   status: string | null;
+  // De onde saiu o disparo (Disparador, Agendador, Flow, Chat). Nulo pra mensagem recebida.
+  origem: string | null;
 }
 
 @Component({
@@ -106,6 +108,14 @@ export class RelatorioMensagensComponent implements OnInit {
     if (status === 'read') return 'badge-blue';
     if (status === 'delivered' || status === 'sent') return 'badge-green';
     if (status === 'failed') return 'badge-danger';
+    return 'badge-muted';
+  }
+
+  origemBadgeClass(origem: string | null): string {
+    if (origem === 'Disparador de Mensagem') return 'badge-blue';
+    if (origem === 'Agendador Automático') return 'badge-violet';
+    if (origem === 'Flow Automático') return 'badge-green';
+    if (origem === 'Chat Manual') return 'badge-warn';
     return 'badge-muted';
   }
 }

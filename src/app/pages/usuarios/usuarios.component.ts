@@ -17,4 +17,9 @@ import { UsuariosDaEmpresaComponent } from './usuarios-da-empresa.component';
 export class UsuariosComponent {
   private authService = inject(AuthService);
   empresaIdLogada = computed(() => this.authService.user()?.idEmpresa);
+
+  // Conta de plataforma administra usuarios de TODAS as empresas nesta mesma tela, em vez
+  // de ficar presa a propria (Contact Solution nao teria ninguem pra ver aqui, ja que ela
+  // gerencia os clientes, nao usuarios proprios no dia a dia).
+  ehAdminDaPlataforma = this.authService.ehAdminDaPlataforma;
 }

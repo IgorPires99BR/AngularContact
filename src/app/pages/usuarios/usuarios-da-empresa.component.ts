@@ -15,6 +15,20 @@ interface Usuario {
   empresaId: string;
   perfil: Perfil;
   criadoEm: string;
+  // Estrutura de acesso modular (Perfil/PerfilTela) -- nao confundir com o campo "perfil"
+  // acima (admin/operador). Nulo = sem perfil de acesso atribuido (comportamento legado).
+  perfilId?: string | null;
+  // So vem preenchido na listagem "todas as empresas" (ver [todasAsEmpresas]) -- dado de
+  // outra empresa, so a conta de plataforma chega nesse modo.
+  nomeEmpresa?: string | null;
+}
+
+// Estrutura de acesso modular: um PerfilAcesso agrupa quais telas do menu um grupo de
+// usuarios enxerga. Nao confundir com o campo "perfil" (admin/operador) do Usuario.
+interface PerfilAcesso {
+  id: string;
+  nome: string;
+  telas: string[];
 }
 
 // Gerencia os usuarios de UMA empresa (a definida por [empresaId]). Extraido do que era a tela
@@ -37,21 +51,29 @@ interface Usuario {
   styleUrls: ['../shared-crud.css'],
 })
 export class UsuariosDaEmpresaComponent implements OnInit {
-  @Input({ required: true }) empresaId!: string;
+  // Um dos dois precisa vir preenchido: empresaId pra administrar UMA empresa, ou
+  // todasAsEmpresas pra conta de plataforma ver o time de todo mundo numa lista so.
+  @Input() empresaId?: string;
+  @Input() todasAsEmpresas = false;
 
   private http = inject(HttpClient);
   private readonly BASE_URL = `${environment.apiUrl}/usuario`;
+  private readonly PERFIL_URL = `${environment.apiUrl}/perfil`;
 
   form = signal({
     nome: '',
     email: '',
     senhaHash: '',
-    perfil: 'operador' as Perfil
+    perfil: 'operador' as Perfil,
+    perfilId: '' as string | null
   });
 
   response = signal('');
   usuarios = signal<Usuario[]>([]);
   editingId = signal<number | null>(null);
+  // So usado no modo "todas as empresas": qual empresa o usuario em edicao pertence, ja que
+  // nesse modo nao ha um [empresaId] fixo pra assumir (ver prepararEdicao/incluir).
+  private editingEmpresaId = signal<string | null>(null);
   search = signal('');
   carregando = signal(false);
 
@@ -61,12 +83,33 @@ export class UsuariosDaEmpresaComponent implements OnInit {
     return this.usuarios().filter(u =>
       u.nome?.toLowerCase().includes(termo) ||
       u.email?.toLowerCase().includes(termo) ||
-      u.perfil?.toLowerCase().includes(termo)
+      u.perfil?.toLowerCase().includes(termo) ||
+      u.nomeEmpresa?.toLowerCase().includes(termo)
     );
   });
 
+  // Perfis de acesso (estrutura modular) cadastrados nesta empresa -- geridos na tela
+  // dedicada /perfis (PerfisComponent). Aqui so lista, pra alimentar o select abaixo.
+  perfisAcesso = signal<PerfilAcesso[]>([]);
+
   ngOnInit() {
     this.listar();
+    this.listarPerfis();
+  }
+
+  listarPerfis() {
+    // No modo "todas as empresas" nao ha uma unica empresa pra listar perfis (e por isso
+    // que o formulario de criar usuario fica escondido nesse modo, ver template).
+    if (!this.empresaId || this.todasAsEmpresas) return;
+    this.http.get<PerfilAcesso[]>(`${this.PERFIL_URL}/obter-por-empresa`).subscribe({
+      next: (dados) => this.perfisAcesso.set(dados),
+      error: () => this.perfisAcesso.set([]),
+    });
+  }
+
+  nomeDoPerfilAcesso(perfilId: string | null | undefined): string {
+    if (!perfilId) return '—';
+    return this.perfisAcesso().find(p => p.id === perfilId)?.nome ?? '—';
   }
 
   update(field: string, value: any) {
@@ -74,14 +117,18 @@ export class UsuariosDaEmpresaComponent implements OnInit {
   }
 
   listar() {
-    if (!this.empresaId) return;
+    if (!this.todasAsEmpresas && !this.empresaId) return;
+
+    const url = this.todasAsEmpresas
+      ? `${this.BASE_URL}/obter-todos`
+      : `${this.BASE_URL}/obter-por-empresa/${this.empresaId}`;
 
     this.carregando.set(true);
-    this.http.get<Usuario[]>(`${this.BASE_URL}/obter-por-empresa/${this.empresaId}`).subscribe({
+    this.http.get<Usuario[]>(url).subscribe({
       next: (dados) => { this.usuarios.set(dados); this.carregando.set(false); },
       error: (err) => {
         this.carregando.set(false);
-        this.response.set('❌ ' + extrairMensagemErro(err, 'Erro ao listar usuários da empresa.'));
+        this.response.set('❌ ' + extrairMensagemErro(err, 'Erro ao listar usuários.'));
       }
     });
   }
@@ -104,7 +151,8 @@ export class UsuariosDaEmpresaComponent implements OnInit {
       return;
     }
 
-    const payload = { ...f, empresaId: this.empresaId };
+    const empresaAlvo = this.todasAsEmpresas ? this.editingEmpresaId() : this.empresaId;
+    const payload = { ...f, perfilId: f.perfilId || null, empresaId: empresaAlvo };
 
     if (this.editingId()) {
       this.http.put(`${this.BASE_URL}/alterar`, { id: this.editingId(), ...payload }).subscribe({
@@ -129,12 +177,15 @@ export class UsuariosDaEmpresaComponent implements OnInit {
 
   prepararEdicao(u: Usuario) {
     this.editingId.set(u.id);
+    this.editingEmpresaId.set(u.empresaId);
     this.form.set({
       nome: u.nome,
       email: u.email,
       senhaHash: '', // Senha geralmente não volta da API por segurança
-      perfil: u.perfil
+      perfil: u.perfil,
+      perfilId: u.perfilId || ''
     });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   cancelarEdicao() {
@@ -143,11 +194,13 @@ export class UsuariosDaEmpresaComponent implements OnInit {
 
   private limparFormulario() {
     this.editingId.set(null);
+    this.editingEmpresaId.set(null);
     this.form.set({
       nome: '',
       email: '',
       senhaHash: '',
-      perfil: 'operador'
+      perfil: 'operador',
+      perfilId: ''
     });
   }
 

@@ -7,17 +7,32 @@ import { environment } from '../../../environments/environment';
 import { isEmailValido } from '../../shared/utils/validators';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
+// Padrao de negocio atual: contato novo sem esses campos preenchidos cai nesses defaults
+// (ver Contato.DiaVencimentoPadrao/TaxaJurosPadrao/etc no backend).
+const DIA_VENCIMENTO_PADRAO = 20;
+const TAXA_JUROS_PADRAO = 2;
+const TAXA_JUROS_MENSAL_PADRAO = 2;
+const VALOR_FATURA_PADRAO = 405;
+
 interface Contato {
   id?: string;
   usuarioId: string;
+  empresaId?: string;
   telefone: string;
-  nome?: string;
+  nomeContato?: string;
   email?: string;
   dataCriacao?: string;
   // Preenchido so quando o contato chegou por um anuncio Click-to-WhatsApp -- null pra quem
   // foi cadastrado manualmente ou escreveu organicamente.
   origemAnuncio?: string | null;
   origemData?: string | null;
+  // Dados financeiros -- so preenchidos por quem revende a plataforma pros proprios
+  // clientes de cobranca (ex: Sebrecon); pra maioria das empresas ficam vazios/default.
+  nomeCliente?: string | null;
+  diaVencimento?: number | null;
+  taxaJuros?: number | null;
+  taxaJurosMensal?: number | null;
+  valorFatura?: number | null;
 }
 
 @Component({
@@ -36,11 +51,20 @@ export class ContatosComponent implements OnInit {
 
   private readonly API_URL = `${environment.apiUrl}/contato`;
 
-  form = signal({
-    nome: '',
-    telefone: '',
-    email: '',
-  });
+  form = signal(this.formVazio());
+
+  private formVazio() {
+    return {
+      nomeContato: '',
+      telefone: '',
+      email: '',
+      nomeCliente: '',
+      diaVencimento: DIA_VENCIMENTO_PADRAO,
+      taxaJuros: TAXA_JUROS_PADRAO,
+      taxaJurosMensal: TAXA_JUROS_MENSAL_PADRAO,
+      valorFatura: VALOR_FATURA_PADRAO,
+    };
+  }
 
   search = signal('');
   editingId = signal<string | null>(null);
@@ -51,7 +75,8 @@ export class ContatosComponent implements OnInit {
     const termo = this.search().toLowerCase().trim();
     if (!termo) return this.contatos();
     return this.contatos().filter(c =>
-      (c.nome && c.nome.toLowerCase().includes(termo)) ||
+      (c.nomeContato && c.nomeContato.toLowerCase().includes(termo)) ||
+      (c.nomeCliente && c.nomeCliente.toLowerCase().includes(termo)) ||
       c.telefone.toLowerCase().includes(termo) ||
       (c.email && c.email.toLowerCase().includes(termo))
     );
@@ -61,7 +86,7 @@ export class ContatosComponent implements OnInit {
     this.buscar();
   }
 
-  update(field: string, value: string) {
+  update(field: string, value: string | number) {
     this.form.set({ ...this.form(), [field]: value });
   }
 
@@ -111,9 +136,13 @@ export class ContatosComponent implements OnInit {
       return;
     }
 
+    // O EmpresaAccessFilter (guarda multi-tenant global) exige que qualquer propriedade
+    // "empresaId" no corpo bata com a empresa do token -- sem mandar a propria aqui, o
+    // campo ficava com o default (Guid.Empty) e a requisicao era negada com 403.
     const payload: Contato = {
       ...f,
-      usuarioId: currentUserId
+      usuarioId: currentUserId,
+      empresaId: this.empresaId() || undefined,
     };
 
     const request = this.editingId()
@@ -217,15 +246,20 @@ export class ContatosComponent implements OnInit {
   prepararEdicao(c: Contato) {
     this.editingId.set(c.id!);
     this.form.set({
-      nome: c.nome || '',
+      nomeContato: c.nomeContato || '',
       telefone: c.telefone,
-      email: c.email || ''
+      email: c.email || '',
+      nomeCliente: c.nomeCliente || '',
+      diaVencimento: c.diaVencimento ?? DIA_VENCIMENTO_PADRAO,
+      taxaJuros: c.taxaJuros ?? TAXA_JUROS_PADRAO,
+      taxaJurosMensal: c.taxaJurosMensal ?? TAXA_JUROS_MENSAL_PADRAO,
+      valorFatura: c.valorFatura ?? VALOR_FATURA_PADRAO,
     });
   }
 
   cancelarEdicao() {
     this.editingId.set(null);
-    this.form.set({ nome: '', telefone: '', email: '' });
+    this.form.set(this.formVazio());
   }
 
   excluir(id: string) {

@@ -13,13 +13,23 @@ import {
   Agendamento, AgendamentoExecucao, AgendamentoVariavel, OrigemVariavelAgendamento,
   DIAS_DA_SEMANA, ROTULO_RECORRENCIA, TipoRecorrencia, descricaoRecorrencia, resumoDiasSemana
 } from './agendamento.models';
+import { ParametroService } from '../parametros/parametro.service';
+import {
+  CAMPOS_DO_CONTATO, ParametroEmpresa, dicaDaVariavel, selecaoDaVariavel,
+  valorDaVariavel as resolverValorDaVariavel, variavelDaSelecao, variavelIncompleta
+} from '../../shared/variaveis/variavel-template';
 
 interface Contato {
   id: string;
-  nome?: string;
+  nomeContato?: string;
   telefone: string;
   email?: string;
   checked?: boolean;
+  nomeCliente?: string | null;
+  diaVencimento?: number | null;
+  valorFatura?: number | null;
+  taxaJuros?: number | null;
+  taxaJurosMensal?: number | null;
 }
 
 interface TemplateAgendamento extends Template {
@@ -38,6 +48,7 @@ export class AgendamentosComponent implements OnInit {
   private authService = inject(AuthService);
   private templateService = inject(TemplateService);
   private agendamentoService = inject(AgendamentoService);
+  private parametroService = inject(ParametroService);
 
   private readonly API_CONTATO = `${environment.apiUrl}/contato`;
 
@@ -73,12 +84,15 @@ export class AgendamentosComponent implements OnInit {
   });
 
   variaveis = signal<AgendamentoVariavel[]>([]);
+  // Parâmetros cadastrados da empresa (tela Parâmetros), oferecidos como origem de cada variável.
+  parametros = signal<ParametroEmpresa[]>([]);
+  readonly camposDoContato = CAMPOS_DO_CONTATO;
 
   contatosFiltrados = computed(() => {
     const termo = this.search().toLowerCase().trim();
     if (!termo) return this.contatos();
     return this.contatos().filter(c =>
-      (c.nome && c.nome.toLowerCase().includes(termo)) ||
+      (c.nomeContato && c.nomeContato.toLowerCase().includes(termo)) ||
       c.telefone.includes(termo) ||
       (c.email && c.email.toLowerCase().includes(termo))
     );
@@ -183,6 +197,10 @@ export class AgendamentosComponent implements OnInit {
       return dia ? `Todo dia ${dia} do mês, às ${hora}.` : '';
     }
 
+    if (f.tipoRecorrencia === 'VENCIMENTO_CONTATO') {
+      return `Verifica todo dia, às ${hora}, e envia só para os contatos que vencem naquele dia (dia de vencimento cadastrado em cada contato).`;
+    }
+
     return '';
   });
 
@@ -190,6 +208,17 @@ export class AgendamentosComponent implements OnInit {
     this.buscarAgendamentos();
     this.buscarTemplates();
     this.buscarContatos();
+    this.buscarParametros();
+  }
+
+  buscarParametros() {
+    const empId = this.empresaId();
+    if (!empId) return;
+    this.parametroService.listar(empId).subscribe({
+      next: (res) => this.parametros.set(res),
+      // Sem parâmetros o resto da tela continua funcionando (só some a opção no seletor).
+      error: () => this.parametros.set([])
+    });
   }
 
   buscarAgendamentos() {
@@ -250,19 +279,26 @@ export class AgendamentosComponent implements OnInit {
     this.variaveis.set(lista);
   }
 
-  rotuloOrigem(origem: OrigemVariavelAgendamento): string {
-    if (origem === 'nome') return 'nome do contato';
-    if (origem === 'telefone') return 'telefone do contato';
-    return 'valor fixo';
+  // Valor do <select> de origem da variável ('fixo', campo do contato ou 'parametro:<id>').
+  selecaoDaVariavel(v: AgendamentoVariavel): string {
+    return selecaoDaVariavel(v);
+  }
+
+  trocarOrigem(index: number, selecao: string) {
+    this.updateVariavel(index, variavelDaSelecao(selecao));
+  }
+
+  dicaDaVariavel(v: AgendamentoVariavel): string {
+    return dicaDaVariavel(v, this.parametros());
   }
 
   // Resolve o valor de uma variável para um contato de exemplo. Sem contato selecionado (prévia
   // sem seleção), devolve um exemplo visível em vez de vazio -- senão a prévia mostra "campo N"
-  // pra tudo antes do usuário marcar alguém na lista.
+  // pra tudo antes do usuário marcar alguém na lista. Mesmas regras e formatação (pt-BR, 2
+  // casas, data de vencimento no mês atual) que o backend usa de verdade no disparo (ver
+  // ResolvedorDeVariaveis).
   private valorDaVariavel(v: AgendamentoVariavel, contato: Contato | null): string {
-    if (v.origem === 'nome') return contato ? (contato.nome || '') : 'Maria';
-    if (v.origem === 'telefone') return contato ? contato.telefone : '5511999990000';
-    return v.valorFixo;
+    return resolverValorDaVariavel(v, contato, this.parametros());
   }
 
   trackByIndex(index: number): number {
@@ -320,8 +356,8 @@ export class AgendamentosComponent implements OnInit {
       this.response.set('❌ Marque ao menos um dia da semana para a recorrência semanal.');
       return;
     }
-    if (this.variaveis().some(v => v.origem === 'fixo' && !v.valorFixo.trim())) {
-      this.response.set('❌ Preencha o que entra em cada campo variável da mensagem.');
+    if (this.variaveis().some(v => variavelIncompleta(v, this.parametros()))) {
+      this.response.set('❌ Preencha o que entra em cada campo variável da mensagem (texto ou parâmetro).');
       return;
     }
     if (alvos.length === 0) {

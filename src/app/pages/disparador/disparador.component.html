@@ -82,17 +82,24 @@
 
         <div class="fg" *ngFor="let v of variaveis(); let i = index; trackBy: trackByIndex">
           <label>Campo {{ i + 1 }} da mensagem</label>
-          <div class="disp-origem">
-            <button type="button" class="disp-chip" [class.ativo]="v.origem === 'nome'" (click)="updateVariavel(i, { origem: 'nome' })">Nome do contato</button>
-            <button type="button" class="disp-chip" [class.ativo]="v.origem === 'telefone'" (click)="updateVariavel(i, { origem: 'telefone' })">Telefone do contato</button>
-            <button type="button" class="disp-chip" [class.ativo]="v.origem === 'fixo'" (click)="updateVariavel(i, { origem: 'fixo' })">Escrever um texto</button>
-          </div>
+          <select [ngModel]="selecaoDaVariavel(v)" (ngModelChange)="trocarOrigem(i, $event)">
+            <optgroup label="Dado de cada contato">
+              <option *ngFor="let c of camposDoContato" [value]="c.chave">{{ c.rotulo }}</option>
+            </optgroup>
+            <optgroup label="Texto">
+              <option value="fixo">Escrever um texto</option>
+            </optgroup>
+            <optgroup label="Parâmetros cadastrados" *ngIf="parametros().length > 0">
+              <option *ngFor="let p of parametros()" [value]="'parametro:' + p.id">{{ p.nome }}</option>
+            </optgroup>
+          </select>
           <input type="text" *ngIf="v.origem === 'fixo'"
+                 style="margin-top: 6px;"
                  placeholder="Ex: 20% de desconto"
                  [ngModel]="v.valorFixo"
                  (ngModelChange)="updateVariavel(i, { valorFixo: $event })" />
           <div class="disp-hint" *ngIf="v.origem !== 'fixo'">
-            Cada contato recebe o {{ rotuloOrigem(v.origem) }} dele, preenchido no momento do envio.
+            {{ dicaDaVariavel(v) }}
           </div>
         </div>
 
@@ -146,7 +153,7 @@
                 <td style="text-align: center;">
                   <input type="checkbox" [checked]="c.checked" (change)="toggleContato(c)" />
                 </td>
-                <td><strong>{{ c.nome || 'Sem nome' }}</strong></td>
+                <td><strong>{{ c.nomeContato || 'Sem nome' }}</strong></td>
                 <td class="mono">{{ c.telefone }}</td>
                 <td>{{ c.email || '-' }}</td>
               </tr>
@@ -218,7 +225,7 @@
     <div class="card-head">
       <div>
         <div class="card-title">Como o cliente vê</div>
-        <div class="card-sub" *ngIf="contatoDaPrevia()">Exemplo com {{ contatoDaPrevia()!.nome || contatoDaPrevia()!.telefone }}</div>
+        <div class="card-sub" *ngIf="contatoDaPrevia()">Exemplo com {{ contatoDaPrevia()!.nomeContato || contatoDaPrevia()!.telefone }}</div>
         <div class="card-sub" *ngIf="!contatoDaPrevia()">Escolha os contatos para ver com dados reais</div>
       </div>
       <app-assistente-ia-botao

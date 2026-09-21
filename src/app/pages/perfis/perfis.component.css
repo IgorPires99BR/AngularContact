@@ -1,0 +1,95 @@
+/* Cada tela do perfil e um "interruptor": liberada = verde com switch ligado e rotulo "Liberada";
+   bloqueada = apagada, switch desligado e rotulo "Bloqueada". O estado aparece em 3 sinais
+   (cor, posicao do switch e texto) pra nao depender so da cor. */
+
+.telas-resumo {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.telas-resumo b { color: var(--text); }
+
+.telas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.tela-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+
+.tela-toggle:hover { border-color: var(--blue3); }
+
+.tela-toggle:focus-visible {
+  outline: 2px solid var(--blue3);
+  outline-offset: 2px;
+}
+
+.tela-toggle.ativa {
+  border-color: var(--green);
+  background: var(--green-light);
+  color: var(--text);
+}
+
+.tela-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tela-nome {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tela-estado {
+  font-size: 11px;
+  letter-spacing: .02em;
+  color: var(--muted2);
+}
+
+.tela-toggle.ativa .tela-estado { color: var(--green); font-weight: 600; }
+
+/* Switch */
+.tela-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--muted2);
+  transition: background .15s ease;
+}
+
+.tela-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform .15s ease;
+}
+
+.tela-toggle.ativa .tela-switch { background: var(--green); }
+.tela-toggle.ativa .tela-switch::after { transform: translateX(16px); }

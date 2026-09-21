@@ -241,6 +241,10 @@
                 {{ empresaComUsuariosAbertos() === e.id ? '👥 Fechar' : '👥 Usuários' }}
               </button>
               <button class="btn btn-ghost btn-xs" (click)="prepararAcesso(e)" title="Criar o acesso do dono desta empresa">🔑 Acesso</button>
+              <button class="btn btn-ghost btn-xs" (click)="conectarMeta(e)" [disabled]="conectandoMeta() === e.id"
+                      title="Conectar esta empresa à própria conta Meta (WABA e número próprios, via Embedded Signup)">
+                {{ conectandoMeta() === e.id ? '⏳ Conectando...' : '📱 Conectar ao WhatsApp' }}
+              </button>
             }
             <button class="btn btn-ghost btn-xs" (click)="prepararEdicao(e)">Editar</button>
             <button class="btn btn-danger btn-xs" (click)="excluir(e.id)">🗑</button>

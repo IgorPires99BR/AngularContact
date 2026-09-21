@@ -72,6 +72,14 @@ const MENU_RAW: MenuSection[] = [
         icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
       },
       {
+        id: 'perfis', label: 'Perfis de Acesso', route: '/perfis',
+        icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`,
+      },
+      {
+        id: 'parametros', label: 'Parâmetros', route: '/parametros',
+        icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>`,
+      },
+      {
         id: 'cobrancas', label: 'Cobranças', route: '/cobrancas',
         icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
       },
@@ -83,22 +91,55 @@ const MENU_RAW: MenuSection[] = [
   },
 ];
 
+// Catalogo de telas pra tela de gestao de Perfis (checkboxes) -- mesmos "id" usados no
+// MENU_RAW acima e gravados em PerfilTela.TelaChave no backend. "perfis" fica de fora de
+// proposito: essa tela e exclusiva da conta de plataforma (ver getMenuVisivel /
+// platformAdminGuard), nao faz sentido um Perfil de empresa cliente liberar acesso a ela.
+export const TELAS_DISPONIVEIS: { id: string; label: string }[] =
+  MENU_RAW.flatMap(secao => secao.items.map(item => ({ id: item.id, label: item.label })))
+    .filter(tela => tela.id !== 'perfis');
+
 /**
- * Retorna o menu correto baseando-se diretamente na role fornecida pelo AuthService
+ * Resolve o menu que o usuario logado enxerga.
+ *
+ * - Conta de plataforma (Contact Solution): sempre tudo, sem filtro -- e quem cadastra
+ *   empresa nova e a unica que gerencia Perfis de Acesso.
+ * - Usuario com Perfil atribuido (estrutura de acesso modular): so as telas que o Perfil
+ *   libera, ponto -- nao herda mais o allowlist fixo do "operador".
+ * - Usuario sem Perfil (legado, antes desta feature existir): cai no comportamento antigo
+ *   (admin ve tudo, operador cai no allowlist fixo), pra nao quebrar quem ja estava configurado.
+ *
+ * Em nenhum caminho que nao seja conta de plataforma a tela "perfis" aparece -- mesmo o
+ * legado "admin ve tudo" e filtrado pra excluir ela.
  */
-export function getMenuByRole(role: string | undefined): MenuSection[] {
-  // Se for admin, retorna tudo sem filtros
-  if (role === 'admin') {
+export function getMenuVisivel(
+  role: string | undefined,
+  ehAdminDaPlataforma: boolean,
+  telasPermitidas: string[] | null | undefined
+): MenuSection[] {
+  if (ehAdminDaPlataforma) {
     return MENU_RAW;
   }
 
-  // IDs das telas permitidas para operador comum
-  const telasPermitidas = ['disparador', 'agendamentos', 'contatos', 'numeros', 'templates'];
+  // null/undefined = sem Perfil atribuido (legado). Array (mesmo vazio) = Perfil atribuido,
+  // a lista dele manda -- inclusive quando vazia (perfil sem nenhuma tela marcada).
+  const telas = telasPermitidas == null
+    ? (role === 'admin'
+        ? MENU_RAW.flatMap(secao => secao.items.map(item => item.id)) // legado: admin ve tudo, como sempre foi.
+        : ['disparador', 'agendamentos', 'contatos', 'numeros', 'templates'])
+    : telasPermitidas;
+
+  const telasSemPerfis = telas.filter(t => t !== 'perfis');
 
   return MENU_RAW.map(section => ({
     ...section,
-    items: section.items.filter(item => telasPermitidas.includes(item.id))
+    items: section.items.filter(item => telasSemPerfis.includes(item.id))
   })).filter(section => section.items.length > 0);
+}
+
+// Mantido por compatibilidade com qualquer chamador antigo -- equivalente ao caminho legado.
+export function getMenuByRole(role: string | undefined): MenuSection[] {
+  return getMenuVisivel(role, false, null);
 }
 
 // Mantemos o export do MENU original como fallback para evitar quebras em outros locais
@@ -115,7 +156,9 @@ export const PAGE_TITLES: Record<string, string> = {
   numeros: 'Números',
   templates: 'Templates',
   usuarios: 'Usuários',
+  perfis: 'Perfis de Acesso',
   relatorio: 'Relatório de Mensagens',
   metricas: 'Financeiro & Engajamento',
+  parametros: 'Parâmetros',
   cobrancas: 'Cobranças',
 };

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, adminGuard } from './auth-guard'; // Certifique-se de que o caminho está correto
+import { authGuard, adminGuard, telaPermitidaGuard, platformAdminGuard } from './auth-guard'; // Certifique-se de que o caminho está correto
 
 // Layout, Landing e Login
 import { ShellComponent } from './shell/shell.component';
@@ -22,6 +22,8 @@ import { ContatosComponent } from './pages/contatos/contatos.component';
 import { NumerosComponent } from './pages/numeros/numeros.component';
 import { TrocarSenhaComponent } from './pages/trocar-senha/trocar-senha.component';
 import { UsuariosComponent } from './pages/usuarios/usuarios.component';
+import { PerfisComponent } from './pages/perfis/perfis.component';
+import { ParametrosComponent } from './pages/parametros/parametros.component';
 import { TemplatesComponent } from './pages/templates/templates'; // <--- IMPORTADO AQUI
 import { TemplatesMapaComponent } from './pages/templates-mapa/templates-mapa';
 import { FlowsMapaComponent } from './pages/flows-mapa/flows-mapa';
@@ -54,14 +56,16 @@ export const routes: Routes = [
       { path: 'chats', component: ChatsComponent },
       { path: 'disparador', component: DisparadorComponent },
       { path: 'agendamentos', component: AgendamentosComponent },
-      { path: 'flows', component: FlowsComponent },
-      { path: 'flows/novo', component: FlowBuilderComponent },
-      { path: 'flows/:id/editar', component: FlowBuilderComponent },
-      { path: 'flows/mapa', component: FlowsMapaComponent },
-      { path: 'empresas', component: EmpresasComponent, canActivate: [adminGuard] },
+      { path: 'flows', component: FlowsComponent, canActivate: [telaPermitidaGuard('flows')] },
+      { path: 'flows/novo', component: FlowBuilderComponent, canActivate: [telaPermitidaGuard('flows')] },
+      { path: 'flows/:id/editar', component: FlowBuilderComponent, canActivate: [telaPermitidaGuard('flows')] },
+      { path: 'flows/mapa', component: FlowsMapaComponent, canActivate: [telaPermitidaGuard('flows')] },
+      { path: 'empresas', component: EmpresasComponent, canActivate: [adminGuard, telaPermitidaGuard('empresas')] },
       { path: 'contatos', component: ContatosComponent },
       { path: 'numeros', component: NumerosComponent },
       { path: 'usuarios', component: UsuariosComponent, canActivate: [adminGuard] },
+      { path: 'perfis', component: PerfisComponent, canActivate: [platformAdminGuard] },
+      { path: 'parametros', component: ParametrosComponent, canActivate: [telaPermitidaGuard('parametros')] },
       // Sem adminGuard de proposito: operador tambem tem senha para trocar.
       { path: 'trocar-senha', component: TrocarSenhaComponent },
       { path: 'templates', component: TemplatesComponent }, // <--- INSERIDO DENTRO DO SHELL PROTEGIDO
