@@ -389,18 +389,11 @@ export class DisparadorComponent implements OnInit {
     const alvos = this.selecionados();
     const vars = this.variaveis();
 
-    // Valores globais (os que não dependem do contato) e, quando há personalização, o mapa
-    // por telefone. O backend refaz esse cálculo a partir de "variaveis" com os dados do banco
-    // (ex: valorFatura) e prevalece sobre estes -- aqui é só o mesmo resultado da prévia.
+    // Só os valores que valem pra todo mundo. Os de cada contato o backend resolve a partir de
+    // "variaveis" com os dados do banco (ex: valorFatura), por CONTATO -- nunca por telefone,
+    // que pode se repetir entre contatos e faria um receber os valores do outro.
     const parametrosBody = vars.map(v =>
       dependeDoContato(v, this.parametros()) ? '' : this.valorDaVariavel(v, null).trim());
-    const parametrosBodyPorTelefone: Record<string, string[]> = {};
-
-    if (this.personalizado()) {
-      for (const contato of alvos) {
-        parametrosBodyPorTelefone[contato.telefone] = vars.map(v => this.valorDaVariavel(v, contato).trim());
-      }
-    }
 
     const payload = {
       idEmpresa: empId,
@@ -412,7 +405,6 @@ export class DisparadorComponent implements OnInit {
       templateId: tpl.id,
       parametroHeaderMediaUrl: this.temMediaHeader() ? this.headerMediaUrl().trim() : null,
       parametrosBody,
-      parametrosBodyPorTelefone,
       variaveis: vars.map(v => ({ origem: v.origem, valorFixo: v.valorFixo, parametroId: v.parametroId ?? null })),
       parametrosButton: this.buttonParams().map(bp => bp.value.trim()),
       contatoId: '00000000-0000-0000-0000-000000000000'
@@ -429,8 +421,10 @@ export class DisparadorComponent implements OnInit {
         const relatorioDisparos: Record<string, boolean> = res?.value?.relatorioDisparos || {};
         const relatorioErros: Record<string, string> = res?.value?.relatorioErros || {};
         const telefones = Object.keys(relatorioDisparos);
-        const total = telefones.length;
-        const sucesso = telefones.filter(t => relatorioDisparos[t]).length;
+        // Totais por destinatário (o backend os conta por contato); o relatório por telefone
+        // subconta quando dois contatos dividem o mesmo número.
+        const total: number = res?.value?.totalProcessado ?? telefones.length;
+        const sucesso: number = res?.value?.totalSucesso ?? telefones.filter(t => relatorioDisparos[t]).length;
 
         this.enviando.set(false);
         this.errosLote.set(Object.entries(relatorioErros).map(([telefone, erro]) => ({ telefone, erro })));
