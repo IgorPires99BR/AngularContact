@@ -1,0 +1,107 @@
+/* Cobrancas enviadas aos clientes da empresa: resumo do periodo + lista agrupada por cliente. */
+
+.cc-filtro {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cc-filtro-campos {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.cc-fg {
+  margin-bottom: 0;
+}
+
+.cc-atalhos {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 18px 14px;
+}
+
+.cc-hint,
+.cc-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.cc-select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: inherit;
+  font-size: 13px;
+}
+
+.cc-linha-cliente {
+  cursor: pointer;
+}
+
+.cc-seta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Valores comparados linha a linha: numeros de largura fixa alinhados a direita. */
+.cc-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cc-tab {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cc-verde {
+  color: var(--green);
+}
+
+.cc-vermelho {
+  color: var(--danger);
+}
+
+.cc-detalhe > td {
+  padding-top: 0;
+}
+
+.cc-tbl-interna {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin: 4px 0 10px;
+}
+
+.cc-tbl-interna th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cc-tbl-interna td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cc-tbl-interna tr:last-child td {
+  border-bottom: none;
+}
+
+.cc-acao {
+  text-align: right;
+}

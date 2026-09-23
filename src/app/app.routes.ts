@@ -29,6 +29,7 @@ import { TemplatesMapaComponent } from './pages/templates-mapa/templates-mapa';
 import { FlowsMapaComponent } from './pages/flows-mapa/flows-mapa';
 import { RelatorioMensagensComponent } from './pages/relatorio-mensagens/relatorio-mensagens.component';
 import { CobrancasComponent } from './pages/cobrancas/cobrancas.component';
+import { CobrancasClientesComponent } from './pages/cobrancas-clientes/cobrancas-clientes.component';
 import { RelatorioFinanceiroComponent } from './pages/relatorio-financeiro/relatorio-financeiro.component';
 
 export const routes: Routes = [
@@ -72,6 +73,9 @@ export const routes: Routes = [
       { path: 'templates/mapa', component: TemplatesMapaComponent },
       { path: 'relatorio', component: RelatorioMensagensComponent },
       { path: 'cobrancas', component: CobrancasComponent, canActivate: [adminGuard] },
+      // Sem adminGuard: e a tela do cliente final (ex: Sebrecon) ver o que foi cobrado em nome dele;
+      // o backend ja escopa pela empresa do token.
+      { path: 'cobrancas-clientes', component: CobrancasClientesComponent, canActivate: [telaPermitidaGuard('cobrancas-clientes')] },
       { path: 'metricas', component: RelatorioFinanceiroComponent, canActivate: [adminGuard] },
     ],
   },

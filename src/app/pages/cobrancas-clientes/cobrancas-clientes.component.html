@@ -1,0 +1,184 @@
+<div class="ph">
+  <div>
+    <h1 class="ph-title">Cobranças de Clientes</h1>
+    <div class="ph-sub">Cobranças enviadas pelo WhatsApp em seu nome, agrupadas por cliente</div>
+  </div>
+  <button class="btn btn-ghost btn-sm" (click)="buscar()" [disabled]="carregando()">
+    {{ carregando() ? '⏳ Carregando...' : '🔁 Atualizar' }}
+  </button>
+</div>
+
+<div class="card mb-14">
+  <div class="card-head cc-filtro">
+    <div>
+      <div class="card-title">🗓️ Período</div>
+      <div class="card-sub">Pela data em que a cobrança foi enviada ao cliente</div>
+    </div>
+    <div class="cc-filtro-campos">
+      <div class="fg cc-fg">
+        <label>De</label>
+        <input type="date" [ngModel]="dataInicio()" (ngModelChange)="dataInicio.set($event)">
+      </div>
+      <div class="fg cc-fg">
+        <label>Até</label>
+        <input type="date" [ngModel]="dataFim()" (ngModelChange)="dataFim.set($event)">
+      </div>
+      <button class="btn btn-primary btn-sm" (click)="buscar()" [disabled]="carregando()">
+        {{ carregando() ? '⏳' : '🔎' }} Filtrar
+      </button>
+      <button class="btn btn-ghost btn-sm" (click)="limparFiltroData()" [disabled]="carregando()">Todo o período</button>
+    </div>
+  </div>
+  <div class="cc-atalhos">
+    <button class="btn btn-ghost btn-xs" (click)="aplicarAtalho('mes')" [disabled]="carregando()">Este mês</button>
+    <button class="btn btn-ghost btn-xs" (click)="aplicarAtalho('mesAnterior')" [disabled]="carregando()">Mês anterior</button>
+    <button class="btn btn-ghost btn-xs" (click)="aplicarAtalho('30')" [disabled]="carregando()">Últimos 30 dias</button>
+    <button class="btn btn-ghost btn-xs" (click)="aplicarAtalho('90')" [disabled]="carregando()">Últimos 90 dias</button>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon violet">🧾</div>
+    <div>
+      <div class="stat-label">Total cobrado</div>
+      <div class="stat-value violet">{{ resumo().total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+      <div class="cc-hint">{{ resumo().qtd }} cobrança(s) {{ descricaoPeriodo() }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">✅</div>
+    <div>
+      <div class="stat-label">Recebido</div>
+      <div class="stat-value green">{{ resumo().recebido | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+      <div class="cc-hint">{{ resumo().qtdRecebido }} paga(s)</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon blue">⏳</div>
+    <div>
+      <div class="stat-label">Em aberto</div>
+      <div class="stat-value blue">{{ resumo().emAberto | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+      <div class="cc-hint">{{ resumo().qtdEmAberto }} ainda dentro do vencimento</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon danger">⚠️</div>
+    <div>
+      <div class="stat-label">Vencido</div>
+      <div class="stat-value danger">{{ resumo().vencido | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
+      <div class="cc-hint">{{ resumo().qtdVencido }} passaram do vencimento sem pagamento</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <div class="card-title">Clientes cobrados</div>
+      <div class="card-sub">{{ clientes().length }} cliente(s) — clique para ver cada cobrança</div>
+    </div>
+    <select class="cc-select" [ngModel]="situacao()" (ngModelChange)="situacao.set($event)">
+      <option value="">Todas as situações</option>
+      <option value="PENDENTE">Em aberto</option>
+      <option value="VENCIDA">Vencidas</option>
+      <option value="PAGA">Pagas</option>
+      <option value="CANCELADA">Canceladas</option>
+    </select>
+  </div>
+
+  <div class="crud-search-bar">
+    <span class="crud-search-icon">🔍</span>
+    <input class="crud-search-input" placeholder="Buscar cliente por nome ou telefone..."
+           [ngModel]="busca()" (ngModelChange)="busca.set($event)">
+  </div>
+
+  <div class="payload-display" *ngIf="erro()" style="margin: 0 18px 14px;">❌ {{ erro() }}</div>
+
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width: 28px;"></th>
+          <th>Cliente</th>
+          <th class="cc-num">Cobranças</th>
+          <th class="cc-num">Total</th>
+          <th class="cc-num">Recebido</th>
+          <th class="cc-num">Em aberto</th>
+          <th class="cc-num">Vencido</th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let cl of clientes()">
+          <tr class="cc-linha-cliente" (click)="alternar(cl.contatoId)">
+            <td class="cc-seta">{{ estaExpandido(cl.contatoId) ? '▾' : '▸' }}</td>
+            <td>
+              <strong>{{ cl.nome }}</strong>
+              <div class="cc-sub" *ngIf="cl.subtitulo">{{ cl.subtitulo }}</div>
+            </td>
+            <td class="cc-num">{{ cl.cobrancas.length }}</td>
+            <td class="cc-num">{{ cl.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</td>
+            <td class="cc-num cc-verde">{{ cl.recebido ? (cl.recebido | currency:'BRL':'symbol':'1.2-2':'pt-BR') : '—' }}</td>
+            <td class="cc-num">{{ cl.emAberto ? (cl.emAberto | currency:'BRL':'symbol':'1.2-2':'pt-BR') : '—' }}</td>
+            <td class="cc-num cc-vermelho">{{ cl.vencido ? (cl.vencido | currency:'BRL':'symbol':'1.2-2':'pt-BR') : '—' }}</td>
+          </tr>
+
+          <tr *ngIf="estaExpandido(cl.contatoId)" class="cc-detalhe">
+            <td></td>
+            <td colspan="6">
+              <table class="cc-tbl-interna">
+                <thead>
+                  <tr>
+                    <th>Enviada em</th>
+                    <th>Vencimento</th>
+                    <th class="cc-num">Valor</th>
+                    <th>Situação</th>
+                    <th>Pago em</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let c of cl.cobrancas">
+                    <td class="cc-tab">{{ c.dataCriacao | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td class="cc-tab">{{ c.dataVencimento | date:'dd/MM/yyyy' }}</td>
+                    <td class="cc-num">{{ c.valor | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</td>
+                    <td><span class="badge" [ngClass]="classeSituacao(c)">{{ rotuloSituacao(c) }}</span></td>
+                    <td class="cc-tab">{{ c.dataPagamento ? (c.dataPagamento | date:'dd/MM/yyyy') : '—' }}</td>
+                    <td class="cc-acao">
+                      <button *ngIf="c.status === 'PENDENTE'" class="btn btn-xs"
+                              [ngClass]="confirmandoPagamento() === c.id ? 'btn-success' : 'btn-ghost'"
+                              [disabled]="marcandoPaga() === c.id"
+                              (click)="marcarPaga(c); $event.stopPropagation()">
+                        {{ marcandoPaga() === c.id ? '⏳' : (confirmandoPagamento() === c.id ? 'Confirmar pagamento?' : '✔ Marcar paga') }}
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </ng-container>
+
+        <tr *ngIf="!carregando() && !erro() && cobrancas().length === 0">
+          <td colspan="7" class="crud-empty" style="text-align: center; padding: 28px;">
+            Nenhuma cobrança enviada {{ descricaoPeriodo() }}.
+          </td>
+        </tr>
+        <!-- Falha de carga nao pode virar "nenhuma cobranca": daria a entender que nada foi cobrado. -->
+        <tr *ngIf="!carregando() && erro()">
+          <td colspan="7" class="crud-empty" style="text-align: center; padding: 28px;">
+            Não foi possível carregar as cobranças — o que aparece acima pode estar desatualizado.
+          </td>
+        </tr>
+        <tr *ngIf="!carregando() && cobrancas().length > 0 && clientes().length === 0">
+          <td colspan="7" class="crud-empty" style="text-align: center; padding: 24px;">
+            Nenhum cliente encontrado com esse filtro.
+          </td>
+        </tr>
+        <tr *ngIf="carregando()">
+          <td colspan="7" class="crud-empty" style="text-align: center; padding: 24px;">Carregando...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
