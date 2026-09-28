@@ -173,6 +173,36 @@
   margin-bottom: 6px;
 }
 
+/* Mesmo visual da opção "O cliente já pagou" da tela de Empresas. */
+.tpl-cobranca {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: .86rem;
+  color: var(--text2);
+}
+
+.tpl-cobranca input {
+  width: auto;
+  margin: 3px 0 0;
+  cursor: pointer;
+  accent-color: var(--blue);
+  flex-shrink: 0;
+}
+
+.tpl-cobranca small {
+  display: block;
+  margin-top: 3px;
+  font-size: .74rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .tpl-dica {
   font-size: 12.5px;
   color: var(--muted);

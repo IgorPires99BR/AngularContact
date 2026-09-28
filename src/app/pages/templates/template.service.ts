@@ -20,6 +20,11 @@ export class TemplateService {
     return this.http.put(`${this.API_URL}/${id}`, payload);
   }
 
+  // Flag local (a Meta não sabe dela): funciona até em modelo já aprovado, sem reenviar.
+  alterarGeraCobranca(id: string, geraCobranca: boolean) {
+    return this.http.patch(`${this.API_URL}/${id}/gera-cobranca`, { geraCobranca });
+  }
+
   excluir(id: string) {
     return this.http.delete(`${this.API_URL}/${id}`);
   }

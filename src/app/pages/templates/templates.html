@@ -148,6 +148,21 @@
               a cada envio esse pedaço é trocado pelo valor de verdade.
             </div>
 
+            <!-- Fora das "opções extras": é decisão de negócio, não de formatação, e passaria despercebida lá. -->
+            <label class="tpl-cobranca" *ngIf="!modoEdicao()">
+              <input type="checkbox" [checked]="geraCobranca()" (change)="geraCobranca.set(!geraCobranca())">
+              <span>
+                💰 Gerar cobrança para o cliente a cada envio
+                <small>
+                  Cada disparo deste modelo abre uma cobrança com o valor da fatura e o dia de vencimento do
+                  cadastro do contato. Acompanhe e confirme os pagamentos em <b>Cobranças de Clientes</b>.
+                </small>
+              </span>
+            </label>
+            <div class="tpl-header-upload-hint" *ngIf="modoEdicao()">
+              A opção de gerar cobrança se liga e desliga direto na lista de modelos, sem reenviar para a Meta.
+            </div>
+
             <!-- Opções avançadas: escondidas até quem quiser mexer -->
             <button type="button" class="tpl-avancado-toggle" (click)="mostrarAvancado.set(!mostrarAvancado())">
               {{ mostrarAvancado() ? '▾' : '▸' }} Opções extras (cabeçalho, rodapé, botões e idioma)
@@ -209,6 +224,7 @@
               <div><span>Finalidade</span><b>{{ objetivoInfo()?.titulo || form().categoria }}</b></div>
               <div><span>Idioma</span><b>{{ form().idioma }}</b></div>
               <div><span>Campos que mudam</span><b>{{ variaveis() }}</b></div>
+              <div *ngIf="!modoEdicao()"><span>Gera cobrança</span><b>{{ geraCobranca() ? 'Sim, uma por envio' : 'Não' }}</b></div>
             </div>
 
             <div class="tpl-passo-acoes">
@@ -268,6 +284,7 @@
             <div class="tpl-item-tags">
               <span class="badge badge-muted">{{ t.categoria }}</span>
               <span class="badge badge-muted">{{ t.idioma }}</span>
+              <span class="badge badge-blue" *ngIf="t.geraCobranca" title="Cada envio abre uma cobrança em Cobranças de Clientes">💰 Gera cobrança</span>
             </div>
           </div>
           <span class="badge" [ngClass]="statusInfo(t).classe" [title]="statusInfo(t).ajuda">{{ statusInfo(t).rotulo }}</span>
@@ -294,6 +311,12 @@
                   [disabled]="!podeEditar(t)"
                   [title]="podeEditar(t) ? 'Editar modelo e reenviar para a Meta' : motivoNaoEditavel(t)"
                   (click)="iniciarEdicao(t)">✏️ Editar</button>
+          <button class="btn btn-ghost btn-xs"
+                  [disabled]="alterandoCobranca() === t.id"
+                  [title]="t.geraCobranca ? 'Parar de gerar cobrança nos próximos envios (as já geradas continuam)' : 'Gerar uma cobrança a cada envio deste modelo'"
+                  (click)="alternarGeraCobranca(t)">
+            {{ alterandoCobranca() === t.id ? '⏳' : (t.geraCobranca ? '💰 Desligar cobrança' : '💰 Ligar cobrança') }}
+          </button>
           <button class="btn btn-ghost btn-xs" title="Excluir modelo" (click)="excluir(t.id)">🗑 Excluir</button>
         </div>
       </div>

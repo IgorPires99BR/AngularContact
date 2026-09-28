@@ -74,6 +74,8 @@ export class TemplatesComponent implements OnInit {
   footerTexto = signal('');
   exemplosBody = signal<{ value: string }[]>([]);
   uploadingHeader = signal(false);
+  geraCobranca = signal(false);
+  alterandoCobranca = signal<string | null>(null);
 
   response = signal('');
   templates = signal<Template[]>([]);
@@ -348,6 +350,7 @@ export class TemplatesComponent implements OnInit {
       idEmpresa: empId,
       nomeTemplate: this.nomeTecnico(),
       idioma: f.idioma,
+      geraCobranca: this.geraCobranca(),
       ...componentesPayload
     };
 
@@ -454,6 +457,27 @@ export class TemplatesComponent implements OnInit {
     this.limparForm();
   }
 
+  // Na lista, e não no formulário de edição: a edição reenvia para a Meta e só vale para
+  // recusados, e a cobrança precisa poder ser ligada num modelo já aprovado.
+  alternarGeraCobranca(t: Template) {
+    const novoValor = !t.geraCobranca;
+    this.alterandoCobranca.set(t.id);
+
+    this.templateService.alterarGeraCobranca(t.id, novoValor).subscribe({
+      next: () => {
+        this.templates.update(list => list.map(x => x.id === t.id ? { ...x, geraCobranca: novoValor } : x));
+        this.response.set(novoValor
+          ? `✅ "${t.nomeTemplate}" agora gera uma cobrança a cada envio.`
+          : `✅ "${t.nomeTemplate}" não gera mais cobrança.`);
+        this.alterandoCobranca.set(null);
+      },
+      error: (err) => {
+        this.response.set(`❌ ${extrairMensagemErro(err, 'Não foi possível alterar a cobrança do modelo.')}`);
+        this.alterandoCobranca.set(null);
+      }
+    });
+  }
+
   excluir(id: string) {
     if (!confirm('Tem certeza que deseja excluir este modelo? Ele sai da Meta (todas as versões de idioma com esse nome) e do seu cadastro. Disparos e flows que usam esse modelo param de funcionar.')) {
       return;
@@ -481,6 +505,7 @@ export class TemplatesComponent implements OnInit {
     this.headerState.set(headerStateVazio());
     this.footerTexto.set('');
     this.exemplosBody.set([]);
+    this.geraCobranca.set(false);
     this.nomeAmigavel.set('');
     this.objetivo.set(null);
     this.modeloAplicado.set(null);

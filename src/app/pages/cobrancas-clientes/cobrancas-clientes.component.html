@@ -145,12 +145,19 @@
                     <td><span class="badge" [ngClass]="classeSituacao(c)">{{ rotuloSituacao(c) }}</span></td>
                     <td class="cc-tab">{{ c.dataPagamento ? (c.dataPagamento | date:'dd/MM/yyyy') : '—' }}</td>
                     <td class="cc-acao">
-                      <button *ngIf="c.status === 'PENDENTE'" class="btn btn-xs"
-                              [ngClass]="confirmandoPagamento() === c.id ? 'btn-success' : 'btn-ghost'"
-                              [disabled]="marcandoPaga() === c.id"
-                              (click)="marcarPaga(c); $event.stopPropagation()">
-                        {{ marcandoPaga() === c.id ? '⏳' : (confirmandoPagamento() === c.id ? 'Confirmar pagamento?' : '✔ Marcar paga') }}
-                      </button>
+                      <ng-container *ngIf="c.status === 'PENDENTE'">
+                        <button *ngIf="confirmandoPagamento() !== c.id" class="btn btn-ghost btn-xs"
+                                [disabled]="marcandoPaga() === c.id"
+                                (click)="iniciarConfirmacao(c); $event.stopPropagation()">
+                          {{ marcandoPaga() === c.id ? '⏳' : '✔ Confirmar pagamento' }}
+                        </button>
+                        <span *ngIf="confirmandoPagamento() === c.id" class="cc-confirmacao" (click)="$event.stopPropagation()">
+                          <label>Pago em</label>
+                          <input type="date" [max]="hoje" [ngModel]="dataPagamento()" (ngModelChange)="dataPagamento.set($event)">
+                          <button class="btn btn-success btn-xs" (click)="marcarPaga(c)">Confirmar</button>
+                          <button class="btn btn-ghost btn-xs" (click)="cancelarConfirmacao()">Cancelar</button>
+                        </span>
+                      </ng-container>
                     </td>
                   </tr>
                 </tbody>

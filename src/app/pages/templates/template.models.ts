@@ -39,6 +39,8 @@ export interface Template {
   componentesJson?: string;
   dataCriacao?: string;
   dataAtualizacao?: string;
+  // Disparar este template abre uma cobrança para o cliente (tela Cobranças de Clientes).
+  geraCobranca?: boolean;
 }
 
 // --- Estado de botão usado no formulário de criação/edição (tipo como string, formato que a

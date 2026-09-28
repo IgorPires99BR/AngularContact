@@ -58,6 +58,8 @@ export class CobrancasClientesComponent implements OnInit {
   situacao = signal<'' | Situacao>('');
   expandidos = signal<Set<string>>(new Set());
   confirmandoPagamento = signal<string | null>(null);
+  dataPagamento = signal(this.formatarData(new Date()));
+  hoje = this.formatarData(new Date());
   marcandoPaga = signal<string | null>(null);
 
   // Situacao e filtrada no front (nao no endpoint) pra os cards de total continuarem mostrando
@@ -178,19 +180,34 @@ export class CobrancasClientesComponent implements OnInit {
     return this.expandidos().has(contatoId) || !!this.busca().trim();
   }
 
-  // Confirmacao em dois cliques (sem confirm() do navegador): marcar paga nao tem desfazer na tela.
+  // Primeiro clique abre a confirmacao com a data do pagamento (sem confirm() do navegador):
+  // marcar paga nao tem desfazer na tela, e quem confere o extrato marca com atraso -- a data
+  // real do Pix importa mais que a data do clique.
+  iniciarConfirmacao(c: CobrancaCliente) {
+    this.dataPagamento.set(this.formatarData(new Date()));
+    this.confirmandoPagamento.set(c.id);
+  }
+
+  cancelarConfirmacao() {
+    this.confirmandoPagamento.set(null);
+  }
+
   marcarPaga(c: CobrancaCliente) {
-    if (this.confirmandoPagamento() !== c.id) {
-      this.confirmandoPagamento.set(c.id);
+    const data = this.dataPagamento();
+    if (!data || data > this.formatarData(new Date())) {
+      this.erro.set('Informe a data do pagamento (não pode ser no futuro).');
       return;
     }
 
+    this.erro.set('');
     this.confirmandoPagamento.set(null);
     this.marcandoPaga.set(c.id);
-    this.http.patch<any>(`${this.API}/${c.id}/marcar-paga`, {}).subscribe({
-      next: () => {
+    this.http.patch<any>(`${this.API}/${c.id}/marcar-paga`, { dataPagamento: data }).subscribe({
+      next: (res) => {
+        // "yyyy-MM-dd" puro o DatePipe le como UTC e mostraria o dia anterior (UTC-3).
+        const dataGravada = res?.value?.dataPagamento ?? `${data}T00:00:00`;
         this.cobrancas.update(lista => lista.map(x =>
-          x.id === c.id ? { ...x, status: 'PAGA', dataPagamento: new Date().toISOString() } : x));
+          x.id === c.id ? { ...x, status: 'PAGA', dataPagamento: dataGravada } : x));
         this.marcandoPaga.set(null);
       },
       error: (err) => {
