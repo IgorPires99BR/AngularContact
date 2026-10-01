@@ -6,7 +6,7 @@ import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 import { TemplateService } from '../templates/template.service';
-import { Template, TemplateComponente, TemplateBotaoForm, HeaderState, headerStateVazio, parseComponentes } from '../templates/template.models';
+import { Template, TemplateComponente, TemplateBotaoForm, HeaderState, headerStateVazio, parseComponentes, nomeDoTemplate } from '../templates/template.models';
 import { TemplatePreviewComponent } from '../templates/template-preview/template-preview';
 import { AgendamentoService } from './agendamento.service';
 import {
@@ -62,6 +62,7 @@ export class AgendamentosComponent implements OnInit {
 
   agendamentos = signal<Agendamento[]>([]);
   templates = signal<TemplateAgendamento[]>([]);
+  readonly nomeDoTemplate = nomeDoTemplate;
   contatos = signal<Contato[]>([]);
   search = signal('');
   response = signal('');

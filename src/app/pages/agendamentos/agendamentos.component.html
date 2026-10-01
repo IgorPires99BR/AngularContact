@@ -27,7 +27,7 @@
         <label>Modelo de mensagem</label>
         <select [ngModel]="form().templateId" (ngModelChange)="onTemplateChange($event)">
           <option value="">Escolha um modelo aprovado</option>
-          <option *ngFor="let t of templates()" [value]="t.id">{{ t.nomeTemplate }} ({{ t.idioma }})</option>
+          <option *ngFor="let t of templates()" [value]="t.id">{{ nomeDoTemplate(t) }} ({{ t.idioma }})</option>
         </select>
         <div class="disp-hint" *ngIf="templates().length === 0">
           Você ainda não tem modelo aprovado. Crie um em <b>Templates</b> — a Meta costuma responder em até 24h.

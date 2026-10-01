@@ -29,6 +29,7 @@ import {
   gerarNomeTecnico,
   explicarStatus,
   motivoNaoEditavel,
+  nomeDoTemplate,
   StatusExplicado,
 } from './template.models';
 
@@ -95,6 +96,16 @@ export class TemplatesComponent implements OnInit {
   // Template em edição (null = formulário está em modo criação)
   modoEdicao = signal<Template | null>(null);
 
+  // Retrato do conteúdo quando a edição começou: só reenvia para a Meta (e só exige exemplos)
+  // se o texto mudou. Trocar só o nome fica no sistema e vale em qualquer status.
+  private conteudoOriginal = signal('');
+  textoAlterado = computed(() => !!this.modoEdicao() && this.assinaturaConteudo() !== this.conteudoOriginal());
+  // Editando um aprovado/em análise com texto mexido: a Meta não aceita, então avisa e bloqueia.
+  textoBloqueado = computed(() => {
+    const t = this.modoEdicao();
+    return !!t && this.textoAlterado() && !this.podeEditarTexto(t);
+  });
+
   objetivoInfo = computed<ObjetivoInfo | null>(
     () => this.objetivos.find(o => o.id === this.objetivo()) ?? null
   );
@@ -113,6 +124,7 @@ export class TemplatesComponent implements OnInit {
     if (!termo) return this.templates();
     return this.templates().filter(t =>
       t.nomeTemplate?.toLowerCase().includes(termo) ||
+      t.nomeExibicao?.toLowerCase().includes(termo) ||
       t.categoria?.toLowerCase().includes(termo) ||
       t.status?.toLowerCase().includes(termo)
     );
@@ -145,12 +157,15 @@ export class TemplatesComponent implements OnInit {
       { ok: !!this.objetivo(), texto: 'Objetivo escolhido (define a categoria enviada à Meta)' },
       { ok: !!this.nomeTecnico() || !!this.modoEdicao(), texto: 'Nome do modelo preenchido' },
       { ok: f.conteudo.trim().length >= 10, texto: 'Mensagem escrita' },
-      { ok: exemplos.length === 0 || exemplos.every(e => e.value.trim()), texto: 'Exemplo preenchido para cada campo que muda' },
     ];
+    const exigeExemplos = this.exigeExemplos();
+    if (exigeExemplos) {
+      itens.push({ ok: exemplos.length === 0 || exemplos.every(e => e.value.trim()), texto: 'Exemplo preenchido para cada campo que muda' });
+    }
     if (header.tipo === 'TEXT') {
       itens.push({ ok: !!header.texto.trim(), texto: 'Texto do cabeçalho preenchido' });
     }
-    if (header.tipo === 'IMAGE' || header.tipo === 'VIDEO' || header.tipo === 'DOCUMENT') {
+    if (exigeExemplos && (header.tipo === 'IMAGE' || header.tipo === 'VIDEO' || header.tipo === 'DOCUMENT')) {
       itens.push({ ok: !!header.exemploHandle, texto: 'Arquivo de exemplo do cabeçalho enviado' });
     }
     for (const b of this.botoes()) {
@@ -169,7 +184,26 @@ export class TemplatesComponent implements OnInit {
     return itens;
   });
 
-  tudoConferido = computed(() => this.conferencia().every(i => i.ok));
+  tudoConferido = computed(() => this.conferencia().every(i => i.ok) && !this.textoBloqueado());
+
+  // Exemplos só servem para a análise da Meta: na edição sem mudança de texto não vão para lá.
+  exigeExemplos(): boolean {
+    return !this.modoEdicao() || this.textoAlterado();
+  }
+
+  // Só o que a Meta avalia -- mesma regra de TemplateComponentesBuilder.AlterouConteudoEnviado no backend.
+  private assinaturaConteudo(): string {
+    const f = this.form();
+    const header = this.headerState();
+    return JSON.stringify({
+      categoria: (f.categoria || '').toUpperCase(),
+      conteudo: f.conteudo.trim(),
+      headerTipo: header.tipo,
+      headerTexto: header.tipo === 'TEXT' ? header.texto.trim() : '',
+      footer: this.footerTexto().trim(),
+      botoes: this.botoes().map(b => [b.tipo, (b.texto || '').trim(), (b.url || '').trim(), (b.numeroTelefone || '').trim()])
+    });
+  }
 
   ngOnInit() {
     this.buscar();
@@ -252,14 +286,14 @@ export class TemplatesComponent implements OnInit {
         return 'Escreva a mensagem que o cliente vai receber.';
       }
       const exemplos = this.exemplosBody();
-      if (exemplos.length > 0 && exemplos.some(e => !e.value.trim())) {
+      if (this.exigeExemplos() && exemplos.length > 0 && exemplos.some(e => !e.value.trim())) {
         return 'Preencha um exemplo para cada campo que muda ({{1}}, {{2}}...).';
       }
       const header = this.headerState();
       if (header.tipo === 'TEXT' && !header.texto.trim()) {
         return 'Informe o texto do cabeçalho ou remova o cabeçalho.';
       }
-      if ((header.tipo === 'IMAGE' || header.tipo === 'VIDEO' || header.tipo === 'DOCUMENT') && !header.exemploHandle) {
+      if (this.exigeExemplos() && (header.tipo === 'IMAGE' || header.tipo === 'VIDEO' || header.tipo === 'DOCUMENT') && !header.exemploHandle) {
         return 'Envie o arquivo de exemplo do cabeçalho antes de continuar.';
       }
       const botaoUrlInvalido = this.botoes().some(b => b.tipo === 'URL' && !/^https?:\/\/.+\..+/.test(b.url || ''));
@@ -269,6 +303,10 @@ export class TemplatesComponent implements OnInit {
       const botaoSemTexto = this.botoes().some(b => b.tipo !== 'COPY_CODE' && !b.texto?.trim());
       if (botaoSemTexto) {
         return 'Dê um texto a cada botão (o cliente vê esse texto no WhatsApp).';
+      }
+      const editando = this.modoEdicao();
+      if (editando && this.textoBloqueado()) {
+        return `${motivoNaoEditavel(editando.status)} Desfaça a mudança no texto para salvar só o nome.`;
       }
     }
 
@@ -330,10 +368,14 @@ export class TemplatesComponent implements OnInit {
     this.salvando.set(true);
 
     if (editando) {
-      this.response.set('⏳ Salvando alterações e reenviando para a Meta...');
-      this.templateService.atualizar(editando.id, componentesPayload).subscribe({
-        next: () => {
-          this.response.set('✅ Alterações enviadas! A Meta vai analisar de novo — acompanhe o status na lista ao lado.');
+      this.response.set(this.textoAlterado() ? '⏳ Salvando alterações e reenviando para a Meta...' : '⏳ Salvando...');
+      // Vazio volta a mostrar o nome técnico (o backend grava nulo).
+      const payloadEdicao = { ...componentesPayload, nomeExibicao: this.nomeAmigavel().trim() };
+      this.templateService.atualizar(editando.id, payloadEdicao).subscribe({
+        next: (res: any) => {
+          this.response.set(res?.enviadoParaMeta
+            ? '✅ Alterações enviadas! A Meta vai analisar de novo — acompanhe o status na lista ao lado.'
+            : '✅ Nome atualizado. Nada foi enviado para a Meta — o modelo continua com a mesma situação.');
           this.salvando.set(false);
           this.cancelarEdicao();
           this.buscar();
@@ -349,6 +391,7 @@ export class TemplatesComponent implements OnInit {
     const payload = {
       idEmpresa: empId,
       nomeTemplate: this.nomeTecnico(),
+      nomeExibicao: this.nomeAmigavel().trim(),
       idioma: f.idioma,
       geraCobranca: this.geraCobranca(),
       ...componentesPayload
@@ -390,8 +433,12 @@ export class TemplatesComponent implements OnInit {
     });
   }
 
-  podeEditar(t: Template): boolean {
+  podeEditarTexto(t: Template): boolean {
     return STATUS_EDITAVEIS.includes((t.status || '').toUpperCase());
+  }
+
+  nomeDoTemplate(t: Template | null): string {
+    return nomeDoTemplate(t);
   }
 
   motivoNaoEditavel(t: Template): string {
@@ -403,8 +450,6 @@ export class TemplatesComponent implements OnInit {
   }
 
   iniciarEdicao(t: Template) {
-    if (!this.podeEditar(t)) return;
-
     const componentes = parseComponentes(t.componentesJson);
     const headerComp = componentes.find(c => c.Tipo === 0);
     const footerComp = componentes.find(c => c.Tipo === 2);
@@ -417,7 +462,7 @@ export class TemplatesComponent implements OnInit {
       conteudo: t.conteudo
     });
 
-    this.nomeAmigavel.set(t.nomeTemplate);
+    this.nomeAmigavel.set(nomeDoTemplate(t));
     this.objetivo.set(this.objetivos.find(o => o.categoria === (t.categoria || '').toUpperCase())?.id ?? null);
 
     if (headerComp) {
@@ -445,6 +490,7 @@ export class TemplatesComponent implements OnInit {
     const quantidadeVariaveis = (t.conteudo.match(/\{\{\d+\}\}/g) || []).length;
     this.exemplosBody.set(Array.from({ length: quantidadeVariaveis }, () => ({ value: '' })));
 
+    this.conteudoOriginal.set(this.assinaturaConteudo());
     this.modoEdicao.set(t);
     this.mostrarAvancado.set(true);
     this.passo.set(3);
@@ -467,8 +513,8 @@ export class TemplatesComponent implements OnInit {
       next: () => {
         this.templates.update(list => list.map(x => x.id === t.id ? { ...x, geraCobranca: novoValor } : x));
         this.response.set(novoValor
-          ? `✅ "${t.nomeTemplate}" agora gera uma cobrança a cada envio.`
-          : `✅ "${t.nomeTemplate}" não gera mais cobrança.`);
+          ? `✅ "${nomeDoTemplate(t)}" agora gera uma cobrança a cada envio.`
+          : `✅ "${nomeDoTemplate(t)}" não gera mais cobrança.`);
         this.alterandoCobranca.set(null);
       },
       error: (err) => {

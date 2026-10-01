@@ -10,6 +10,7 @@ interface Template {
   id: string;
   empresaId: string;
   nomeTemplate: string;
+  nomeExibicao?: string | null;
   conteudo: string;
   categoria: string;
   idioma: string;
@@ -152,7 +153,7 @@ export class TemplatesMapaComponent implements OnInit, AfterViewInit {
   private atualizarGrafo() {
     const nodes: GraphNode[] = this.templates.map(t => ({
       id: t.id,
-      name: t.nomeTemplate,
+      name: t.nomeExibicao || t.nomeTemplate,
       categoria: t.categoria,
       status: t.status,
       color: this.corPorStatus(t.status)

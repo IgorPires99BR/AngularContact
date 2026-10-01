@@ -31,6 +31,8 @@ export interface Template {
   id: string;
   empresaId: string;
   nomeTemplate: string;
+  // Nome no sistema, editável a qualquer momento. nomeTemplate é o técnico na Meta (imutável lá).
+  nomeExibicao?: string | null;
   conteudo: string;
   categoria: string;
   idioma: string;
@@ -68,16 +70,20 @@ export function rotuloTipoBotao(tipo: TipoBotaoForm): string {
   }
 }
 
-// Só templates recusados podem ser editados: a Meta não aceita alteração em template
+export function nomeDoTemplate(t: { nomeTemplate: string; nomeExibicao?: string | null } | null | undefined): string {
+  return t?.nomeExibicao?.trim() || t?.nomeTemplate || '';
+}
+
+// Só templates recusados podem ter o TEXTO editado: a Meta não aceita alteração em template
 // aprovado nem em template ainda em análise (nesse caso ela devolvia erro e a tela mostrava
-// um "não foi possível concluir a operação" sem explicação).
+// um "não foi possível concluir a operação" sem explicação). O nome no sistema muda sempre.
 export const STATUS_EDITAVEIS = ['REJECTED', 'REJECTED_META'];
 
-// Texto do botão desabilitado: precisa dizer o motivo, não só que não dá.
+// Precisa dizer o motivo, não só que não dá.
 export function motivoNaoEditavel(status?: string): string {
   const s = (status || 'PENDING').toUpperCase();
-  if (s === 'PENDING') return 'Em análise na Meta: dá para editar só depois do resultado. Se for recusado, você edita e reenvia.';
-  return 'Modelo já aprovado: a Meta não permite alterar. Crie um novo modelo.';
+  if (s === 'PENDING') return 'Em análise na Meta: o texto só pode ser alterado depois do resultado. Se for recusado, você edita e reenvia.';
+  return 'Modelo já aprovado: a Meta não permite alterar o texto. Para outro texto, crie um novo modelo.';
 }
 
 export interface IdiomaMeta {

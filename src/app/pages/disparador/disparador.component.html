@@ -54,7 +54,7 @@
           <select [ngModel]="form().templateId" (ngModelChange)="onTemplateChange($event)">
             <option value="">Escolha um modelo aprovado</option>
             <option *ngFor="let t of templates()" [value]="t.id">
-              {{ t.nomeTemplate }} ({{ t.idioma }})
+              {{ nomeDoTemplate(t) }} ({{ t.idioma }})
             </option>
           </select>
           <div class="disp-hint" *ngIf="templates().length === 0">
@@ -188,7 +188,7 @@
 
         <div class="disp-resumo">
           <div><span>Vai sair do número</span><b>{{ numeroEscolhido()?.descricao }} ({{ numeroEscolhido()?.telefone }})</b></div>
-          <div><span>Modelo</span><b>{{ templateAtivo()?.nomeTemplate }}</b></div>
+          <div><span>Modelo</span><b>{{ nomeDoTemplate(templateAtivo()) }}</b></div>
           <div><span>Quantidade</span><b>{{ selecionados().length }} contato(s)</b></div>
           <div><span>Personalização</span><b>{{ personalizado() ? 'Cada contato recebe os dados dele' : 'Mesmo texto para todos' }}</b></div>
         </div>

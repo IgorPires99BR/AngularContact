@@ -6,7 +6,7 @@ import { AuthService } from '../../core/services/auth';
 import { environment } from '../../../environments/environment';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 import { TemplateService } from '../templates/template.service';
-import { Template, TemplateComponente, parseComponentes } from '../templates/template.models';
+import { Template, TemplateComponente, parseComponentes, nomeDoTemplate } from '../templates/template.models';
 import { AssistenteIaBotaoComponent } from '../../shared/assistente-ia/assistente-ia-botao';
 import { ParametroService } from '../parametros/parametro.service';
 import {
@@ -69,6 +69,7 @@ export class DisparadorComponent implements OnInit {
   // Signals de Estado
   contatos = signal<Contato[]>([]);
   templates = signal<TemplateMeta[]>([]);
+  readonly nomeDoTemplate = nomeDoTemplate;
   numerosAtivos = signal<NumeroMeta[]>([]);
   search = signal('');
 

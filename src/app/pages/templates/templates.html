@@ -38,9 +38,11 @@
   <div class="card">
     <div class="card-head">
       <div>
-        <div class="card-title">{{ modoEdicao() ? '✏️ Editando: ' + modoEdicao()!.nomeTemplate : '✨ Criar um modelo de mensagem' }}</div>
+        <div class="card-title">{{ modoEdicao() ? '✏️ Editando: ' + nomeDoTemplate(modoEdicao()) : '✨ Criar um modelo de mensagem' }}</div>
         <div class="card-sub" *ngIf="!modoEdicao()">Três passos. Nenhum termo técnico necessário.</div>
-        <div class="card-sub" *ngIf="modoEdicao()">Ao salvar, a Meta analisa o modelo de novo.</div>
+        <div class="card-sub" *ngIf="modoEdicao()">
+          {{ textoAlterado() ? 'O texto mudou: ao salvar, a Meta analisa o modelo de novo.' : 'Trocar só o nome não envia nada para a Meta.' }}
+        </div>
       </div>
       <button class="btn btn-ghost btn-sm" *ngIf="modoEdicao()" (click)="cancelarEdicao()">Cancelar edição</button>
     </div>
@@ -125,14 +127,18 @@
             <div class="fg">
               <label>Nome do modelo (só você vê)</label>
               <input type="text" placeholder="Ex: Aviso de entrega"
-                     [ngModel]="nomeAmigavel()" (ngModelChange)="nomeAmigavel.set($event)"
-                     [disabled]="!!modoEdicao()">
+                     [ngModel]="nomeAmigavel()" (ngModelChange)="nomeAmigavel.set($event)">
               <div class="tpl-header-upload-hint" *ngIf="!modoEdicao() && nomeTecnico()">
                 Na Meta ele fica como <code>{{ nomeTecnico() }}</code> — sem acento e sem espaço, é a regra deles.
               </div>
               <div class="tpl-header-upload-hint" *ngIf="modoEdicao()">
-                O nome e o idioma não mudam depois de criado. Para outro nome, crie um novo modelo.
+                Muda só aqui no sistema, a qualquer momento. Na Meta ele continua <code>{{ modoEdicao()!.nomeTemplate }}</code>
+                (a Meta não permite renomear).
               </div>
+            </div>
+
+            <div class="tpl-dica" *ngIf="modoEdicao() && !podeEditarTexto(modoEdicao()!)">
+              🔒 {{ motivoNaoEditavel(modoEdicao()!) }} Aqui você pode trocar só o nome.
             </div>
 
             <app-template-body-editor
@@ -220,7 +226,9 @@
             </div>
 
             <div class="tpl-resumo">
+              <div><span>Nome no sistema</span><b>{{ nomeAmigavel().trim() || (modoEdicao() ? modoEdicao()!.nomeTemplate : nomeTecnico()) }}</b></div>
               <div><span>Nome na Meta</span><b>{{ modoEdicao() ? modoEdicao()!.nomeTemplate : nomeTecnico() }}</b></div>
+              <div *ngIf="modoEdicao()"><span>Vai para a Meta?</span><b>{{ textoAlterado() ? 'Sim, o texto mudou' : 'Não, só o nome muda' }}</b></div>
               <div><span>Finalidade</span><b>{{ objetivoInfo()?.titulo || form().categoria }}</b></div>
               <div><span>Idioma</span><b>{{ form().idioma }}</b></div>
               <div><span>Campos que mudam</span><b>{{ variaveis() }}</b></div>
@@ -230,7 +238,7 @@
             <div class="tpl-passo-acoes">
               <button class="btn btn-ghost btn-sm" (click)="voltar()">← Voltar e ajustar</button>
               <button class="btn btn-primary" (click)="salvar()" [disabled]="salvando() || uploadingHeader() || !tudoConferido()">
-                {{ salvando() ? '⏳ Enviando...' : (modoEdicao() ? '💾 Salvar e reenviar para análise' : '🚀 Enviar para a Meta') }}
+                {{ salvando() ? '⏳ Enviando...' : (modoEdicao() ? (textoAlterado() ? '💾 Salvar e reenviar para análise' : '💾 Salvar') : '🚀 Enviar para a Meta') }}
               </button>
             </div>
           </ng-container>
@@ -280,7 +288,8 @@
       <div class="tpl-item" *ngFor="let t of templatesFiltrados()">
         <div class="tpl-item-head">
           <div class="tpl-item-info">
-            <div class="crud-name">{{ t.nomeTemplate }}</div>
+            <div class="crud-name">{{ nomeDoTemplate(t) }}</div>
+            <div class="tpl-item-status-ajuda" *ngIf="nomeDoTemplate(t) !== t.nomeTemplate">Na Meta: <code>{{ t.nomeTemplate }}</code></div>
             <div class="tpl-item-tags">
               <span class="badge badge-muted">{{ t.categoria }}</span>
               <span class="badge badge-muted">{{ t.idioma }}</span>
@@ -308,8 +317,7 @@
 
         <div class="tpl-item-actions">
           <button class="btn btn-ghost btn-xs"
-                  [disabled]="!podeEditar(t)"
-                  [title]="podeEditar(t) ? 'Editar modelo e reenviar para a Meta' : motivoNaoEditavel(t)"
+                  [title]="podeEditarTexto(t) ? 'Editar nome e texto (texto alterado é reenviado para a Meta)' : 'Editar o nome no sistema. ' + motivoNaoEditavel(t)"
                   (click)="iniciarEdicao(t)">✏️ Editar</button>
           <button class="btn btn-ghost btn-xs"
                   [disabled]="alterandoCobranca() === t.id"

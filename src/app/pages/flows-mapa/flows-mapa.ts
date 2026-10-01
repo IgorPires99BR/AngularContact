@@ -11,6 +11,7 @@ interface Template {
   id: string;
   empresaId: string;
   nomeTemplate: string;
+  nomeExibicao?: string | null;
   conteudo: string;
   categoria: string;
   idioma: string;
@@ -269,7 +270,8 @@ export class FlowsMapaComponent implements OnInit, AfterViewInit {
 
   private nomeTemplate(templateId: string | null): string | undefined {
     if (!templateId) return undefined;
-    return this.templates().find(t => t.id === templateId)?.nomeTemplate;
+    const t = this.templates().find(x => x.id === templateId);
+    return t ? (t.nomeExibicao || t.nomeTemplate) : undefined;
   }
 
   private corPorEtapa(etapa: FlowEtapa): string {
