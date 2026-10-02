@@ -21,6 +21,48 @@ interface Numero {
   statusConexao?: string; // Pendente, Conectado, Erro, Desconectado
 }
 
+// Perfil do WhatsApp Business (ObtemPerfilNumeroResult): o que o cliente final vê no contato.
+interface PerfilNumero {
+  numeroId: string;
+  telefone: string;
+  ehCoexistencia: boolean;
+  sobre?: string;
+  descricao?: string;
+  endereco?: string;
+  email?: string;
+  sites: string[];
+  segmento?: string;
+  fotoUrl?: string;
+  nomeExibido?: string;
+  novoNomeSolicitado?: string;
+  statusNovoNome?: string;
+}
+
+// Lista fechada da Meta (campo vertical) com rótulo em português.
+const SEGMENTOS: { valor: string; rotulo: string }[] = [
+  { valor: 'OTHER', rotulo: 'Outro' },
+  { valor: 'APPAREL', rotulo: 'Roupas e acessórios' },
+  { valor: 'AUTO', rotulo: 'Automotivo' },
+  { valor: 'BEAUTY', rotulo: 'Beleza, spa e salão' },
+  { valor: 'EDU', rotulo: 'Educação' },
+  { valor: 'ENTERTAIN', rotulo: 'Entretenimento' },
+  { valor: 'EVENT_PLAN', rotulo: 'Eventos' },
+  { valor: 'FINANCE', rotulo: 'Finanças e bancos' },
+  { valor: 'GROCERY', rotulo: 'Mercado e alimentos' },
+  { valor: 'GOVT', rotulo: 'Serviço público' },
+  { valor: 'HEALTH', rotulo: 'Saúde' },
+  { valor: 'HOTEL', rotulo: 'Hotelaria e hospedagem' },
+  { valor: 'NONPROFIT', rotulo: 'Sem fins lucrativos' },
+  { valor: 'PROF_SERVICES', rotulo: 'Serviços profissionais' },
+  { valor: 'RESTAURANT', rotulo: 'Restaurante' },
+  { valor: 'RETAIL', rotulo: 'Varejo' },
+  { valor: 'TRAVEL', rotulo: 'Viagens e transporte' },
+  { valor: 'ALCOHOL', rotulo: 'Bebidas alcoólicas' },
+  { valor: 'OTC_DRUGS', rotulo: 'Medicamentos sem receita' },
+  { valor: 'ONLINE_GAMBLING', rotulo: 'Apostas online' },
+  { valor: 'PHYSICAL_GAMBLING', rotulo: 'Apostas presenciais' },
+];
+
 @Component({
   selector: 'app-numeros',
   standalone: true,
@@ -327,6 +369,197 @@ export class NumerosComponent implements OnInit, OnDestroy {
 
   private limparForm() {
     this.form.set({ telefone: '', nomeVerificado: '', codigoPais: '55' });
+  }
+
+  // --- Perfil do número (foto, nome exibido e textos que o cliente final vê) ---
+
+  segmentos = SEGMENTOS;
+  numeroEmEdicao = signal<Numero | null>(null);
+  perfil = signal<PerfilNumero | null>(null);
+  perfilForm = signal({ sobre: '', descricao: '', endereco: '', email: '', site1: '', site2: '', segmento: '' });
+  novoNome = signal('');
+  carregandoPerfil = signal(false);
+  salvandoPerfil = signal(false);
+  enviandoFoto = signal(false);
+  enviandoNome = signal(false);
+  mensagemPerfil = signal('');
+  // Prévia local enquanto a Meta processa a foto nova (a URL dela demora a refletir a troca).
+  fotoPrevia = signal<string | null>(null);
+
+  abrirPerfil(n: Numero) {
+    this.numeroEmEdicao.set(n);
+    this.perfil.set(null);
+    this.fotoPrevia.set(null);
+    this.novoNome.set('');
+    this.mensagemPerfil.set('');
+    this.carregarPerfil();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  fecharPerfil() {
+    this.numeroEmEdicao.set(null);
+    this.perfil.set(null);
+    this.fotoPrevia.set(null);
+  }
+
+  carregarPerfil() {
+    const n = this.numeroEmEdicao();
+    if (!n) return;
+
+    this.carregandoPerfil.set(true);
+    this.http.get<PerfilNumero>(`${this.API_URL}/${n.id}/perfil`).subscribe({
+      next: (p) => {
+        this.perfil.set(p);
+        this.perfilForm.set({
+          sobre: p.sobre || '',
+          descricao: p.descricao || '',
+          endereco: p.endereco || '',
+          email: p.email || '',
+          site1: p.sites?.[0] || '',
+          site2: p.sites?.[1] || '',
+          // Perfil sem segmento volta "UNDEFINED" da Meta, que ela mesma não aceita de volta no envio.
+          segmento: SEGMENTOS.some(s => s.valor === p.segmento) ? p.segmento! : ''
+        });
+        this.carregandoPerfil.set(false);
+      },
+      error: (err) => {
+        this.mensagemPerfil.set(`❌ ${extrairMensagemErro(err, 'Não foi possível carregar o perfil deste número na Meta.')}`);
+        this.carregandoPerfil.set(false);
+      }
+    });
+  }
+
+  updatePerfil(field: string, value: string) {
+    this.perfilForm.set({ ...this.perfilForm(), [field]: value });
+  }
+
+  salvarPerfil() {
+    const n = this.numeroEmEdicao();
+    if (!n) return;
+    const f = this.perfilForm();
+
+    const payload = {
+      sobre: f.sobre,
+      descricao: f.descricao,
+      endereco: f.endereco,
+      email: f.email,
+      sites: [f.site1, f.site2].map(s => s.trim()).filter(s => s),
+      segmento: f.segmento || null
+    };
+
+    this.salvandoPerfil.set(true);
+    this.mensagemPerfil.set('⏳ Salvando o perfil na Meta...');
+    this.http.put(`${this.API_URL}/${n.id}/perfil`, payload).subscribe({
+      next: () => {
+        this.mensagemPerfil.set('✅ Perfil atualizado. Os clientes já veem as informações novas no WhatsApp.');
+        this.salvandoPerfil.set(false);
+      },
+      error: (err) => {
+        this.mensagemPerfil.set(`❌ ${extrairMensagemErro(err, 'Não foi possível salvar o perfil.')}`);
+        this.salvandoPerfil.set(false);
+      }
+    });
+  }
+
+  trocarFoto(input: HTMLInputElement) {
+    const n = this.numeroEmEdicao();
+    const arquivo = input.files?.[0];
+    input.value = ''; // permite escolher o mesmo arquivo de novo depois de um erro
+    if (!n || !arquivo) return;
+
+    if (!['image/jpeg', 'image/png'].includes(arquivo.type)) {
+      this.mensagemPerfil.set('❌ A foto precisa ser JPG ou PNG.');
+      return;
+    }
+    if (arquivo.size > 5 * 1024 * 1024) {
+      this.mensagemPerfil.set('❌ A foto pode ter no máximo 5 MB.');
+      return;
+    }
+
+    const dados = new FormData();
+    dados.append('arquivo', arquivo);
+
+    this.enviandoFoto.set(true);
+    this.mensagemPerfil.set('⏳ Enviando a foto para a Meta...');
+    this.http.post(`${this.API_URL}/${n.id}/foto`, dados).subscribe({
+      next: () => {
+        this.fotoPrevia.set(URL.createObjectURL(arquivo));
+        this.mensagemPerfil.set('✅ Foto trocada. Pode levar alguns minutos para aparecer no WhatsApp dos clientes.');
+        this.enviandoFoto.set(false);
+      },
+      error: (err) => {
+        this.mensagemPerfil.set(`❌ ${extrairMensagemErro(err, 'Não foi possível trocar a foto.')}`);
+        this.enviandoFoto.set(false);
+      }
+    });
+  }
+
+  solicitarNovoNome() {
+    const n = this.numeroEmEdicao();
+    const nome = this.novoNome().trim();
+    if (!n) return;
+    if (!nome) {
+      this.mensagemPerfil.set('❌ Digite o novo nome que os clientes vão ver.');
+      return;
+    }
+
+    this.enviandoNome.set(true);
+    this.mensagemPerfil.set('⏳ Enviando o novo nome para análise da Meta...');
+    this.http.post(`${this.API_URL}/${n.id}/nome`, { novoNome: nome }).subscribe({
+      next: () => {
+        this.mensagemPerfil.set('✅ Pedido enviado. A Meta analisa o nome (costuma levar de horas a alguns dias); quando aprovar, volte aqui e clique em "Aplicar nome aprovado".');
+        this.novoNome.set('');
+        this.enviandoNome.set(false);
+        this.carregarPerfil();
+      },
+      error: (err) => {
+        this.mensagemPerfil.set(`❌ ${extrairMensagemErro(err, 'Não foi possível pedir a troca do nome.')}`);
+        this.enviandoNome.set(false);
+      }
+    });
+  }
+
+  aplicarNomeAprovado() {
+    const n = this.numeroEmEdicao();
+    if (!n) return;
+
+    // Mesmo PIN da coexistência: a Meta só troca o nome quando o número é registrado de novo.
+    const pin = prompt('Para aplicar o nome aprovado, digite o PIN de verificação em 2 etapas (6 dígitos) deste número:');
+    if (!pin) return;
+    if (!/^\d{6}$/.test(pin)) {
+      this.mensagemPerfil.set('❌ O PIN deve ter exatamente 6 dígitos numéricos.');
+      return;
+    }
+
+    this.enviandoNome.set(true);
+    this.mensagemPerfil.set('⏳ Aplicando o nome aprovado...');
+    this.http.post(`${this.API_URL}/${n.id}/nome/aplicar`, { pin }).subscribe({
+      next: () => {
+        this.mensagemPerfil.set('✅ Nome aplicado! Os clientes passam a ver o nome novo nas próximas mensagens.');
+        this.enviandoNome.set(false);
+        this.carregarPerfil();
+        this.buscar();
+      },
+      error: (err) => {
+        this.mensagemPerfil.set(`❌ ${extrairMensagemErro(err, 'Não foi possível aplicar o nome.')}`);
+        this.enviandoNome.set(false);
+      }
+    });
+  }
+
+  // A Meta mantém APPROVED depois que o nome já foi aplicado; só falta aplicar se ainda difere do atual.
+  nomeAguardandoAplicacao(p: PerfilNumero): boolean {
+    return (p.statusNovoNome || '').toUpperCase() === 'APPROVED'
+      && !!p.novoNomeSolicitado && p.novoNomeSolicitado !== p.nomeExibido;
+  }
+
+  statusNovoNome(p: PerfilNumero): { rotulo: string; classe: string } | null {
+    const s = (p.statusNovoNome || '').toUpperCase();
+    if (!s || s === 'NONE') return null;
+    if (s === 'APPROVED') return this.nomeAguardandoAplicacao(p) ? { rotulo: 'Aprovado — falta aplicar', classe: 'badge-green' } : null;
+    if (s === 'DECLINED' || s === 'REJECTED') return { rotulo: 'Recusado pela Meta', classe: 'badge-danger' };
+    if (s.includes('PENDING') || s.includes('REVIEW')) return { rotulo: 'Em análise na Meta', classe: 'badge-warn' };
+    return { rotulo: s, classe: 'badge-muted' };
   }
 
   // Status vazio nao e "conectado": e "a Meta ainda nao respondeu sobre este numero".

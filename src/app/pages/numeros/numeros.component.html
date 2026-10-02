@@ -21,7 +21,118 @@
 </div>
 
 <div class="g2">
-  <div class="card">
+  <!-- Perfil do número: substitui o card de onboarding enquanto um número está em edição -->
+  <div class="card" *ngIf="numeroEmEdicao() as n">
+    <div class="card-head">
+      <div>
+        <div class="card-title">✏️ Perfil no WhatsApp</div>
+        <div class="card-sub">+{{ n.telefone }} · é isso que o cliente vê ao abrir o contato</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" (click)="fecharPerfil()">Fechar</button>
+    </div>
+
+    <div class="card-body">
+      <div class="payload-display" *ngIf="carregandoPerfil()">⏳ Buscando o perfil atual na Meta...</div>
+
+      <ng-container *ngIf="perfil() as p">
+        <!-- Foto -->
+        <div class="perfil-foto">
+          <img *ngIf="fotoPrevia() || p.fotoUrl; else semFoto" [src]="fotoPrevia() || p.fotoUrl" alt="Foto do perfil">
+          <ng-template #semFoto><div class="perfil-foto-vazia">📷</div></ng-template>
+          <div>
+            <label class="btn btn-outline btn-sm" [class.disabled]="enviandoFoto()">
+              {{ enviandoFoto() ? '⏳ Enviando...' : '🖼️ Trocar foto' }}
+              <input #fotoInput type="file" accept="image/jpeg,image/png" hidden
+                     [disabled]="enviandoFoto()" (change)="trocarFoto(fotoInput)">
+            </label>
+            <div class="perfil-dica">JPG ou PNG, até 5 MB. Use uma imagem quadrada (o WhatsApp corta em círculo).</div>
+          </div>
+        </div>
+
+        <!-- Nome exibido -->
+        <div class="fg">
+          <label>Nome que o cliente vê</label>
+          <div class="perfil-nome-atual">
+            <b>{{ p.nomeExibido || '—' }}</b>
+            <span class="badge" *ngIf="statusNovoNome(p) as st" [ngClass]="st.classe">{{ st.rotulo }}</span>
+          </div>
+          <div class="perfil-dica" *ngIf="p.novoNomeSolicitado && p.novoNomeSolicitado !== p.nomeExibido">
+            Nome pedido: <b>{{ p.novoNomeSolicitado }}</b>
+          </div>
+
+          <div class="perfil-dica" *ngIf="p.ehCoexistencia">
+            Este número usa coexistência com o app WhatsApp Business: o nome é trocado pelo próprio app no celular.
+          </div>
+
+          <ng-container *ngIf="!p.ehCoexistencia">
+            <div class="perfil-nome-acoes">
+              <input type="text" maxlength="100" placeholder="Novo nome (ex: Loja Exemplo)"
+                     [ngModel]="novoNome()" (ngModelChange)="novoNome.set($event)">
+              <button class="btn btn-outline btn-sm" (click)="solicitarNovoNome()" [disabled]="enviandoNome()">Pedir troca</button>
+            </div>
+            <button class="btn btn-primary btn-sm" style="margin-top: 8px"
+                    *ngIf="nomeAguardandoAplicacao(p)"
+                    (click)="aplicarNomeAprovado()" [disabled]="enviandoNome()">
+              ✅ Aplicar nome aprovado
+            </button>
+            <div class="perfil-dica">
+              A Meta analisa todo nome novo (precisa ter relação com a sua marca). Depois de aprovado, clique em
+              "Aplicar nome aprovado" — vai pedir o PIN de 6 dígitos do número.
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- Textos do perfil -->
+        <div class="fg">
+          <label>Recado <small>({{ perfilForm().sobre.length }}/139)</small></label>
+          <input type="text" maxlength="139" placeholder="Ex: Atendimento de seg a sex, das 8h às 18h"
+                 [ngModel]="perfilForm().sobre" (ngModelChange)="updatePerfil('sobre', $event)">
+        </div>
+        <div class="fg">
+          <label>Descrição da empresa <small>({{ perfilForm().descricao.length }}/512)</small></label>
+          <textarea rows="3" maxlength="512"
+                    [ngModel]="perfilForm().descricao" (ngModelChange)="updatePerfil('descricao', $event)"></textarea>
+        </div>
+        <div class="fg-row">
+          <div class="fg" style="flex: 1;">
+            <label>E-mail</label>
+            <input type="email" maxlength="128" [ngModel]="perfilForm().email" (ngModelChange)="updatePerfil('email', $event)">
+          </div>
+          <div class="fg" style="flex: 1;">
+            <label>Segmento</label>
+            <select [ngModel]="perfilForm().segmento" (ngModelChange)="updatePerfil('segmento', $event)">
+              <option value="">— Não informar —</option>
+              <option *ngFor="let s of segmentos" [value]="s.valor">{{ s.rotulo }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Endereço</label>
+          <input type="text" maxlength="256" [ngModel]="perfilForm().endereco" (ngModelChange)="updatePerfil('endereco', $event)">
+        </div>
+        <div class="fg-row">
+          <div class="fg" style="flex: 1;">
+            <label>Site</label>
+            <input type="url" maxlength="256" placeholder="https://..." [ngModel]="perfilForm().site1" (ngModelChange)="updatePerfil('site1', $event)">
+          </div>
+          <div class="fg" style="flex: 1;">
+            <label>Outro site</label>
+            <input type="url" maxlength="256" placeholder="https://..." [ngModel]="perfilForm().site2" (ngModelChange)="updatePerfil('site2', $event)">
+          </div>
+        </div>
+
+        <div class="btn-grp">
+          <button class="btn btn-primary" (click)="salvarPerfil()" [disabled]="salvandoPerfil()">
+            {{ salvandoPerfil() ? '⏳ Salvando...' : '💾 Salvar perfil' }}
+          </button>
+        </div>
+      </ng-container>
+
+      <div class="payload-display" *ngIf="mensagemPerfil()" style="margin-top: 14px">{{ mensagemPerfil() }}</div>
+    </div>
+  </div>
+
+  <div class="card" *ngIf="!numeroEmEdicao()">
     <div class="card-head"><div class="card-title">📱 Solicitar Onboarding de Número</div></div>
     <div class="card-body">
       <div class="fg-row">
@@ -88,6 +199,10 @@
         <span class="badge badge-blue" *ngIf="n.tipoConexao === 2">CoEx</span>
 
         <div class="crud-actions">
+          <button class="btn btn-outline btn-xs"
+                  [disabled]="!n.instanciaId"
+                  [title]="n.instanciaId ? 'Trocar foto, nome e informações que o cliente vê no WhatsApp' : 'Sincronize com a Meta antes de editar o perfil'"
+                  (click)="abrirPerfil(n)">✏️ Perfil</button>
           <button class="btn btn-outline btn-xs"
                   *ngIf="n.tipoConexao !== 2"
                   [disabled]="coexistenciaAtivandoId() === n.id"
