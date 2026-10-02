@@ -132,33 +132,40 @@
 
         <div class="crud-search-bar">
           <span class="crud-search-icon">🔍</span>
-          <input class="crud-search-input" placeholder="Buscar por nome, telefone ou e-mail..."
+          <input class="crud-search-input" placeholder="Buscar por contato, cliente, telefone ou e-mail..."
                  [ngModel]="search()" (ngModelChange)="search.set($event)" />
         </div>
 
         <div class="tbl-wrap disp-tabela">
-          <table class="tbl">
+          <table class="tbl tbl-destinatarios">
             <thead>
               <tr>
-                <th style="width: 50px; text-align: center;">
+                <th class="col-sel">
                   <input type="checkbox" [checked]="isAllSelected()" (change)="selAll()" />
                 </th>
-                <th>Nome</th>
-                <th>Telefone</th>
+                <th>Contato</th>
+                <th>Cliente</th>
+                <th class="col-venc">Vencimento</th>
+                <th class="col-valor">Valor da fatura</th>
                 <th>E-mail</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let c of contatosFiltrados()">
-                <td style="text-align: center;">
+              <tr *ngFor="let c of contatosFiltrados()" [class.selecionado]="c.checked">
+                <td class="col-sel">
                   <input type="checkbox" [checked]="c.checked" (change)="toggleContato(c)" />
                 </td>
-                <td><strong>{{ c.nomeContato || 'Sem nome' }}</strong></td>
-                <td class="mono">{{ c.telefone }}</td>
-                <td>{{ c.email || '-' }}</td>
+                <td>
+                  <strong>{{ c.nomeContato || 'Sem nome' }}</strong>
+                  <div class="mono dest-telefone">{{ c.telefone }}</div>
+                </td>
+                <td>{{ c.nomeCliente || '—' }}</td>
+                <td class="col-venc mono">{{ c.diaVencimento ? 'Dia ' + c.diaVencimento : '—' }}</td>
+                <td class="col-valor mono">{{ c.valorFatura ? (c.valorFatura | currency:'BRL':'symbol':'1.2-2':'pt-BR') : '—' }}</td>
+                <td class="dest-email" [title]="c.email || ''">{{ c.email || '—' }}</td>
               </tr>
               <tr *ngIf="contatosFiltrados().length === 0">
-                <td colspan="4" class="crud-empty" style="text-align: center; padding: 20px;">
+                <td colspan="6" class="crud-empty" style="text-align: center; padding: 20px;">
                   Nenhum contato encontrado.
                 </td>
               </tr>

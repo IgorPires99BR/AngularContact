@@ -293,7 +293,7 @@
 .disp-resumo span { color: var(--muted); }
 .disp-resumo b { color: var(--text); text-align: right; }
 
-.disp-tabela { max-height: 340px; overflow-y: auto; }
+.disp-tabela { max-height: 420px; overflow-y: auto; }
 
 .disp-bolha {
   background: rgba(255, 255, 255, .03);

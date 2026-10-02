@@ -94,6 +94,7 @@ export class AgendamentosComponent implements OnInit {
     if (!termo) return this.contatos();
     return this.contatos().filter(c =>
       (c.nomeContato && c.nomeContato.toLowerCase().includes(termo)) ||
+      (c.nomeCliente && c.nomeCliente.toLowerCase().includes(termo)) ||
       c.telefone.includes(termo) ||
       (c.email && c.email.toLowerCase().includes(termo))
     );

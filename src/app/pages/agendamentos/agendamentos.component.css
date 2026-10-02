@@ -22,7 +22,7 @@
   margin-top: 6px;
 }
 
-.disp-tabela { max-height: 320px; overflow-y: auto; margin-top: 10px; }
+.disp-tabela { max-height: 420px; overflow-y: auto; margin-top: 10px; }
 
 /* Contato marcado precisa ficar visualmente óbvio na lista, não só o círculo marcado --
    fácil de passar batido rolando uma lista longa. */

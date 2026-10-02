@@ -649,6 +649,31 @@ a {
     color: var(--text2);
   }
 
+/* Grid de escolha de destinatarios (Disparos e Agendamentos). Mostra os dados de cobranca
+   (cliente, vencimento, valor) pra conferir quem recebe sem abrir a tela de Contatos. */
+.tbl-destinatarios { min-width: 760px; }
+  .tbl-destinatarios th,
+  .tbl-destinatarios td { padding: 10px 12px; }
+  /* A lista rola dentro do .disp-tabela; o cabecalho precisa de fundo opaco pra ficar fixo. */
+  .tbl-destinatarios thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--bg-card2);
+  }
+  .tbl-destinatarios .col-sel { width: 46px; text-align: center; }
+  .tbl-destinatarios .col-venc { width: 100px; text-align: center; white-space: nowrap; }
+  .tbl-destinatarios .col-valor { width: 130px; text-align: right; white-space: nowrap; }
+  .tbl-destinatarios .dest-telefone { margin-top: 2px; font-size: .74rem; color: var(--muted); }
+  .tbl-destinatarios .dest-email {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text2);
+  }
+  .tbl-destinatarios tr.selecionado td { background: var(--blue-light); color: var(--text); }
+
 @media (max-width: 640px) {
   /* A tabela nao vira cartao: continua rolando na horizontal dentro do .tbl-wrap.
      So aumento o que ficava ilegivel (cabecalho a 10.5px) e o alvo dos botoes
