@@ -77,7 +77,7 @@ function valorDoCampo(campo: string, contato: ContatoParaVariavel | null, hoje: 
       case 'nome': return 'Maria';
       case 'nomeCliente': return 'Maria Souza';
       case 'telefone': return '5511999990000';
-      case 'valorFatura': return (405).toLocaleString('pt-BR', FORMATO_BR);
+      case 'valorFatura': return `R$ ${(405).toLocaleString('pt-BR', FORMATO_BR)}`;
       case 'diaVencimento': return '20';
       case 'dataVencimento': return dataDeVencimento(20, hoje);
       case 'taxaJuros':
@@ -90,7 +90,8 @@ function valorDoCampo(campo: string, contato: ContatoParaVariavel | null, hoje: 
     case 'nome': return contato.nomeContato || '';
     case 'nomeCliente': return contato.nomeCliente || '';
     case 'telefone': return contato.telefone || '';
-    case 'valorFatura': return contato.valorFatura != null ? contato.valorFatura.toLocaleString('pt-BR', FORMATO_BR) : '';
+    // Mesmo formato do ResolvedorDeVariaveis no backend, pra previa bater com o que sai na mensagem.
+    case 'valorFatura': return contato.valorFatura != null ? `R$ ${contato.valorFatura.toLocaleString('pt-BR', FORMATO_BR)}` : '';
     case 'diaVencimento': return contato.diaVencimento != null ? String(contato.diaVencimento) : '';
     case 'dataVencimento': return dataDeVencimento(contato.diaVencimento, hoje);
     case 'taxaJuros': return contato.taxaJuros != null ? contato.taxaJuros.toLocaleString('pt-BR', FORMATO_BR) : '';
