@@ -177,6 +177,10 @@
           Por segurança, o token cadastrado não é exibido por inteiro. Deixe como está para
           mantê-lo, ou cole um token novo para substituí-lo.
         </small>
+        <small class="dica" *ngIf="!editingId()">
+          WABA, Phone Number ID, App ID e token em branco usam as credenciais da Contact Solution
+          (a empresa dispara pelo número dela). Preencha só se a empresa tiver conta Meta própria.
+        </small>
       </div>
 
       <div class="btn-grp">
