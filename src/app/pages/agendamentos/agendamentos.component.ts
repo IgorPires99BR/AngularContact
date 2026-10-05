@@ -23,6 +23,7 @@ interface Contato {
   id: string;
   nomeContato?: string;
   telefone: string;
+  telefone2?: string | null;
   email?: string;
   checked?: boolean;
   nomeCliente?: string | null;

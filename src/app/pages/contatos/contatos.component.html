@@ -38,9 +38,14 @@
           <input #telefoneInput type="text" inputmode="numeric" placeholder="Ex: 5511999999999" [ngModel]="form().telefone" (input)="updateSomenteNumeros('telefone', telefoneInput, 15)">
         </div>
         <div class="fg">
-          <label>E-mail</label>
-          <input type="email" placeholder="maria@email.com" [ngModel]="form().email" (ngModelChange)="update('email', $event)">
+          <label>Telefone 2 (opcional — recebe as mesmas mensagens)</label>
+          <input #telefone2Input type="text" inputmode="numeric" placeholder="Ex: 5511988888888" [ngModel]="form().telefone2" (input)="updateSomenteNumeros('telefone2', telefone2Input, 15)">
         </div>
+      </div>
+
+      <div class="fg">
+        <label>E-mail</label>
+        <input type="email" placeholder="maria@email.com" [ngModel]="form().email" (ngModelChange)="update('email', $event)">
       </div>
 
       <div class="fg-row">
@@ -112,7 +117,10 @@
         <tr *ngFor="let c of contatosFiltrados()">
           <td><strong>{{ c.nomeContato || 'Sem nome' }}</strong></td>
           <td>{{ c.nomeCliente || '—' }}</td>
-          <td class="mono">{{ c.telefone }}</td>
+          <td class="mono">
+            {{ c.telefone }}
+            <div *ngIf="c.telefone2" title="Telefone 2 — recebe as mesmas mensagens">{{ c.telefone2 }}</div>
+          </td>
           <td>{{ c.email }}</td>
           <td class="mono">{{ c.diaVencimento ? 'Dia ' + c.diaVencimento : '—' }}</td>
           <td class="mono">{{ c.valorFatura ? (c.valorFatura | currency:'BRL':'symbol':'1.2-2':'pt-BR') : '—' }}</td>

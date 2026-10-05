@@ -158,6 +158,7 @@
                 <td>
                   <strong>{{ c.nomeContato || 'Sem nome' }}</strong>
                   <div class="mono dest-telefone">{{ c.telefone }}</div>
+                  <div class="mono dest-telefone" *ngIf="c.telefone2" title="Também recebe neste número">+ {{ c.telefone2 }}</div>
                 </td>
                 <td>{{ c.nomeCliente || '—' }}</td>
                 <td class="col-venc mono">{{ c.diaVencimento ? 'Dia ' + c.diaVencimento : '—' }}</td>

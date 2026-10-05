@@ -19,6 +19,9 @@ interface Contato {
   usuarioId: string;
   empresaId?: string;
   telefone: string;
+  // Segundo numero do mesmo contato (ex: dois socios): o backend dispara para os dois, mas
+  // gera uma cobranca so.
+  telefone2?: string | null;
   nomeContato?: string;
   email?: string;
   dataCriacao?: string;
@@ -57,6 +60,7 @@ export class ContatosComponent implements OnInit {
     return {
       nomeContato: '',
       telefone: '',
+      telefone2: '',
       email: '',
       nomeCliente: '',
       diaVencimento: DIA_VENCIMENTO_PADRAO,
@@ -78,6 +82,7 @@ export class ContatosComponent implements OnInit {
       (c.nomeContato && c.nomeContato.toLowerCase().includes(termo)) ||
       (c.nomeCliente && c.nomeCliente.toLowerCase().includes(termo)) ||
       c.telefone.toLowerCase().includes(termo) ||
+      (c.telefone2 && c.telefone2.includes(termo)) ||
       (c.email && c.email.toLowerCase().includes(termo))
     );
   });
@@ -123,6 +128,16 @@ export class ContatosComponent implements OnInit {
 
     if (!f.telefone || f.telefone.length < 10) {
       this.response.set('❌ Telefone inválido. Informe DDI + DDD + número (mínimo 10 dígitos).');
+      return;
+    }
+
+    if (f.telefone2 && f.telefone2.length < 10) {
+      this.response.set('❌ Telefone 2 inválido. Informe DDI + DDD + número (mínimo 10 dígitos) ou deixe em branco.');
+      return;
+    }
+
+    if (f.telefone2 && f.telefone2 === f.telefone) {
+      this.response.set('❌ O telefone 2 não pode ser igual ao telefone principal.');
       return;
     }
 
@@ -248,6 +263,7 @@ export class ContatosComponent implements OnInit {
     this.form.set({
       nomeContato: c.nomeContato || '',
       telefone: c.telefone,
+      telefone2: c.telefone2 || '',
       email: c.email || '',
       nomeCliente: c.nomeCliente || '',
       diaVencimento: c.diaVencimento ?? DIA_VENCIMENTO_PADRAO,
