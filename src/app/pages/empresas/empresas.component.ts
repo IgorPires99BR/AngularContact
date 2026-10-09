@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, OnDestroy, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, OnDestroy, computed, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -22,6 +22,27 @@ interface Empresa {
   appIdMeta?: string;     // Mapeado de AppIdMeta (usado no upload de mídia de exemplo dos templates)
   dataCriacao: string;
   planoId?: string;
+}
+
+interface DadosBancarios {
+  agencia: string;
+  conta: string;
+  contaDigito: string;
+  titularNome: string;
+  titularDocumento: string;
+  tipoChavePix: string;
+  chavePix: string;
+  ambiente: string;
+  clientId: string;
+  cobrancaPixAtiva: boolean;
+  // Só indicadores: client secret e chave privada nunca voltam da API.
+  temClientSecret: boolean;
+  temCertificado: boolean;
+  certificadoValidoAte: string | null;
+  // Preenchidos só quando o usuário digita/envia um valor novo.
+  clientSecret: string;
+  certificadoPem: string;
+  chavePrivadaPem: string;
 }
 
 @Component({
@@ -237,8 +258,173 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     });
   }
 
+  // --- Dados bancarios: conta Itau onde a empresa recebe o Pix das cobrancas aos clientes
+  // dela. Endpoint proprio (nao vai junto do salvar da empresa) porque carrega segredos que
+  // nunca voltam da API -- misturar com o PUT da empresa obrigaria a reenviar tudo a cada edicao.
+  @ViewChild('crtInput') crtInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('keyInput') keyInput?: ElementRef<HTMLInputElement>;
+
+  bancario = signal<DadosBancarios>(this.dadosBancariosVazios());
+  carregandoBancario = signal(false);
+  salvandoBancario = signal(false);
+  msgBancario = signal('');
+  msgBancarioErro = signal(false);
+
+  // Avisa com 30 dias de antecedencia: certificado vencido derruba a autenticacao no Itau e
+  // nenhuma cobranca nova consegue gerar Pix.
+  certificadoVencendo = computed(() => {
+    const validoAte = this.bancario().certificadoValidoAte;
+    if (!validoAte) return false;
+    const trintaDias = 30 * 24 * 60 * 60 * 1000;
+    return new Date(validoAte).getTime() - Date.now() < trintaDias;
+  });
+
+  placeholderChavePix = computed(() => ({
+    CNPJ: '00000000000100',
+    CPF: '00000000000',
+    EMAIL: 'financeiro@empresa.com',
+    TELEFONE: '+5511999998888',
+    ALEATORIA: '123e4567-e89b-12d3-a456-426614174000',
+  } as Record<string, string>)[this.bancario().tipoChavePix] ?? 'Selecione o tipo da chave');
+
+  private dadosBancariosVazios(): DadosBancarios {
+    return {
+      agencia: '', conta: '', contaDigito: '', titularNome: '', titularDocumento: '',
+      tipoChavePix: '', chavePix: '', ambiente: 'SANDBOX', clientId: '', cobrancaPixAtiva: false,
+      temClientSecret: false, temCertificado: false, certificadoValidoAte: null,
+      clientSecret: '', certificadoPem: '', chavePrivadaPem: '',
+    };
+  }
+
+  private aplicarDadosBancarios(d: any) {
+    this.bancario.set({
+      agencia: d?.agencia ?? '',
+      conta: d?.conta ?? '',
+      contaDigito: d?.contaDigito ?? '',
+      titularNome: d?.titularNome ?? '',
+      titularDocumento: d?.titularDocumento ?? '',
+      tipoChavePix: d?.tipoChavePix ?? '',
+      chavePix: d?.chavePix ?? '',
+      ambiente: d?.ambiente ?? 'SANDBOX',
+      clientId: d?.clientId ?? '',
+      cobrancaPixAtiva: !!d?.cobrancaPixAtiva,
+      temClientSecret: !!d?.temClientSecret,
+      temCertificado: !!d?.temCertificado,
+      certificadoValidoAte: d?.certificadoValidoAte ?? null,
+      clientSecret: '',
+      certificadoPem: '',
+      chavePrivadaPem: '',
+    });
+    if (this.crtInput) this.crtInput.nativeElement.value = '';
+    if (this.keyInput) this.keyInput.nativeElement.value = '';
+  }
+
+  carregarDadosBancarios(empresaId: string) {
+    this.aplicarDadosBancarios(null);
+    this.msgBancario.set('');
+    this.carregandoBancario.set(true);
+
+    this.http.get<any>(`${this.BASE_URL}/${empresaId}/dados-bancarios`).subscribe({
+      next: (d) => {
+        // Resposta de outra empresa que chegou depois de o usuario trocar de linha: descarta.
+        if (this.editingId() !== empresaId) return;
+        this.carregandoBancario.set(false);
+        this.aplicarDadosBancarios(d);
+      },
+      error: (err) => {
+        this.carregandoBancario.set(false);
+        this.msgBancarioErro.set(true);
+        this.msgBancario.set(extrairMensagemErro(err, 'Não foi possível carregar os dados bancários.'));
+      }
+    });
+  }
+
+  atualizarBancario(campo: keyof DadosBancarios, valor: any) {
+    this.bancario.update(b => ({ ...b, [campo]: valor }));
+    if (this.msgBancario()) this.msgBancario.set('');
+  }
+
+  atualizarBancarioNumeros(campo: keyof DadosBancarios, input: HTMLInputElement, maxDigitos: number) {
+    const apenasDigitos = input.value.replace(/\D/g, '').slice(0, maxDigitos);
+    input.value = apenasDigitos;
+    this.atualizarBancario(campo, apenasDigitos);
+  }
+
+  lerArquivoCertificado(campo: 'certificadoPem' | 'chavePrivadaPem', input: HTMLInputElement) {
+    const arquivo = input.files?.[0];
+    if (!arquivo) {
+      this.atualizarBancario(campo, '');
+      return;
+    }
+    // Certificado PEM tem poucos KB; algo grande assim e arquivo errado (ex: .pfx binario).
+    if (arquivo.size > 100 * 1024) {
+      input.value = '';
+      this.msgBancarioErro.set(true);
+      this.msgBancario.set('Arquivo grande demais para um certificado PEM. Confira se escolheu o .crt/.key certos.');
+      return;
+    }
+    arquivo.text().then(conteudo => this.atualizarBancario(campo, conteudo));
+  }
+
+  salvarDadosBancarios() {
+    const empresaId = this.editingId();
+    if (!empresaId) return;
+
+    const b = this.bancario();
+    if (!!b.certificadoPem !== !!b.chavePrivadaPem) {
+      this.msgBancarioErro.set(true);
+      this.msgBancario.set('Envie o certificado (.crt) e a chave privada (.key) juntos.');
+      return;
+    }
+
+    const payload = {
+      empresaId,
+      banco: '341',
+      agencia: b.agencia,
+      conta: b.conta,
+      contaDigito: b.contaDigito,
+      titularNome: b.titularNome,
+      titularDocumento: b.titularDocumento,
+      tipoChavePix: b.tipoChavePix,
+      chavePix: b.chavePix,
+      ambiente: b.ambiente,
+      clientId: b.clientId,
+      cobrancaPixAtiva: b.cobrancaPixAtiva,
+      clientSecret: b.clientSecret || null,
+      certificadoPem: b.certificadoPem || null,
+      chavePrivadaPem: b.chavePrivadaPem || null,
+    };
+
+    this.salvandoBancario.set(true);
+    this.msgBancario.set('');
+
+    this.http.put<any>(`${this.BASE_URL}/dados-bancarios`, payload).subscribe({
+      next: (r) => {
+        this.salvandoBancario.set(false);
+        this.aplicarDadosBancarios(r?.dadosBancarios ?? r);
+        // Ao ativar a cobrança a API já testa as credenciais e cadastra o webhook no Itaú; os
+        // dados ficam salvos mesmo se o Itaú recusar, por isso vem como aviso e não como erro.
+        if (r?.avisoIntegracao) {
+          this.msgBancarioErro.set(true);
+          this.msgBancario.set('⚠️ ' + r.avisoIntegracao);
+        } else {
+          this.msgBancarioErro.set(false);
+          this.msgBancario.set(r?.credenciaisConferidas
+            ? '✅ Dados bancários salvos. Conexão com o Itaú conferida e webhook de pagamento cadastrado.'
+            : '✅ Dados bancários salvos.');
+        }
+      },
+      error: (err) => {
+        this.salvandoBancario.set(false);
+        this.msgBancarioErro.set(true);
+        this.msgBancario.set(extrairMensagemErro(err, 'Não foi possível salvar os dados bancários.'));
+      }
+    });
+  }
+
   prepararEdicao(empresa: Empresa) {
     this.editingId.set(empresa.id);
+    this.carregarDadosBancarios(empresa.id);
     this.form.set({
       nome: empresa.nome,
       cnpj: empresa.cnpj || '',
@@ -258,6 +444,8 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     this.editingId.set(null);
     this.form.set({ nome: '', cnpj: '', email: '', tel: '', metaAccessToken: '', planoId: '', wabaId: '', phoneNumberId: '', appIdMeta: '' });
     this.response.set('');
+    this.aplicarDadosBancarios(null);
+    this.msgBancario.set('');
   }
 
   salvar() {

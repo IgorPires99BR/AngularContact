@@ -131,3 +131,64 @@
   font-size: .84rem;
   color: var(--text2);
 }
+
+/* Fica abaixo da grade, largura cheia: so aparece editando uma empresa ja cadastrada, porque
+   os dados bancarios sao gravados por empresaId. */
+.dados-bancarios {
+  margin-top: 22px;
+}
+
+.secao-titulo {
+  margin: 18px 0 10px;
+  font-size: .74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+
+.secao-titulo:first-child {
+  margin-top: 0;
+}
+
+.selo {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border2);
+  font-size: .74rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.selo-ativo {
+  background: var(--green-light);
+  border-color: rgba(34, 197, 94, .35);
+  color: var(--text);
+}
+
+.status-certificado {
+  margin-top: 4px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--green-light);
+  border: 1px solid rgba(34, 197, 94, .35);
+  font-size: .82rem;
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+.status-certificado.vencendo {
+  background: var(--danger-light);
+  border-color: rgba(239, 68, 68, .35);
+}
+
+.ok-bancario {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--green-light);
+  border: 1px solid rgba(34, 197, 94, .35);
+  font-size: .86rem;
+  color: var(--text);
+}

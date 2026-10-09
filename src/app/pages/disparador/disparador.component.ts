@@ -86,6 +86,8 @@ export class DisparadorComponent implements OnInit {
   buttonParams = signal<{ value: string }[]>([]);
   headerMediaUrl = signal('');
   temMediaHeader = signal(false);
+  // Cabeçalho de imagem em template de cobrança: em branco, a API coloca o QR code do Pix.
+  cabecalhoOpcional = signal(false);
   response = signal('');
   errosLote = signal<{ telefone: string; erro: string }[]>([]);
   explicacaoTemplate = signal('');
@@ -255,8 +257,11 @@ export class DisparadorComponent implements OnInit {
         this.temMediaHeader.set(true); // Isso vai forçar o HTML a exibir o campo!
       }
 
+      // Template de cobrança: o link do botão (página do Pix) é de cada contato e a API
+      // preenche no envio, junto com o QR no cabeçalho de imagem deixado em branco.
+      this.cabecalhoOpcional.set(!!tpl.geraCobranca && headerComp?.FormatMidia === 2);
       const buttonsComp = tpl.componentesParsed.find(c => c.Tipo === 3);
-      if (buttonsComp && buttonsComp.Botoes) {
+      if (buttonsComp && buttonsComp.Botoes && !tpl.geraCobranca) {
         const possuiUrlDinamica = buttonsComp.Botoes.some(b => b.Tipo === 1 && b.Url && b.Url.includes('{{1}}'));
         if (possuiUrlDinamica) {
           this.buttonParams.set([{ value: '' }]);
@@ -334,7 +339,7 @@ export class DisparadorComponent implements OnInit {
     if (this.passo() === 2) {
       const semValor = this.variaveis().some(v => variavelIncompleta(v, this.parametros()));
       if (semValor) return 'Preencha o que entra em cada campo da mensagem (texto ou parâmetro).';
-      if (this.temMediaHeader() && !this.headerMediaUrl().trim()) {
+      if (this.temMediaHeader() && !this.cabecalhoOpcional() && !this.headerMediaUrl().trim()) {
         return 'Cole o link da imagem ou arquivo que vai no topo da mensagem.';
       }
       if (this.buttonParams().some(bp => !bp.value.trim())) {

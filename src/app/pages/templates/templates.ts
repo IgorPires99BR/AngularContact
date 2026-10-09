@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth';
+import { environment } from '../../../environments/environment';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 import { TemplateService } from './template.service';
 import { TemplateHeaderEditorComponent } from './template-header-editor/template-header-editor';
@@ -77,6 +78,17 @@ export class TemplatesComponent implements OnInit {
   uploadingHeader = signal(false);
   geraCobranca = signal(false);
   alterandoCobranca = signal<string | null>(null);
+
+  // Botão de URL com parte variável apontando pra página do Pix da cobrança (/pix/{txid}). No
+  // envio a API preenche o {{1}} com o Pix de cada contato -- ninguém digita nada no disparo.
+  private readonly urlPaginaPix = `${environment.apiUrl.replace(/\/api\/?$/, '')}/pix/{{1}}`;
+  temBotaoPix = computed(() => this.botoes().some(b => b.tipo === 'URL' && b.url === this.urlPaginaPix));
+
+  adicionarBotaoPix() {
+    if (this.temBotaoPix()) return;
+    this.botoes.update(b => [...b, { tipo: 'URL', texto: 'Pagar com Pix', url: this.urlPaginaPix }]);
+    this.mostrarAvancado.set(true);
+  }
 
   response = signal('');
   templates = signal<Template[]>([]);

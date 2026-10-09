@@ -270,3 +270,155 @@
     </div>
   </div>
 </div>
+
+@if (editingId()) {
+<div class="card dados-bancarios">
+  <div class="card-head">
+    <div>
+      <div class="card-title">🏦 Dados bancários</div>
+      <div class="card-sub">
+        Conta Itaú onde {{ form().nome || 'a empresa' }} recebe o Pix das cobranças aos clientes dela.
+        O dinheiro cai direto nesta conta, sem passar pela Contact Solution.
+      </div>
+    </div>
+    @if (bancario().cobrancaPixAtiva) {
+      <span class="selo selo-ativo">Cobrança Pix ativa</span>
+    } @else {
+      <span class="selo">Cobrança Pix desativada</span>
+    }
+  </div>
+  <div class="card-body">
+    @if (carregandoBancario()) {
+      <div class="dica-campo">Carregando dados bancários...</div>
+    } @else {
+
+      <div class="secao-titulo">Conta</div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>Banco</label>
+          <input type="text" value="341 - Itaú Unibanco" disabled>
+          <small class="dica-campo">No momento a cobrança via Pix é integrada só com o Itaú.</small>
+        </div>
+        <div class="fg">
+          <label>Agência (sem dígito)</label>
+          <input #agenciaInput type="text" inputmode="numeric" placeholder="0000"
+                 [ngModel]="bancario().agencia" (input)="atualizarBancarioNumeros('agencia', agenciaInput, 4)">
+        </div>
+      </div>
+
+      <div class="fg-row">
+        <div class="fg">
+          <label>Conta</label>
+          <input #contaInput type="text" inputmode="numeric" placeholder="00000"
+                 [ngModel]="bancario().conta" (input)="atualizarBancarioNumeros('conta', contaInput, 12)">
+        </div>
+        <div class="fg">
+          <label>Dígito</label>
+          <input type="text" maxlength="1" placeholder="0"
+                 [ngModel]="bancario().contaDigito" (ngModelChange)="atualizarBancario('contaDigito', $event)">
+        </div>
+      </div>
+
+      <div class="fg-row">
+        <div class="fg">
+          <label>Titular da conta</label>
+          <input type="text" maxlength="255" placeholder="Razão social do titular"
+                 [ngModel]="bancario().titularNome" (ngModelChange)="atualizarBancario('titularNome', $event)">
+        </div>
+        <div class="fg">
+          <label>CPF/CNPJ do titular (somente números)</label>
+          <input #docInput type="text" inputmode="numeric" placeholder="00000000000100"
+                 [ngModel]="bancario().titularDocumento" (input)="atualizarBancarioNumeros('titularDocumento', docInput, 14)">
+        </div>
+      </div>
+
+      <div class="secao-titulo">Chave Pix</div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>Tipo da chave</label>
+          <select [ngModel]="bancario().tipoChavePix" (ngModelChange)="atualizarBancario('tipoChavePix', $event)">
+            <option value="">Selecione...</option>
+            <option value="CNPJ">CNPJ</option>
+            <option value="CPF">CPF</option>
+            <option value="EMAIL">E-mail</option>
+            <option value="TELEFONE">Telefone</option>
+            <option value="ALEATORIA">Chave aleatória</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Chave Pix</label>
+          <input type="text" maxlength="100" [placeholder]="placeholderChavePix()"
+                 [ngModel]="bancario().chavePix" (ngModelChange)="atualizarBancario('chavePix', $event)">
+          <small class="dica-campo">Precisa ser uma chave cadastrada nesta mesma conta do Itaú.</small>
+        </div>
+      </div>
+
+      <div class="secao-titulo">Credenciais da API Pix do Itaú</div>
+      <small class="dica-campo" style="margin: -4px 0 12px;">
+        Geradas no portal do desenvolvedor do Itaú (devportal.itau.com.br) pela própria empresa, junto com o certificado.
+      </small>
+      <div class="fg-row">
+        <div class="fg">
+          <label>Ambiente</label>
+          <select [ngModel]="bancario().ambiente" (ngModelChange)="atualizarBancario('ambiente', $event)">
+            <option value="SANDBOX">Sandbox (testes)</option>
+            <option value="PRODUCAO">Produção</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Client ID</label>
+          <input type="text" maxlength="100" autocomplete="off" placeholder="Ex: 3a5b7c9d-..."
+                 [ngModel]="bancario().clientId" (ngModelChange)="atualizarBancario('clientId', $event)">
+        </div>
+      </div>
+
+      <div class="fg">
+        <label>Client Secret</label>
+        <input type="password" autocomplete="new-password"
+               [placeholder]="bancario().temClientSecret ? '•••••••• (cadastrado — deixe em branco para manter)' : 'Cole o Client Secret'"
+               [ngModel]="bancario().clientSecret" (ngModelChange)="atualizarBancario('clientSecret', $event)">
+        <small class="dica-campo">Por segurança, o secret salvo nunca é exibido de volta.</small>
+      </div>
+
+      <div class="fg-row">
+        <div class="fg">
+          <label>Certificado (.crt / .pem)</label>
+          <input #crtInput type="file" accept=".crt,.pem,.cer" (change)="lerArquivoCertificado('certificadoPem', crtInput)">
+        </div>
+        <div class="fg">
+          <label>Chave privada (.key)</label>
+          <input #keyInput type="file" accept=".key,.pem" (change)="lerArquivoCertificado('chavePrivadaPem', keyInput)">
+        </div>
+      </div>
+      @if (bancario().temCertificado) {
+        <div class="status-certificado" [class.vencendo]="certificadoVencendo()">
+          Certificado cadastrado, válido até <strong>{{ bancario().certificadoValidoAte | date:'dd/MM/yyyy' }}</strong>.
+          @if (certificadoVencendo()) { Gere um novo no portal do Itaú antes de vencer — sem ele as cobranças param. }
+          Envie os dois arquivos só se quiser trocá-lo.
+        </div>
+      } @else {
+        <small class="dica-campo">Envie o .crt emitido pelo Itaú e o .key gerado junto com o pedido do certificado.</small>
+      }
+
+      <label class="opcao-pagamento">
+        <input type="checkbox" [checked]="bancario().cobrancaPixAtiva"
+               (change)="atualizarBancario('cobrancaPixAtiva', !bancario().cobrancaPixAtiva)">
+        <span>
+          Ativar cobrança via Pix
+          <small>Usa esta conta para gerar o Pix das cobranças desta empresa. Só é possível ativar com conta, chave Pix e credenciais completas.</small>
+        </span>
+      </label>
+
+      @if (msgBancario()) {
+        <div [class]="msgBancarioErro() ? 'erro-conta' : 'ok-bancario'">{{ msgBancario() }}</div>
+      }
+
+      <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-primary" (click)="salvarDadosBancarios()" [disabled]="salvandoBancario()">
+          {{ salvandoBancario() ? 'Salvando...' : '💾 Salvar dados bancários' }}
+        </button>
+      </div>
+    }
+  </div>
+</div>
+}

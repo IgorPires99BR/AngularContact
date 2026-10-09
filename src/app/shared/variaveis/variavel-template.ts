@@ -4,7 +4,8 @@
 
 export type CampoContato =
   | 'nome' | 'nomeCliente' | 'telefone' | 'valorFatura'
-  | 'diaVencimento' | 'dataVencimento' | 'taxaJuros' | 'taxaJurosMensal';
+  | 'diaVencimento' | 'dataVencimento' | 'taxaJuros' | 'taxaJurosMensal'
+  | 'valorAtualizado' | 'pixCopiaECola' | 'linkPagamento';
 
 export type OrigemVariavel = 'fixo' | 'parametro' | CampoContato;
 
@@ -53,6 +54,11 @@ export const CAMPOS_DO_CONTATO: CampoContatoInfo[] = [
   { chave: 'dataVencimento', rotulo: 'Data de vencimento (dia do contato no mês atual)' },
   { chave: 'taxaJuros', rotulo: 'Taxa de juros' },
   { chave: 'taxaJurosMensal', rotulo: 'Taxa de juros mensal' },
+  // Os três abaixo só funcionam em template marcado "gera cobrança"; os dois de Pix exigem a
+  // cobrança Pix ativa nos dados bancários da empresa (o Pix é gerado no Itaú na hora do envio).
+  { chave: 'valorAtualizado', rotulo: 'Valor atualizado (fatura + multa + juros)' },
+  { chave: 'pixCopiaECola', rotulo: 'Pix copia e cola (gerado no envio)' },
+  { chave: 'linkPagamento', rotulo: 'Link da página de pagamento Pix (gerado no envio)' },
 ];
 
 export function rotuloDoCampo(chave: string): string {
@@ -70,6 +76,23 @@ export function dataDeVencimento(dia: number | null | undefined, hoje: Date = ne
   return `${String(d).padStart(2, '0')}/${String(hoje.getMonth() + 1).padStart(2, '0')}/${hoje.getFullYear()}`;
 }
 
+// Mesma regra do CalculoCobrancaPix no backend: depois do vencimento, multa única (taxaJuros %)
+// mais juros pro rata dia (taxaJurosMensal % / 30 por dia de atraso).
+export function valorAtualizado(contato: ContatoParaVariavel, hoje: Date = new Date()): number | null {
+  if (contato.valorFatura == null) return null;
+  const valor = contato.valorFatura;
+  if (contato.diaVencimento == null) return valor;
+  const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+  const vencimento = new Date(hoje.getFullYear(), hoje.getMonth(), Math.min(contato.diaVencimento, ultimoDia));
+  const dia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  const atraso = Math.max(0, Math.round((dia.getTime() - vencimento.getTime()) / 86400000));
+  if (atraso === 0) return valor;
+  const arred = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+  const multa = arred(valor * (contato.taxaJuros ?? 0) / 100);
+  const juros = arred(valor * (contato.taxaJurosMensal ?? 0) / 100 / 30 * atraso);
+  return valor + multa + juros;
+}
+
 function valorDoCampo(campo: string, contato: ContatoParaVariavel | null, hoje: Date): string {
   // Sem contato (prévia sem seleção): exemplo visível em vez de vazio.
   if (!contato) {
@@ -82,6 +105,9 @@ function valorDoCampo(campo: string, contato: ContatoParaVariavel | null, hoje: 
       case 'dataVencimento': return dataDeVencimento(20, hoje);
       case 'taxaJuros':
       case 'taxaJurosMensal': return (2).toLocaleString('pt-BR', FORMATO_BR);
+      case 'valorAtualizado': return `R$ ${(405).toLocaleString('pt-BR', FORMATO_BR)}`;
+      case 'pixCopiaECola': return '00020126...(código Pix gerado no envio)';
+      case 'linkPagamento': return 'https://.../pix/(gerado no envio)';
       default: return '';
     }
   }
@@ -96,6 +122,13 @@ function valorDoCampo(campo: string, contato: ContatoParaVariavel | null, hoje: 
     case 'dataVencimento': return dataDeVencimento(contato.diaVencimento, hoje);
     case 'taxaJuros': return contato.taxaJuros != null ? contato.taxaJuros.toLocaleString('pt-BR', FORMATO_BR) : '';
     case 'taxaJurosMensal': return contato.taxaJurosMensal != null ? contato.taxaJurosMensal.toLocaleString('pt-BR', FORMATO_BR) : '';
+    case 'valorAtualizado': {
+      const v = valorAtualizado(contato, hoje);
+      return v != null ? `R$ ${v.toLocaleString('pt-BR', FORMATO_BR)}` : '';
+    }
+    // Não existe antes do envio: a prévia mostra um marcador, o backend troca pelo Pix real.
+    case 'pixCopiaECola': return '(código Pix gerado no envio)';
+    case 'linkPagamento': return '(link de pagamento gerado no envio)';
     default: return '';
   }
 }

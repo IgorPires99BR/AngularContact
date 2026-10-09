@@ -16,6 +16,10 @@ interface CobrancaCliente {
   nomeCliente?: string;
   nomeContato?: string;
   telefone?: string;
+  // Pix do Itaú (empresa com cobrança Pix ativa): valor com multa/juros do dia do envio.
+  temPix?: boolean;
+  valorCobrado?: number | null;
+  pagoViaPix?: boolean;
 }
 
 interface ClienteComCobrancas {

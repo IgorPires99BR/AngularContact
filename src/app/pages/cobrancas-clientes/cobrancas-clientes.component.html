@@ -141,8 +141,17 @@
                   <tr *ngFor="let c of cl.cobrancas">
                     <td class="cc-tab">{{ c.dataCriacao | date:'dd/MM/yyyy HH:mm' }}</td>
                     <td class="cc-tab">{{ c.dataVencimento | date:'dd/MM/yyyy' }}</td>
-                    <td class="cc-num">{{ c.valor | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</td>
-                    <td><span class="badge" [ngClass]="classeSituacao(c)">{{ rotuloSituacao(c) }}</span></td>
+                    <td class="cc-num">
+                      {{ c.valor | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      <div class="cc-sub" *ngIf="c.valorCobrado && c.valorCobrado !== c.valor">
+                        Pix: {{ c.valorCobrado | currency:'BRL':'symbol':'1.2-2':'pt-BR' }} com encargos
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge" [ngClass]="classeSituacao(c)">{{ rotuloSituacao(c) }}</span>
+                      <div class="cc-sub" *ngIf="c.pagoViaPix">baixa automática via Pix</div>
+                      <div class="cc-sub" *ngIf="c.temPix && c.status === 'PENDENTE'">Pix Itaú aguardando pagamento</div>
+                    </td>
                     <td class="cc-tab">{{ c.dataPagamento ? (c.dataPagamento | date:'dd/MM/yyyy') : '—' }}</td>
                     <td class="cc-acao">
                       <ng-container *ngIf="c.status === 'PENDENTE'">

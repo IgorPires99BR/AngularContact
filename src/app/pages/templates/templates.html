@@ -165,6 +165,17 @@
                 </small>
               </span>
             </label>
+            <div class="tpl-dica" *ngIf="!modoEdicao() && geraCobranca()">
+              💡 Com a cobrança Pix ativa nos dados bancários da empresa, cada envio gera um Pix no Itaú e o
+              pagamento é baixado sozinho. Para o cliente pagar, inclua um botão para a página do Pix
+              (QR code + copia e cola) e/ou use as variáveis <b>Valor atualizado</b> e <b>Pix copia e cola</b> no disparo.
+              Um cabeçalho de imagem sem imagem escolhida no disparo recebe o QR code.
+              <div style="margin-top: 8px;">
+                <button type="button" class="btn btn-ghost btn-xs" (click)="adicionarBotaoPix()" [disabled]="temBotaoPix()">
+                  {{ temBotaoPix() ? '✅ Botão "Pagar com Pix" adicionado' : '➕ Adicionar botão "Pagar com Pix"' }}
+                </button>
+              </div>
+            </div>
             <div class="tpl-header-upload-hint" *ngIf="modoEdicao()">
               A opção de gerar cobrança se liga e desliga direto na lista de modelos, sem reenviar para a Meta.
             </div>

@@ -107,7 +107,8 @@
           <label>Imagem ou arquivo do topo da mensagem</label>
           <input type="text" [ngModel]="headerMediaUrl()" (ngModelChange)="headerMediaUrl.set($event)"
                  placeholder="https://sualoja.com.br/imagem.jpg" />
-          <div class="disp-hint">Este modelo tem mídia no cabeçalho: cole o link público do arquivo que vai junto.</div>
+          <div class="disp-hint" *ngIf="!cabecalhoOpcional()">Este modelo tem mídia no cabeçalho: cole o link público do arquivo que vai junto.</div>
+          <div class="disp-hint" *ngIf="cabecalhoOpcional()">Opcional: deixe em branco para cada cliente receber o QR code do Pix dele no topo da mensagem.</div>
         </div>
 
         <div class="fg" *ngFor="let bp of buttonParams(); let i = index; trackBy: trackByIndex">
