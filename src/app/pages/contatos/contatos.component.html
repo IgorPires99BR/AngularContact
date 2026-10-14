@@ -30,6 +30,11 @@
           <label>Nome do Cliente (se diferente do contato)</label>
           <input type="text" placeholder="Ex: João da Silva" maxlength="255" [ngModel]="form().nomeCliente" (ngModelChange)="update('nomeCliente', $event)">
         </div>
+        <div class="fg">
+          <label>CPF/CNPJ do Cliente (opcional)</label>
+          <input type="text" placeholder="Ex: 123.456.789-09" maxlength="18" [ngModel]="form().cpfCnpj" (ngModelChange)="update('cpfCnpj', $event)">
+          <small class="dica-campo">Necessário para gerar o Pix da cobrança.</small>
+        </div>
       </div>
 
       <div class="fg-row">

@@ -32,6 +32,8 @@ interface Contato {
   // Dados financeiros -- so preenchidos por quem revende a plataforma pros proprios
   // clientes de cobranca (ex: Sebrecon); pra maioria das empresas ficam vazios/default.
   nomeCliente?: string | null;
+  // Opcional: sem ele o Pix sai no cliente padrao da empresa (CNPJ da subconta Asaas).
+  cpfCnpj?: string | null;
   diaVencimento?: number | null;
   taxaJuros?: number | null;
   taxaJurosMensal?: number | null;
@@ -63,6 +65,7 @@ export class ContatosComponent implements OnInit {
       telefone2: '',
       email: '',
       nomeCliente: '',
+      cpfCnpj: '',
       diaVencimento: DIA_VENCIMENTO_PADRAO,
       taxaJuros: TAXA_JUROS_PADRAO,
       taxaJurosMensal: TAXA_JUROS_MENSAL_PADRAO,
@@ -266,6 +269,7 @@ export class ContatosComponent implements OnInit {
       telefone2: c.telefone2 || '',
       email: c.email || '',
       nomeCliente: c.nomeCliente || '',
+      cpfCnpj: c.cpfCnpj || '',
       diaVencimento: c.diaVencimento ?? DIA_VENCIMENTO_PADRAO,
       taxaJuros: c.taxaJuros ?? TAXA_JUROS_PADRAO,
       taxaJurosMensal: c.taxaJurosMensal ?? TAXA_JUROS_MENSAL_PADRAO,

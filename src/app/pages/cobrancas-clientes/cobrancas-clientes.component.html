@@ -1,7 +1,7 @@
 <div class="ph">
   <div>
     <h1 class="ph-title">Cobranças de Clientes</h1>
-    <div class="ph-sub">Cobranças enviadas pelo WhatsApp em seu nome, agrupadas por cliente</div>
+    <div class="ph-sub">Cobranças enviadas pelo WhatsApp em seu nome, agrupadas por cliente. Pagamentos via Pix aparecem aqui automaticamente.</div>
   </div>
   <button class="btn btn-ghost btn-sm" (click)="buscar()" [disabled]="carregando()">
     {{ carregando() ? '⏳ Carregando...' : '🔁 Atualizar' }}
@@ -72,6 +72,13 @@
   </div>
 </div>
 
+@if (avisoPagamento()) {
+  <div class="cc-aviso-pagamento" role="status">
+    <span>{{ avisoPagamento() }}</span>
+    <button class="btn btn-ghost btn-xs" (click)="fecharAvisoPagamento()" aria-label="Fechar aviso">✕</button>
+  </div>
+}
+
 <div class="card">
   <div class="card-head">
     <div>
@@ -138,7 +145,8 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let c of cl.cobrancas">
+                  <ng-container *ngFor="let c of cl.cobrancas">
+                  <tr class="cc-linha-cobranca" [class.cc-destacada]="destacada() === c.id">
                     <td class="cc-tab">{{ c.dataCriacao | date:'dd/MM/yyyy HH:mm' }}</td>
                     <td class="cc-tab">{{ c.dataVencimento | date:'dd/MM/yyyy' }}</td>
                     <td class="cc-num">
@@ -149,10 +157,8 @@
                     </td>
                     <td>
                       <span class="badge" [ngClass]="classeSituacao(c)">{{ rotuloSituacao(c) }}</span>
-                      <div class="cc-sub" *ngIf="c.pagoViaPix">baixa automática via Pix</div>
-                      <div class="cc-sub" *ngIf="c.temPix && c.status === 'PENDENTE'">Pix Itaú aguardando pagamento</div>
                     </td>
-                    <td class="cc-tab">{{ c.dataPagamento ? (c.dataPagamento | date:'dd/MM/yyyy') : '—' }}</td>
+                    <td class="cc-tab">{{ c.dataPagamento ? (c.dataPagamento | date:(c.pagoViaPix ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy')) : '—' }}</td>
                     <td class="cc-acao">
                       <ng-container *ngIf="c.status === 'PENDENTE'">
                         <button *ngIf="confirmandoPagamento() !== c.id" class="btn btn-ghost btn-xs"
@@ -169,6 +175,26 @@
                       </ng-container>
                     </td>
                   </tr>
+                  <tr class="cc-linha-andamento" [class.cc-destacada]="destacada() === c.id">
+                    <td colspan="6">
+                      <ol class="cc-andamento">
+                        <li *ngFor="let e of etapas(c)" [ngClass]="'cc-etapa-' + e.estado">
+                          <span class="cc-etapa-ponto"></span>
+                          <span>
+                            <strong>{{ e.titulo }}</strong>
+                            <span class="cc-etapa-detalhe" *ngIf="e.detalhe">{{ e.detalhe }}</span>
+                          </span>
+                        </li>
+                      </ol>
+                      <div class="cc-andamento-acoes" *ngIf="c.linkPagamento && c.status === 'PENDENTE' && !pixExpirado(c)">
+                        <a class="btn btn-ghost btn-xs" [href]="c.linkPagamento" target="_blank" rel="noopener">🔗 Página de pagamento</a>
+                        <button class="btn btn-ghost btn-xs" (click)="copiarLink(c)">
+                          {{ linkCopiado() === c.id ? '✅ Link copiado' : '📋 Copiar link' }}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  </ng-container>
                 </tbody>
               </table>
             </td>

@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, OnDestroy, computed, ViewChild, ElementRef } from '@angular/core';
+import { Component, signal, inject, OnInit, OnDestroy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -25,24 +25,13 @@ interface Empresa {
 }
 
 interface DadosBancarios {
-  agencia: string;
-  conta: string;
-  contaDigito: string;
-  titularNome: string;
-  titularDocumento: string;
-  tipoChavePix: string;
-  chavePix: string;
-  ambiente: string;
-  clientId: string;
+  // Subconta Asaas que recebe o repasse; vazio = ainda não criada.
+  asaasWalletId: string;
+  asaasContaCriadaEm: string | null;
   cobrancaPixAtiva: boolean;
-  // Só indicadores: client secret e chave privada nunca voltam da API.
-  temClientSecret: boolean;
-  temCertificado: boolean;
-  certificadoValidoAte: string | null;
-  // Preenchidos só quando o usuário digita/envia um valor novo.
-  clientSecret: string;
-  certificadoPem: string;
-  chavePrivadaPem: string;
+  // Definida só pelo admin da plataforma; para os demais é só leitura.
+  comissaoTipo: string;
+  comissaoValor: number | null;
 }
 
 @Component({
@@ -258,65 +247,122 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     });
   }
 
-  // --- Dados bancarios: conta Itau onde a empresa recebe o Pix das cobrancas aos clientes
-  // dela. Endpoint proprio (nao vai junto do salvar da empresa) porque carrega segredos que
-  // nunca voltam da API -- misturar com o PUT da empresa obrigaria a reenviar tudo a cada edicao.
-  @ViewChild('crtInput') crtInput?: ElementRef<HTMLInputElement>;
-  @ViewChild('keyInput') keyInput?: ElementRef<HTMLInputElement>;
-
+  // --- Dados bancarios: subconta Asaas onde a empresa recebe o repasse das cobrancas aos
+  // clientes dela. O Pix e gerado na conta Asaas da plataforma e o split manda para a subconta o
+  // valor menos a comissao (o Asaas so faz split entre contas Asaas). Endpoint proprio (nao vai
+  // junto do salvar da empresa) porque a comissao so pode ser mexida pelo admin da plataforma.
   bancario = signal<DadosBancarios>(this.dadosBancariosVazios());
   carregandoBancario = signal(false);
   salvandoBancario = signal(false);
   msgBancario = signal('');
   msgBancarioErro = signal(false);
 
-  // Avisa com 30 dias de antecedencia: certificado vencido derruba a autenticacao no Itau e
-  // nenhuma cobranca nova consegue gerar Pix.
-  certificadoVencendo = computed(() => {
-    const validoAte = this.bancario().certificadoValidoAte;
-    if (!validoAte) return false;
-    const trintaDias = 30 * 24 * 60 * 60 * 1000;
-    return new Date(validoAte).getTime() - Date.now() < trintaDias;
+  // Cadastro da subconta: dados que o Asaas exige. Nao ficam gravados aqui, so os ids que o
+  // Asaas devolve.
+  subconta = signal<any>(this.subcontaVazia());
+  criandoSubconta = signal(false);
+  msgSubconta = signal('');
+  subcontaEhCpf = computed(() => (this.subconta().cpfCnpj || '').replace(/\D/g, '').length === 11);
+
+  private subcontaVazia() {
+    return {
+      nome: '', email: '', cpfCnpj: '', dataNascimento: '', tipoEmpresa: '', celular: '',
+      faturamentoMensal: null, endereco: '', numero: '', complemento: '', bairro: '', cep: ''
+    };
+  }
+
+  atualizarSubconta(campo: string, valor: any) {
+    this.subconta.update(s => ({ ...s, [campo]: valor }));
+    if (this.msgSubconta()) this.msgSubconta.set('');
+  }
+
+  criarSubconta() {
+    const empresaId = this.editingId();
+    if (!empresaId) return;
+
+    const s = this.subconta();
+    const ehCpf = this.subcontaEhCpf();
+    const payload = {
+      empresaId,
+      nome: s.nome,
+      email: s.email,
+      cpfCnpj: s.cpfCnpj,
+      dataNascimento: ehCpf && s.dataNascimento ? s.dataNascimento : null,
+      tipoEmpresa: ehCpf ? null : (s.tipoEmpresa || null),
+      celular: s.celular,
+      faturamentoMensal: s.faturamentoMensal === '' ? null : s.faturamentoMensal,
+      endereco: s.endereco,
+      numero: s.numero,
+      complemento: s.complemento,
+      bairro: s.bairro,
+      cep: s.cep,
+    };
+
+    this.criandoSubconta.set(true);
+    this.msgSubconta.set('');
+
+    this.http.post<any>(`${this.BASE_URL}/dados-bancarios/subconta-asaas`, payload).subscribe({
+      next: (r) => {
+        this.criandoSubconta.set(false);
+        this.aplicarDadosBancarios(r?.dadosBancarios ?? r);
+        this.msgBancarioErro.set(false);
+        this.msgBancario.set('✅ Subconta Asaas criada. O Asaas envia ao e-mail informado o acesso para a empresa enviar os documentos e sacar os valores.');
+      },
+      error: (err) => {
+        this.criandoSubconta.set(false);
+        this.msgSubconta.set(extrairMensagemErro(err, 'Não foi possível criar a subconta Asaas.'));
+      }
+    });
+  }
+
+  // Subconta aberta pelo painel do Asaas: so o walletId, o backend confere no Asaas que ela e
+  // da conta da plataforma. So admin da plataforma (o endpoint tambem barra).
+  walletIdExistente = signal('');
+  vinculandoSubconta = signal(false);
+  msgVinculo = signal('');
+
+  vincularSubconta() {
+    const empresaId = this.editingId();
+    if (!empresaId) return;
+
+    this.vinculandoSubconta.set(true);
+    this.msgVinculo.set('');
+
+    this.http.post<any>(`${this.BASE_URL}/dados-bancarios/vincular-subconta-asaas`, { empresaId, walletId: this.walletIdExistente().trim() }).subscribe({
+      next: (r) => {
+        this.vinculandoSubconta.set(false);
+        this.walletIdExistente.set('');
+        this.aplicarDadosBancarios(r?.dadosBancarios ?? r);
+        this.msgBancarioErro.set(false);
+        this.msgBancario.set(`✅ Subconta${r?.nomeSubconta ? ' de ' + r.nomeSubconta : ''} vinculada. As cobranças Pix pagas passam a ser repassadas para ela.`);
+      },
+      error: (err) => {
+        this.vinculandoSubconta.set(false);
+        this.msgVinculo.set(extrairMensagemErro(err, 'Não foi possível vincular a subconta Asaas.'));
+      }
+    });
+  }
+
+  descricaoComissao = computed(() => {
+    const b = this.bancario();
+    if (!b.comissaoTipo || b.comissaoValor === null) return 'ainda não definida';
+    return b.comissaoTipo === 'PERCENTUAL'
+      ? `${b.comissaoValor.toLocaleString('pt-BR')}% do valor cobrado`
+      : `${b.comissaoValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} por cobrança paga`;
   });
 
-  placeholderChavePix = computed(() => ({
-    CNPJ: '00000000000100',
-    CPF: '00000000000',
-    EMAIL: 'financeiro@empresa.com',
-    TELEFONE: '+5511999998888',
-    ALEATORIA: '123e4567-e89b-12d3-a456-426614174000',
-  } as Record<string, string>)[this.bancario().tipoChavePix] ?? 'Selecione o tipo da chave');
-
   private dadosBancariosVazios(): DadosBancarios {
-    return {
-      agencia: '', conta: '', contaDigito: '', titularNome: '', titularDocumento: '',
-      tipoChavePix: '', chavePix: '', ambiente: 'SANDBOX', clientId: '', cobrancaPixAtiva: false,
-      temClientSecret: false, temCertificado: false, certificadoValidoAte: null,
-      clientSecret: '', certificadoPem: '', chavePrivadaPem: '',
-    };
+    return { asaasWalletId: '', asaasContaCriadaEm: null, cobrancaPixAtiva: false, comissaoTipo: '', comissaoValor: null };
   }
 
   private aplicarDadosBancarios(d: any) {
     this.bancario.set({
-      agencia: d?.agencia ?? '',
-      conta: d?.conta ?? '',
-      contaDigito: d?.contaDigito ?? '',
-      titularNome: d?.titularNome ?? '',
-      titularDocumento: d?.titularDocumento ?? '',
-      tipoChavePix: d?.tipoChavePix ?? '',
-      chavePix: d?.chavePix ?? '',
-      ambiente: d?.ambiente ?? 'SANDBOX',
-      clientId: d?.clientId ?? '',
+      asaasWalletId: d?.asaasWalletId ?? '',
+      asaasContaCriadaEm: d?.asaasContaCriadaEm ?? null,
       cobrancaPixAtiva: !!d?.cobrancaPixAtiva,
-      temClientSecret: !!d?.temClientSecret,
-      temCertificado: !!d?.temCertificado,
-      certificadoValidoAte: d?.certificadoValidoAte ?? null,
-      clientSecret: '',
-      certificadoPem: '',
-      chavePrivadaPem: '',
+      comissaoTipo: d?.comissaoTipo ?? '',
+      comissaoValor: d?.comissaoValor ?? null,
     });
-    if (this.crtInput) this.crtInput.nativeElement.value = '';
-    if (this.keyInput) this.keyInput.nativeElement.value = '';
   }
 
   carregarDadosBancarios(empresaId: string) {
@@ -344,26 +390,10 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     if (this.msgBancario()) this.msgBancario.set('');
   }
 
-  atualizarBancarioNumeros(campo: keyof DadosBancarios, input: HTMLInputElement, maxDigitos: number) {
-    const apenasDigitos = input.value.replace(/\D/g, '').slice(0, maxDigitos);
-    input.value = apenasDigitos;
-    this.atualizarBancario(campo, apenasDigitos);
-  }
-
-  lerArquivoCertificado(campo: 'certificadoPem' | 'chavePrivadaPem', input: HTMLInputElement) {
-    const arquivo = input.files?.[0];
-    if (!arquivo) {
-      this.atualizarBancario(campo, '');
-      return;
-    }
-    // Certificado PEM tem poucos KB; algo grande assim e arquivo errado (ex: .pfx binario).
-    if (arquivo.size > 100 * 1024) {
-      input.value = '';
-      this.msgBancarioErro.set(true);
-      this.msgBancario.set('Arquivo grande demais para um certificado PEM. Confira se escolheu o .crt/.key certos.');
-      return;
-    }
-    arquivo.text().then(conteudo => this.atualizarBancario(campo, conteudo));
+  // Campo numerico vazio vira null (comissao nao definida), nao 0.
+  atualizarComissaoValor(valor: any) {
+    const numero = valor === '' || valor === null || valor === undefined ? null : Number(valor);
+    this.atualizarBancario('comissaoValor', numero !== null && isNaN(numero) ? null : numero);
   }
 
   salvarDadosBancarios() {
@@ -371,29 +401,15 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     if (!empresaId) return;
 
     const b = this.bancario();
-    if (!!b.certificadoPem !== !!b.chavePrivadaPem) {
-      this.msgBancarioErro.set(true);
-      this.msgBancario.set('Envie o certificado (.crt) e a chave privada (.key) juntos.');
-      return;
-    }
-
-    const payload = {
+    // A API ignora a comissao de quem nao e admin da plataforma; nem manda, pra deixar claro.
+    const payload: any = {
       empresaId,
-      banco: '341',
-      agencia: b.agencia,
-      conta: b.conta,
-      contaDigito: b.contaDigito,
-      titularNome: b.titularNome,
-      titularDocumento: b.titularDocumento,
-      tipoChavePix: b.tipoChavePix,
-      chavePix: b.chavePix,
-      ambiente: b.ambiente,
-      clientId: b.clientId,
       cobrancaPixAtiva: b.cobrancaPixAtiva,
-      clientSecret: b.clientSecret || null,
-      certificadoPem: b.certificadoPem || null,
-      chavePrivadaPem: b.chavePrivadaPem || null,
     };
+    if (this.ehAdminDaPlataforma()) {
+      payload.comissaoTipo = b.comissaoTipo || null;
+      payload.comissaoValor = b.comissaoValor;
+    }
 
     this.salvandoBancario.set(true);
     this.msgBancario.set('');
@@ -402,15 +418,15 @@ export class EmpresasComponent implements OnInit, OnDestroy {
       next: (r) => {
         this.salvandoBancario.set(false);
         this.aplicarDadosBancarios(r?.dadosBancarios ?? r);
-        // Ao ativar a cobrança a API já testa as credenciais e cadastra o webhook no Itaú; os
-        // dados ficam salvos mesmo se o Itaú recusar, por isso vem como aviso e não como erro.
+        // Ao ativar a cobrança a API já testa a conexão com o Asaas; os dados ficam salvos
+        // mesmo se ela falhar, por isso vem como aviso e não como erro.
         if (r?.avisoIntegracao) {
           this.msgBancarioErro.set(true);
           this.msgBancario.set('⚠️ ' + r.avisoIntegracao);
         } else {
           this.msgBancarioErro.set(false);
           this.msgBancario.set(r?.credenciaisConferidas
-            ? '✅ Dados bancários salvos. Conexão com o Itaú conferida e webhook de pagamento cadastrado.'
+            ? '✅ Dados bancários salvos. Conexão com o Asaas conferida.'
             : '✅ Dados bancários salvos.');
         }
       },
@@ -422,9 +438,21 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     });
   }
 
+
   prepararEdicao(empresa: Empresa) {
     this.editingId.set(empresa.id);
     this.carregarDadosBancarios(empresa.id);
+    // Ponto de partida para a subconta: quase sempre o titular e a propria empresa.
+    this.subconta.set({
+      ...this.subcontaVazia(),
+      nome: empresa.nome || '',
+      email: empresa.email || '',
+      cpfCnpj: empresa.cnpj || '',
+      celular: empresa.telefone || '',
+    });
+    this.msgSubconta.set('');
+    this.walletIdExistente.set('');
+    this.msgVinculo.set('');
     this.form.set({
       nome: empresa.nome,
       cnpj: empresa.cnpj || '',
@@ -446,6 +474,10 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     this.response.set('');
     this.aplicarDadosBancarios(null);
     this.msgBancario.set('');
+    this.subconta.set(this.subcontaVazia());
+    this.msgSubconta.set('');
+    this.walletIdExistente.set('');
+    this.msgVinculo.set('');
   }
 
   salvar() {

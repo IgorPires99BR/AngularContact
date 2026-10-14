@@ -277,8 +277,8 @@
     <div>
       <div class="card-title">🏦 Dados bancários</div>
       <div class="card-sub">
-        Conta Itaú onde {{ form().nome || 'a empresa' }} recebe o Pix das cobranças aos clientes dela.
-        O dinheiro cai direto nesta conta, sem passar pela Contact Solution.
+        Subconta Asaas onde {{ form().nome || 'a empresa' }} recebe o valor das cobranças pagas pelos clientes dela.
+        O cliente paga pelo link de cobrança e o valor, já descontada a comissão da plataforma, é repassado automaticamente para esta subconta.
       </div>
     </div>
     @if (bancario().cobrancaPixAtiva) {
@@ -292,112 +292,137 @@
       <div class="dica-campo">Carregando dados bancários...</div>
     } @else {
 
-      <div class="secao-titulo">Conta</div>
-      <div class="fg-row">
-        <div class="fg">
-          <label>Banco</label>
-          <input type="text" value="341 - Itaú Unibanco" disabled>
-          <small class="dica-campo">No momento a cobrança via Pix é integrada só com o Itaú.</small>
+      <div class="secao-titulo">Subconta Asaas para repasse</div>
+      @if (bancario().asaasWalletId) {
+        <small class="dica-campo">
+          Subconta criada{{ bancario().asaasContaCriadaEm ? ' em ' + (bancario().asaasContaCriadaEm | date:'dd/MM/yyyy') : '' }}
+          (carteira <strong>{{ bancario().asaasWalletId }}</strong>). A empresa acessa e saca pelo app ou site do Asaas,
+          com o e-mail informado na criação.
+        </small>
+      } @else {
+        <small class="dica-campo">
+          A empresa ainda não tem subconta. Preencha os dados do titular (o mesmo CPF/CNPJ que vai sacar o dinheiro).
+          O Asaas envia ao e-mail o acesso para concluir o cadastro e enviar os documentos.
+        </small>
+        <div class="fg-row">
+          <div class="fg">
+            <label>Nome / razão social</label>
+            <input type="text" maxlength="255" [ngModel]="subconta().nome" (ngModelChange)="atualizarSubconta('nome', $event)">
+          </div>
+          <div class="fg">
+            <label>CPF ou CNPJ</label>
+            <input type="text" maxlength="18" [ngModel]="subconta().cpfCnpj" (ngModelChange)="atualizarSubconta('cpfCnpj', $event)">
+          </div>
         </div>
-        <div class="fg">
-          <label>Agência (sem dígito)</label>
-          <input #agenciaInput type="text" inputmode="numeric" placeholder="0000"
-                 [ngModel]="bancario().agencia" (input)="atualizarBancarioNumeros('agencia', agenciaInput, 4)">
+        <div class="fg-row">
+          @if (subcontaEhCpf()) {
+            <div class="fg">
+              <label>Data de nascimento</label>
+              <input type="date" [ngModel]="subconta().dataNascimento" (ngModelChange)="atualizarSubconta('dataNascimento', $event)">
+            </div>
+          } @else {
+            <div class="fg">
+              <label>Tipo da empresa</label>
+              <select [ngModel]="subconta().tipoEmpresa" (ngModelChange)="atualizarSubconta('tipoEmpresa', $event)">
+                <option value="">Selecione...</option>
+                <option value="MEI">MEI</option>
+                <option value="LIMITED">Limitada (LTDA)</option>
+                <option value="INDIVIDUAL">Individual (EI/SLU)</option>
+                <option value="ASSOCIATION">Associação</option>
+              </select>
+            </div>
+          }
+          <div class="fg">
+            <label>Faturamento / renda mensal (R$)</label>
+            <input type="number" min="0" step="0.01" [ngModel]="subconta().faturamentoMensal" (ngModelChange)="atualizarSubconta('faturamentoMensal', $event)">
+          </div>
         </div>
-      </div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>E-mail</label>
+            <input type="email" maxlength="255" [ngModel]="subconta().email" (ngModelChange)="atualizarSubconta('email', $event)">
+          </div>
+          <div class="fg">
+            <label>Celular</label>
+            <input type="text" maxlength="20" placeholder="(11) 99999-8888" [ngModel]="subconta().celular" (ngModelChange)="atualizarSubconta('celular', $event)">
+          </div>
+        </div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>CEP</label>
+            <input type="text" maxlength="9" [ngModel]="subconta().cep" (ngModelChange)="atualizarSubconta('cep', $event)">
+          </div>
+          <div class="fg">
+            <label>Endereço</label>
+            <input type="text" maxlength="255" [ngModel]="subconta().endereco" (ngModelChange)="atualizarSubconta('endereco', $event)">
+          </div>
+        </div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>Número</label>
+            <input type="text" maxlength="20" [ngModel]="subconta().numero" (ngModelChange)="atualizarSubconta('numero', $event)">
+          </div>
+          <div class="fg">
+            <label>Complemento</label>
+            <input type="text" maxlength="100" [ngModel]="subconta().complemento" (ngModelChange)="atualizarSubconta('complemento', $event)">
+          </div>
+          <div class="fg">
+            <label>Bairro</label>
+            <input type="text" maxlength="100" [ngModel]="subconta().bairro" (ngModelChange)="atualizarSubconta('bairro', $event)">
+          </div>
+        </div>
+        @if (msgSubconta()) {
+          <div class="erro-conta">{{ msgSubconta() }}</div>
+        }
+        <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 8px;">
+          <button class="btn btn-outline" (click)="criarSubconta()" [disabled]="criandoSubconta()">
+            {{ criandoSubconta() ? 'Criando subconta...' : '🏦 Criar subconta Asaas' }}
+          </button>
+        </div>
 
-      <div class="fg-row">
-        <div class="fg">
-          <label>Conta</label>
-          <input #contaInput type="text" inputmode="numeric" placeholder="00000"
-                 [ngModel]="bancario().conta" (input)="atualizarBancarioNumeros('conta', contaInput, 12)">
-        </div>
-        <div class="fg">
-          <label>Dígito</label>
-          <input type="text" maxlength="1" placeholder="0"
-                 [ngModel]="bancario().contaDigito" (ngModelChange)="atualizarBancario('contaDigito', $event)">
-        </div>
-      </div>
+        @if (ehAdminDaPlataforma()) {
+          <small class="dica-campo" style="display: block; margin-top: 16px;">
+            Já criou a subconta pelo painel do Asaas? Informe o walletId dela (detalhes da subconta no Asaas) para vincular.
+          </small>
+          <div class="fg-row">
+            <div class="fg">
+              <label>WalletId da subconta existente</label>
+              <input type="text" maxlength="36" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                     [ngModel]="walletIdExistente()" (ngModelChange)="walletIdExistente.set($event); msgVinculo.set('')">
+            </div>
+          </div>
+          @if (msgVinculo()) {
+            <div class="erro-conta">{{ msgVinculo() }}</div>
+          }
+          <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 8px;">
+            <button class="btn btn-outline" (click)="vincularSubconta()" [disabled]="vinculandoSubconta() || !walletIdExistente().trim()">
+              {{ vinculandoSubconta() ? 'Vinculando...' : '🔗 Vincular subconta existente' }}
+            </button>
+          </div>
+        }
+      }
 
-      <div class="fg-row">
-        <div class="fg">
-          <label>Titular da conta</label>
-          <input type="text" maxlength="255" placeholder="Razão social do titular"
-                 [ngModel]="bancario().titularNome" (ngModelChange)="atualizarBancario('titularNome', $event)">
-        </div>
-        <div class="fg">
-          <label>CPF/CNPJ do titular (somente números)</label>
-          <input #docInput type="text" inputmode="numeric" placeholder="00000000000100"
-                 [ngModel]="bancario().titularDocumento" (input)="atualizarBancarioNumeros('titularDocumento', docInput, 14)">
-        </div>
-      </div>
-
-      <div class="secao-titulo">Chave Pix</div>
-      <div class="fg-row">
-        <div class="fg">
-          <label>Tipo da chave</label>
-          <select [ngModel]="bancario().tipoChavePix" (ngModelChange)="atualizarBancario('tipoChavePix', $event)">
-            <option value="">Selecione...</option>
-            <option value="CNPJ">CNPJ</option>
-            <option value="CPF">CPF</option>
-            <option value="EMAIL">E-mail</option>
-            <option value="TELEFONE">Telefone</option>
-            <option value="ALEATORIA">Chave aleatória</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label>Chave Pix</label>
-          <input type="text" maxlength="100" [placeholder]="placeholderChavePix()"
-                 [ngModel]="bancario().chavePix" (ngModelChange)="atualizarBancario('chavePix', $event)">
-          <small class="dica-campo">Precisa ser uma chave cadastrada nesta mesma conta do Itaú.</small>
-        </div>
-      </div>
-
-      <div class="secao-titulo">Credenciais da API Pix do Itaú</div>
-      <small class="dica-campo" style="margin: -4px 0 12px;">
-        Geradas no portal do desenvolvedor do Itaú (devportal.itau.com.br) pela própria empresa, junto com o certificado.
-      </small>
-      <div class="fg-row">
-        <div class="fg">
-          <label>Ambiente</label>
-          <select [ngModel]="bancario().ambiente" (ngModelChange)="atualizarBancario('ambiente', $event)">
-            <option value="SANDBOX">Sandbox (testes)</option>
-            <option value="PRODUCAO">Produção</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label>Client ID</label>
-          <input type="text" maxlength="100" autocomplete="off" placeholder="Ex: 3a5b7c9d-..."
-                 [ngModel]="bancario().clientId" (ngModelChange)="atualizarBancario('clientId', $event)">
-        </div>
-      </div>
-
-      <div class="fg">
-        <label>Client Secret</label>
-        <input type="password" autocomplete="new-password"
-               [placeholder]="bancario().temClientSecret ? '•••••••• (cadastrado — deixe em branco para manter)' : 'Cole o Client Secret'"
-               [ngModel]="bancario().clientSecret" (ngModelChange)="atualizarBancario('clientSecret', $event)">
-        <small class="dica-campo">Por segurança, o secret salvo nunca é exibido de volta.</small>
-      </div>
-
-      <div class="fg-row">
-        <div class="fg">
-          <label>Certificado (.crt / .pem)</label>
-          <input #crtInput type="file" accept=".crt,.pem,.cer" (change)="lerArquivoCertificado('certificadoPem', crtInput)">
-        </div>
-        <div class="fg">
-          <label>Chave privada (.key)</label>
-          <input #keyInput type="file" accept=".key,.pem" (change)="lerArquivoCertificado('chavePrivadaPem', keyInput)">
-        </div>
-      </div>
-      @if (bancario().temCertificado) {
-        <div class="status-certificado" [class.vencendo]="certificadoVencendo()">
-          Certificado cadastrado, válido até <strong>{{ bancario().certificadoValidoAte | date:'dd/MM/yyyy' }}</strong>.
-          @if (certificadoVencendo()) { Gere um novo no portal do Itaú antes de vencer — sem ele as cobranças param. }
-          Envie os dois arquivos só se quiser trocá-lo.
+      <div class="secao-titulo">Comissão da plataforma</div>
+      @if (ehAdminDaPlataforma()) {
+        <div class="fg-row">
+          <div class="fg">
+            <label>Tipo da comissão</label>
+            <select [ngModel]="bancario().comissaoTipo" (ngModelChange)="atualizarBancario('comissaoTipo', $event)">
+              <option value="">Não definida</option>
+              <option value="PERCENTUAL">Percentual do valor cobrado</option>
+              <option value="FIXA">Valor fixo por cobrança</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>{{ bancario().comissaoTipo === 'FIXA' ? 'Valor (R$)' : 'Percentual (%)' }}</label>
+            <input type="number" min="0" step="0.01" placeholder="0,00"
+                   [disabled]="!bancario().comissaoTipo"
+                   [ngModel]="bancario().comissaoValor" (ngModelChange)="atualizarComissaoValor($event)">
+            <small class="dica-campo">Fica na conta da plataforma; o restante é repassado à empresa. Precisa cobrir a taxa do Asaas por Pix, que sai da parte da plataforma.</small>
+          </div>
         </div>
       } @else {
-        <small class="dica-campo">Envie o .crt emitido pelo Itaú e o .key gerado junto com o pedido do certificado.</small>
+        <small class="dica-campo">Comissão: <strong>{{ descricaoComissao() }}</strong>. Definida pela Contact Solution.</small>
       }
 
       <label class="opcao-pagamento">
@@ -405,7 +430,7 @@
                (change)="atualizarBancario('cobrancaPixAtiva', !bancario().cobrancaPixAtiva)">
         <span>
           Ativar cobrança via Pix
-          <small>Usa esta conta para gerar o Pix das cobranças desta empresa. Só é possível ativar com conta, chave Pix e credenciais completas.</small>
+          <small>As mensagens de cobrança desta empresa passam a levar o link de pagamento Pix. Só é possível ativar com a subconta Asaas criada e a comissão definida. O contato precisa ter CPF/CNPJ no cadastro para receber o Pix.</small>
         </span>
       </label>
 

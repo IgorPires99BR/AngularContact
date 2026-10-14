@@ -8,3 +8,12 @@
   white-space: nowrap;
   vertical-align: middle;
 }
+
+/* Dica abaixo do campo (mesmo estilo da tela de Empresas). */
+.dica-campo {
+  display: block;
+  margin-top: 5px;
+  font-size: .74rem;
+  color: var(--muted);
+  line-height: 1.45;
+}

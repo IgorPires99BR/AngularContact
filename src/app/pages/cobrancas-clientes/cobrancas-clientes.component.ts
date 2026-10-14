@@ -1,8 +1,10 @@
-import { Component, signal, inject, OnInit, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, OnDestroy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import * as signalR from '@microsoft/signalr';
 import { environment } from '../../../environments/environment';
+import { AuthService } from '../../core/services/auth';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
 interface CobrancaCliente {
@@ -16,10 +18,23 @@ interface CobrancaCliente {
   nomeCliente?: string;
   nomeContato?: string;
   telefone?: string;
-  // Pix do Itaú (empresa com cobrança Pix ativa): valor com multa/juros do dia do envio.
+  // Pix do Asaas (empresa com cobrança Pix ativa): valor com multa/juros do dia do envio.
   temPix?: boolean;
   valorCobrado?: number | null;
+  pixExpiraEm?: string | null;
+  linkPagamento?: string | null;
+  // Baixa automática (webhook do Asaas): valor que o cliente pagou e o split dele.
   pagoViaPix?: boolean;
+  valorPago?: number | null;
+  valorComissao?: number | null;
+  valorRepasse?: number | null;
+}
+
+// Uma etapa da linha do tempo da cobrança, do envio no WhatsApp até o pagamento.
+interface Etapa {
+  titulo: string;
+  detalhe?: string;
+  estado: 'feito' | 'atual' | 'falhou';
 }
 
 interface ClienteComCobrancas {
@@ -44,9 +59,19 @@ type Situacao = 'PENDENTE' | 'VENCIDA' | 'PAGA' | 'CANCELADA';
   templateUrl: './cobrancas-clientes.component.html',
   styleUrls: ['../shared-crud.css', './cobrancas-clientes.component.css'],
 })
-export class CobrancasClientesComponent implements OnInit {
+export class CobrancasClientesComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
+  private authService = inject(AuthService);
   private readonly API = `${environment.apiUrl}/cobranca-cliente`;
+
+  // Tempo real: o webhook do Asaas da baixa e o servidor avisa pelo SignalR (mesmo hub do
+  // Chats, autenticado; o grupo vem do token). O aviso so traz o id; os dados vem pela API.
+  private hubConnection?: signalR.HubConnection;
+  private recarregarTimer?: ReturnType<typeof setTimeout>;
+  private pagasAvisadas = new Set<string>();
+  avisoPagamento = signal('');
+  destacada = signal<string | null>(null);
+  linkCopiado = signal<string | null>(null);
 
   cobrancas = signal<CobrancaCliente[]>([]);
   carregando = signal(true);
@@ -118,6 +143,12 @@ export class CobrancasClientesComponent implements OnInit {
 
   ngOnInit() {
     this.buscar();
+    this.conectarTempoReal();
+  }
+
+  ngOnDestroy() {
+    clearTimeout(this.recarregarTimer);
+    this.hubConnection?.stop();
   }
 
   buscar() {
@@ -128,23 +159,139 @@ export class CobrancasClientesComponent implements OnInit {
 
     this.carregando.set(true);
     this.erro.set('');
+    this.carregarPeriodo(this.dataInicio(), this.dataFim());
+  }
 
+  private carregarPeriodo(inicio: string, fim: string, aoCarregar?: () => void) {
     let params = new HttpParams();
-    if (this.dataInicio()) params = params.set('dataInicio', this.dataInicio());
-    if (this.dataFim()) params = params.set('dataFim', this.dataFim());
+    if (inicio) params = params.set('dataInicio', inicio);
+    if (fim) params = params.set('dataFim', fim);
 
     this.http.get<any>(this.API, { params }).subscribe({
       next: (res) => {
         // Envelope Response<T>: o resultado vem em value.
         const dados = res?.value ?? res;
         this.cobrancas.set(dados?.cobrancas ?? []);
-        this.periodoAplicado.set({ inicio: this.dataInicio(), fim: this.dataFim() });
+        this.periodoAplicado.set({ inicio, fim });
         this.carregando.set(false);
+        aoCarregar?.();
       },
       error: (err) => {
         this.erro.set(extrairMensagemErro(err, 'Não foi possível carregar as cobranças.'));
         this.carregando.set(false);
       }
+    });
+  }
+
+  private conectarTempoReal() {
+    const idEmpresa = this.authService.empresaIdSignal();
+    if (!idEmpresa) return;
+
+    this.hubConnection = new signalR.HubConnectionBuilder()
+      .withUrl(`${environment.apiUrl}/hubs/chat`, { accessTokenFactory: () => this.authService.getToken() ?? '' })
+      .withAutomaticReconnect()
+      .build();
+
+    this.hubConnection.on('CobrancaAtualizada', (evento: { cobrancaId: string; status: string }) => {
+      if (evento?.status === 'PAGA') this.pagasAvisadas.add(evento.cobrancaId);
+      // Disparo em lote pago junto (ou webhook repetido) vira uma recarga so.
+      clearTimeout(this.recarregarTimer);
+      this.recarregarTimer = setTimeout(() => this.recarregarPorAviso(), 1200);
+    });
+
+    // Reconectou: o que foi pago enquanto a conexao caiu nao gerou aviso.
+    this.hubConnection.onreconnected(() => {
+      this.hubConnection?.invoke('EntrarNoGrupo', idEmpresa);
+      this.recarregarPorAviso();
+    });
+
+    this.hubConnection.start()
+      .then(() => this.hubConnection?.invoke('EntrarNoGrupo', idEmpresa))
+      // Sem tempo real a tela continua funcionando pelo botao Atualizar.
+      .catch(err => console.error('Cobranças: erro ao conectar SignalR', err));
+  }
+
+  // Recarrega o periodo que esta NA TELA (nao o que esta digitado nos filtros) e destaca o
+  // pagamento que acabou de chegar.
+  private recarregarPorAviso() {
+    const { inicio, fim } = this.periodoAplicado();
+    const pagas = Array.from(this.pagasAvisadas);
+    this.pagasAvisadas.clear();
+
+    this.carregarPeriodo(inicio, fim, () => {
+      const paga = this.cobrancas().find(c => pagas.includes(c.id) && c.status === 'PAGA');
+      if (!paga) return;
+
+      const nome = paga.nomeCliente || paga.nomeContato || paga.telefone || 'cliente';
+      const valor = (paga.valorPago ?? paga.valorCobrado ?? paga.valor)
+        .toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      this.avisoPagamento.set(pagas.length > 1
+        ? `💰 ${pagas.length} pagamentos recebidos via Pix, entre eles ${nome} (${valor}).`
+        : `💰 Pagamento recebido via Pix: ${nome} pagou ${valor}.`);
+      this.expandidos.update(atual => new Set(atual).add(paga.contatoId));
+      this.destacada.set(paga.id);
+      setTimeout(() => { if (this.destacada() === paga.id) this.destacada.set(null); }, 8000);
+    });
+  }
+
+  fecharAvisoPagamento() {
+    this.avisoPagamento.set('');
+  }
+
+  // Linha do tempo: envio -> Pix gerado -> pagamento (ou expiracao).
+  etapas(c: CobrancaCliente): Etapa[] {
+    const moeda = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const dataHora = (d: string) => new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const data = (d: string) => new Date(d.length === 10 ? `${d}T00:00:00` : d).toLocaleDateString('pt-BR');
+
+    const etapas: Etapa[] = [{ titulo: 'Enviada no WhatsApp', detalhe: dataHora(c.dataCriacao), estado: 'feito' }];
+
+    if (c.temPix) {
+      etapas.push({
+        titulo: 'Pix gerado',
+        detalhe: `${moeda(c.valorCobrado ?? c.valor)}${c.pixExpiraEm ? ' · válido até ' + dataHora(c.pixExpiraEm) : ''}`,
+        estado: 'feito',
+      });
+    }
+
+    const situacao = this.situacaoDe(c);
+    if (situacao === 'PAGA') {
+      if (c.pagoViaPix) {
+        const repasse = c.valorRepasse != null
+          ? ` · ${moeda(c.valorRepasse)} na sua subconta${c.valorComissao ? ' (comissão ' + moeda(c.valorComissao) + ')' : ''}`
+          : '';
+        etapas.push({
+          titulo: 'Pago via Pix',
+          detalhe: `${c.dataPagamento ? dataHora(c.dataPagamento) + ' · ' : ''}${moeda(c.valorPago ?? c.valorCobrado ?? c.valor)}${repasse}`,
+          estado: 'feito',
+        });
+      } else {
+        etapas.push({ titulo: 'Pagamento confirmado manualmente', detalhe: c.dataPagamento ? data(c.dataPagamento) : undefined, estado: 'feito' });
+      }
+    } else if (situacao === 'CANCELADA') {
+      etapas.push({ titulo: 'Cancelada', estado: 'falhou' });
+    } else if (this.pixExpirado(c)) {
+      etapas.push({ titulo: 'Pix expirou sem pagamento', detalhe: 'Envie uma nova cobrança para gerar outro Pix', estado: 'falhou' });
+    } else {
+      etapas.push({
+        titulo: c.temPix ? 'Aguardando pagamento' : 'Aguardando confirmação manual',
+        detalhe: c.temPix ? 'Baixa automática quando o cliente pagar' : 'Empresa sem cobrança Pix ativa no envio',
+        estado: 'atual',
+      });
+    }
+
+    return etapas;
+  }
+
+  pixExpirado(c: CobrancaCliente): boolean {
+    return !!c.temPix && c.status === 'PENDENTE' && !!c.pixExpiraEm && new Date(c.pixExpiraEm) < new Date();
+  }
+
+  copiarLink(c: CobrancaCliente) {
+    if (!c.linkPagamento) return;
+    navigator.clipboard?.writeText(c.linkPagamento).then(() => {
+      this.linkCopiado.set(c.id);
+      setTimeout(() => { if (this.linkCopiado() === c.id) this.linkCopiado.set(null); }, 2500);
     });
   }
 

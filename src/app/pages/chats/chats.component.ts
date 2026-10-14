@@ -111,7 +111,9 @@ export class ChatsComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (!idEmpresa) return;
 
     this.hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl(`${environment.apiUrl}/hubs/chat`)
+      // O hub exige login: o JWT vai na query (WebSocket não manda cabeçalho). Factory, e não
+      // valor fixo, para a reconexão pegar o token atual.
+      .withUrl(`${environment.apiUrl}/hubs/chat`, { accessTokenFactory: () => this.authService.getToken() ?? '' })
       .withAutomaticReconnect()
       .build();
 
