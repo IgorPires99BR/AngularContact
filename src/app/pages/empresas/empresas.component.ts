@@ -343,6 +343,43 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Situacao cadastral da subconta no Asaas. So sob demanda: o Asaas pede uns segundos depois
+  // da criacao para listar os documentos certos, e cada consulta sao duas chamadas a ele.
+  situacaoSubconta = signal<any>(null);
+  consultandoSituacao = signal(false);
+  msgSituacao = signal('');
+
+  consultarSituacaoSubconta() {
+    const empresaId = this.editingId();
+    if (!empresaId) return;
+    this.consultandoSituacao.set(true);
+    this.msgSituacao.set('');
+
+    this.http.get<any>(`${this.BASE_URL}/${empresaId}/dados-bancarios/situacao-subconta`).subscribe({
+      next: (s) => {
+        if (this.editingId() !== empresaId) return;
+        this.consultandoSituacao.set(false);
+        this.situacaoSubconta.set(s);
+      },
+      error: (err) => {
+        this.consultandoSituacao.set(false);
+        this.msgSituacao.set(extrairMensagemErro(err, 'Não foi possível consultar a situação da subconta.'));
+      }
+    });
+  }
+
+  rotuloStatusAsaas(status: string | null | undefined): string {
+    switch (status) {
+      case 'APPROVED': return 'Aprovado';
+      case 'AWAITING_APPROVAL': return 'Em análise';
+      case 'REJECTED': return 'Recusado';
+      case 'NOT_SENT': return 'Não enviado';
+      case 'IGNORED': return 'Dispensado';
+      case 'PENDING': return 'Pendente';
+      default: return status || '-';
+    }
+  }
+
   descricaoComissao = computed(() => {
     const b = this.bancario();
     if (!b.comissaoTipo || b.comissaoValor === null) return 'ainda não definida';
@@ -368,6 +405,8 @@ export class EmpresasComponent implements OnInit, OnDestroy {
   carregarDadosBancarios(empresaId: string) {
     this.aplicarDadosBancarios(null);
     this.msgBancario.set('');
+    this.situacaoSubconta.set(null);
+    this.msgSituacao.set('');
     this.carregandoBancario.set(true);
 
     this.http.get<any>(`${this.BASE_URL}/${empresaId}/dados-bancarios`).subscribe({

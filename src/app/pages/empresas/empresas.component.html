@@ -299,6 +299,42 @@
           (carteira <strong>{{ bancario().asaasWalletId }}</strong>). A empresa acessa e saca pelo app ou site do Asaas,
           com o e-mail informado na criação.
         </small>
+        <div>
+          <button class="btn btn-outline" (click)="consultarSituacaoSubconta()" [disabled]="consultandoSituacao()">
+            {{ consultandoSituacao() ? 'Consultando...' : '🔎 Situação da subconta no Asaas' }}
+          </button>
+        </div>
+        @if (msgSituacao()) {
+          <div class="erro-conta">{{ msgSituacao() }}</div>
+        }
+        @if (situacaoSubconta(); as s) {
+          @if (!s.consultaDisponivel) {
+            <small class="dica-campo">
+              Subconta vinculada pelo painel do Asaas: a situação cadastral e os documentos só aparecem no painel.
+            </small>
+          } @else {
+            <small class="dica-campo">
+              Situação geral: <strong>{{ rotuloStatusAsaas(s.geral) }}</strong> ·
+              dados comerciais: {{ rotuloStatusAsaas(s.dadosComerciais) }} ·
+              conta bancária: {{ rotuloStatusAsaas(s.dadosBancarios) }} ·
+              documentos: {{ rotuloStatusAsaas(s.documentacao) }}.
+              @if (!s.aprovada) {
+                Enquanto a subconta não for aprovada, o repasse das cobranças pagas cai nela mas não pode ser sacado.
+              }
+            </small>
+            @if (s.motivoRecusa) {
+              <div class="erro-conta">Motivo informado pelo Asaas: {{ s.motivoRecusa }}</div>
+            }
+            @for (d of s.documentos; track $index) {
+              <small class="dica-campo">
+                <strong>{{ d.titulo }}</strong>{{ d.responsavel ? ' (' + d.responsavel + ')' : '' }}: {{ rotuloStatusAsaas(d.status) }}
+                @if (d.linkEnvio && (d.status === 'NOT_SENT' || d.status === 'REJECTED')) {
+                  · <a [href]="d.linkEnvio" target="_blank" rel="noopener">enviar documentos</a>
+                }
+              </small>
+            }
+          }
+        }
       } @else {
         <small class="dica-campo">
           A empresa ainda não tem subconta. Preencha os dados do titular (o mesmo CPF/CNPJ que vai sacar o dinheiro).
@@ -430,7 +466,7 @@
                (change)="atualizarBancario('cobrancaPixAtiva', !bancario().cobrancaPixAtiva)">
         <span>
           Ativar cobrança via Pix
-          <small>As mensagens de cobrança desta empresa passam a levar o link de pagamento Pix. Só é possível ativar com a subconta Asaas criada e a comissão definida. O contato precisa ter CPF/CNPJ no cadastro para receber o Pix.</small>
+          <small>As mensagens de cobrança desta empresa passam a levar o link de pagamento Pix. Só é possível ativar com a subconta Asaas criada e a comissão definida. Contato sem CPF/CNPJ no cadastro recebe o Pix em nome da própria empresa.</small>
         </span>
       </label>
 
