@@ -295,9 +295,15 @@
       <div class="secao-titulo">Subconta Asaas para repasse</div>
       @if (bancario().asaasWalletId) {
         <small class="dica-campo">
-          Subconta criada{{ bancario().asaasContaCriadaEm ? ' em ' + (bancario().asaasContaCriadaEm | date:'dd/MM/yyyy') : '' }}
-          (carteira <strong>{{ bancario().asaasWalletId }}</strong>). A empresa acessa e saca pelo app ou site do Asaas,
-          com o e-mail informado na criação.
+          @if (bancario().carteiraExterna) {
+            Repasse para a conta Asaas própria da empresa (carteira <strong>{{ bancario().asaasWalletId }}</strong>),
+            vinculada{{ bancario().asaasContaCriadaEm ? ' em ' + (bancario().asaasContaCriadaEm | date:'dd/MM/yyyy') : '' }}.
+            A empresa acessa e saca pela própria conta dela no Asaas.
+          } @else {
+            Subconta criada{{ bancario().asaasContaCriadaEm ? ' em ' + (bancario().asaasContaCriadaEm | date:'dd/MM/yyyy') : '' }}
+            (carteira <strong>{{ bancario().asaasWalletId }}</strong>). A empresa acessa e saca pelo app ou site do Asaas,
+            com o e-mail informado na criação.
+          }
         </small>
         <div>
           <button class="btn btn-outline" (click)="consultarSituacaoSubconta()" [disabled]="consultandoSituacao()">
@@ -310,7 +316,8 @@
         @if (situacaoSubconta(); as s) {
           @if (!s.consultaDisponivel) {
             <small class="dica-campo">
-              Subconta vinculada pelo painel do Asaas: a situação cadastral e os documentos só aparecem no painel.
+              {{ s.carteiraExterna ? 'Conta Asaas própria da empresa' : 'Subconta vinculada pelo painel do Asaas' }}:
+              a situação cadastral e os documentos só aparecem no Asaas.
             </small>
           } @else {
             <small class="dica-campo">
@@ -419,7 +426,16 @@
         @if (ehAdminDaPlataforma()) {
           <small class="dica-campo" style="display: block; margin-top: 16px;">
             Já criou a subconta pelo painel do Asaas? Informe o walletId dela (detalhes da subconta no Asaas) para vincular.
+            Se a empresa já tem conta Asaas própria (o Asaas recusa abrir outra no mesmo CNPJ), peça o walletId ao titular
+            e marque a opção abaixo.
           </small>
+          <label class="opcao-pagamento">
+            <input type="checkbox" [checked]="carteiraExterna()" (change)="carteiraExterna.set(!carteiraExterna()); msgVinculo.set('')">
+            <span>
+              Conta Asaas própria da empresa (fora da plataforma)
+              <small>O Asaas não confirma de quem é a carteira: só vincule um walletId recebido do próprio titular. O CNPJ do cadastro da empresa vira o cliente padrão das cobranças.</small>
+            </span>
+          </label>
           <div class="fg-row">
             <div class="fg">
               <label>WalletId da subconta existente</label>
@@ -432,7 +448,7 @@
           }
           <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 8px;">
             <button class="btn btn-outline" (click)="vincularSubconta()" [disabled]="vinculandoSubconta() || !walletIdExistente().trim()">
-              {{ vinculandoSubconta() ? 'Vinculando...' : '🔗 Vincular subconta existente' }}
+              {{ vinculandoSubconta() ? 'Vinculando...' : (carteiraExterna() ? '🔗 Vincular conta Asaas própria' : '🔗 Vincular subconta existente') }}
             </button>
           </div>
         }

@@ -28,6 +28,8 @@ interface DadosBancarios {
   // Subconta Asaas que recebe o repasse; vazio = ainda não criada.
   asaasWalletId: string;
   asaasContaCriadaEm: string | null;
+  // Conta Asaas propria da empresa (fora da plataforma), vinculada so pelo walletId.
+  carteiraExterna: boolean;
   cobrancaPixAtiva: boolean;
   // Definida só pelo admin da plataforma; para os demais é só leitura.
   comissaoTipo: string;
@@ -318,6 +320,7 @@ export class EmpresasComponent implements OnInit, OnDestroy {
   // Subconta aberta pelo painel do Asaas: so o walletId, o backend confere no Asaas que ela e
   // da conta da plataforma. So admin da plataforma (o endpoint tambem barra).
   walletIdExistente = signal('');
+  carteiraExterna = signal(false);
   vinculandoSubconta = signal(false);
   msgVinculo = signal('');
 
@@ -328,10 +331,11 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     this.vinculandoSubconta.set(true);
     this.msgVinculo.set('');
 
-    this.http.post<any>(`${this.BASE_URL}/dados-bancarios/vincular-subconta-asaas`, { empresaId, walletId: this.walletIdExistente().trim() }).subscribe({
+    this.http.post<any>(`${this.BASE_URL}/dados-bancarios/vincular-subconta-asaas`, { empresaId, walletId: this.walletIdExistente().trim(), carteiraExterna: this.carteiraExterna() }).subscribe({
       next: (r) => {
         this.vinculandoSubconta.set(false);
         this.walletIdExistente.set('');
+        this.carteiraExterna.set(false);
         this.aplicarDadosBancarios(r?.dadosBancarios ?? r);
         this.msgBancarioErro.set(false);
         this.msgBancario.set(`✅ Subconta${r?.nomeSubconta ? ' de ' + r.nomeSubconta : ''} vinculada. As cobranças Pix pagas passam a ser repassadas para ela.`);
@@ -389,13 +393,14 @@ export class EmpresasComponent implements OnInit, OnDestroy {
   });
 
   private dadosBancariosVazios(): DadosBancarios {
-    return { asaasWalletId: '', asaasContaCriadaEm: null, cobrancaPixAtiva: false, comissaoTipo: '', comissaoValor: null };
+    return { asaasWalletId: '', asaasContaCriadaEm: null, carteiraExterna: false, cobrancaPixAtiva: false, comissaoTipo: '', comissaoValor: null };
   }
 
   private aplicarDadosBancarios(d: any) {
     this.bancario.set({
       asaasWalletId: d?.asaasWalletId ?? '',
       asaasContaCriadaEm: d?.asaasContaCriadaEm ?? null,
+      carteiraExterna: !!d?.carteiraExterna,
       cobrancaPixAtiva: !!d?.cobrancaPixAtiva,
       comissaoTipo: d?.comissaoTipo ?? '',
       comissaoValor: d?.comissaoValor ?? null,
