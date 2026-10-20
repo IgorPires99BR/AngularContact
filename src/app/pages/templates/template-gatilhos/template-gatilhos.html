@@ -1,0 +1,82 @@
+<div class="gat">
+  <div class="gat-titulo">⚡ Momentos de disparo</div>
+  <div class="gat-sub">Quando este modelo deve sair sozinho, sem ninguém clicar em enviar.</div>
+
+  @if (!aprovado()) {
+    <div class="gat-aviso">
+      Este modelo ainda não foi aprovado pela Meta. Dá para configurar agora, mas ele só começa a sair depois da aprovação.
+    </div>
+  }
+
+  @for (e of estados(); track e.tipo) {
+    <div class="gat-item" [class.ligado]="e.ligado">
+      <label class="gat-check">
+        <input type="checkbox" [checked]="e.ligado" (change)="alternar(e.tipo, !e.ligado)">
+        <span>
+          {{ tituloDe(e.tipo).titulo }}
+          <small>{{ tituloDe(e.tipo).descricao }}</small>
+        </span>
+      </label>
+
+      @if (e.ligado) {
+        <div class="gat-config">
+          @if (e.tipo === 'ATRASO_PAGAMENTO') {
+            <div class="fg gat-dias">
+              <label>Dias de atraso após o vencimento</label>
+              <input type="number" min="0" max="365" [ngModel]="e.diasAtraso" (ngModelChange)="mudarDias(e.tipo, $event)">
+              <small class="gat-dica">0 = no próprio dia do vencimento.</small>
+            </div>
+            @if (template.geraCobranca) {
+              <div class="gat-dica">
+                Este modelo gera cobrança: cada aviso abre uma nova cobrança (com Pix, se ativo). A cobrança aberta pelo
+                aviso não dispara outro aviso de atraso.
+              </div>
+            }
+          }
+
+          @for (v of e.variaveis; track $index; let i = $index) {
+            <div class="fg">
+              <label>Campo {{ i + 1 }} da mensagem</label>
+              <select [ngModel]="selecao(v)" (ngModelChange)="trocarOrigem(e.tipo, i, $event)">
+                <optgroup label="Dado de cada contato">
+                  @for (c of camposDoContato; track c.chave) {
+                    <option [value]="c.chave">{{ c.rotulo }}</option>
+                  }
+                </optgroup>
+                <optgroup label="Texto">
+                  <option value="fixo">Escrever um texto</option>
+                </optgroup>
+                @if (parametros.length > 0) {
+                  <optgroup label="Parâmetros cadastrados">
+                    @for (p of parametros; track p.id) {
+                      <option [value]="'parametro:' + p.id">{{ p.nome }}</option>
+                    }
+                  </optgroup>
+                }
+              </select>
+              @if (v.origem === 'fixo') {
+                <input type="text" style="margin-top: 6px;" placeholder="Ex: Equipe Financeira"
+                       [ngModel]="v.valorFixo" (ngModelChange)="mudarVariavel(e.tipo, i, { valorFixo: $event })">
+              } @else {
+                <small class="gat-dica">{{ dica(v) }}</small>
+              }
+            </div>
+          }
+          @if (e.variaveis.length === 0) {
+            <small class="gat-dica">O texto deste modelo não tem campos que mudam: sai igual para todo mundo.</small>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  @if (mensagem()) {
+    <div [class]="erro() ? 'gat-msg gat-msg-erro' : 'gat-msg'">{{ mensagem() }}</div>
+  }
+
+  <div class="gat-acoes">
+    <button class="btn btn-primary btn-sm" (click)="salvar()" [disabled]="salvando()">
+      {{ salvando() ? '⏳ Salvando...' : '💾 Salvar momentos de disparo' }}
+    </button>
+  </div>
+</div>

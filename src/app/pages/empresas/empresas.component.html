@@ -42,12 +42,12 @@
 
       <div class="fg-row">
         <div class="fg">
-          <label>Nome do cliente ou da empresa</label>
+          <label>Nome do cliente ou da empresa <span class="tag-obrig">Obrigatório</span></label>
           <input type="text" placeholder="Ex: Padaria do Bairro" maxlength="120"
                  [ngModel]="contaForm().nome" (ngModelChange)="atualizarConta('nome', $event)">
         </div>
         <div class="fg">
-          <label>E-mail de acesso</label>
+          <label>E-mail de acesso <span class="tag-obrig">Obrigatório</span></label>
           <input type="email" placeholder="cliente@email.com"
                  [ngModel]="contaForm().email" (ngModelChange)="atualizarConta('email', $event)">
           <small class="dica-campo">É por aqui que o cliente entra e recebe a senha.</small>
@@ -56,13 +56,13 @@
 
       <div class="fg-row">
         <div class="fg">
-          <label>WhatsApp do cliente</label>
+          <label>WhatsApp do cliente <span class="tag-opc">Opcional</span></label>
           <input type="text" placeholder="5511987654321"
                  [ngModel]="contaForm().telefone" (ngModelChange)="atualizarConta('telefone', $event)">
           <small class="dica-campo">Com código do país. Sem isso, ele não recebe as boas-vindas no WhatsApp.</small>
         </div>
         <div class="fg">
-          <label>Plano</label>
+          <label>Plano <span class="tag-obrig">Obrigatório</span></label>
           <select [ngModel]="contaForm().plano" (ngModelChange)="atualizarConta('plano', $event)">
             <option value="STARTER">Starter</option>
             <option value="PRO">Pro</option>
@@ -72,7 +72,7 @@
       </div>
 
       <div class="fg">
-        <label>CNPJ (opcional)</label>
+        <label>CNPJ <span class="tag-opc">Opcional</span></label>
         <input type="text" placeholder="Somente números" maxlength="14"
                [ngModel]="contaForm().cnpj" (ngModelChange)="atualizarConta('cnpj', $event)">
       </div>
@@ -100,62 +100,68 @@
 </div>
 }
 
-<div class="g2">
-  <div class="card">
-    <div class="card-head">
-      <div>
-        <div class="card-title">
-          {{ editingId() ? '📝 Editar Empresa' : '🏢 Cadastrar Empresa' }}
-        </div>
+<!-- Um formulario so, dividido em setores: antes os dados bancarios ficavam num card a parte, la
+     embaixo, com botao de salvar proprio, e nao dava pra saber quais campos eram exigidos. -->
+<div class="card form-empresa">
+  <div class="card-head">
+    <div>
+      <div class="card-title">
+        {{ editingId() ? '📝 Editar Empresa' : '🏢 Cadastrar Empresa' }}
       </div>
+      @if (editingId()) {
+        <div class="card-sub">{{ form().nome }}</div>
+      }
     </div>
-    <div class="card-body">
-      <div class="fg">
-        <label>Razão Social</label>
-        <input type="text" placeholder="Empresa XYZ LTDA" maxlength="50"
-               [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
-      </div>
+    @if (empresaEmEdicao(); as e) {
+      <span class="selo-conexao" [class.propria]="e.tipoConexao === 'CONTA_PROPRIA'" [title]="ajudaConexao(e)">
+        {{ rotuloConexao(e) }}
+      </span>
+    }
+  </div>
+  <div class="card-body">
+    <div class="form-legenda">
+      <span><span class="tag-obrig">Obrigatório</span>precisa preencher para salvar</span>
+      <span><span class="tag-opc">Opcional</span>pode ficar em branco</span>
+      @if (editingId()) {
+        <span><span class="tag-cond">Para o Pix</span>exigido só para criar a subconta Asaas</span>
+      }
+    </div>
+
+    <!-- ===================== 1. Dados da empresa ===================== -->
+    <div class="form-setor">
+      <div class="form-setor-titulo">1. Dados da empresa</div>
+      <div class="form-setor-sub">Identificação e contato da empresa cliente.</div>
+
       <div class="fg-row">
         <div class="fg">
-          <label>CNPJ (somente números)</label>
-          <input #cnpjInput type="text" inputmode="numeric" placeholder="00000000000100"
-                 [ngModel]="form().cnpj" (input)="updateSomenteNumeros('cnpj', cnpjInput, 14)">
+          <label>Razão social <span class="tag-obrig">Obrigatório</span></label>
+          <input type="text" placeholder="Empresa XYZ LTDA" maxlength="50"
+                 [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
         </div>
         <div class="fg">
-          <label>E-mail</label>
+          <label>CNPJ <span class="tag-obrig">Obrigatório</span></label>
+          <input #cnpjInput type="text" inputmode="numeric" placeholder="00000000000100"
+                 [ngModel]="form().cnpj" (input)="updateSomenteNumeros('cnpj', cnpjInput, 14)">
+          <small class="dica-campo">Somente números, 14 dígitos.</small>
+        </div>
+      </div>
+
+      <div class="fg-row">
+        <div class="fg">
+          <label>E-mail <span class="tag-opc">Opcional</span></label>
           <input type="email" placeholder="contato@empresa.com"
                  [ngModel]="form().email" (ngModelChange)="update('email', $event)">
         </div>
-      </div>
-
-      <div class="fg-row">
         <div class="fg">
-          <label>Telefone (somente números)</label>
+          <label>Telefone <span class="tag-opc">Opcional</span></label>
           <input #telInput type="text" inputmode="numeric" placeholder="5511999998888"
                  [ngModel]="form().tel" (input)="updateSomenteNumeros('tel', telInput, 15)">
-        </div>
-        <div class="fg">
-          <label>WhatsApp Business Account ID (WABA)</label>
-          <input type="text" placeholder="Ex: 905956475254036"
-                 [ngModel]="form().wabaId" (ngModelChange)="update('wabaId', $event)">
-        </div>
-      </div>
-
-      <div class="fg-row">
-        <div class="fg">
-          <label>Meta Phone Number ID</label>
-          <input type="text" placeholder="Ex: 956946084171393"
-                 [ngModel]="form().phoneNumberId" (ngModelChange)="update('phoneNumberId', $event)">
-        </div>
-        <div class="fg">
-          <label>Meta App ID</label>
-          <input type="text" placeholder="Ex: 951197071189547"
-                 [ngModel]="form().appIdMeta" (ngModelChange)="update('appIdMeta', $event)">
+          <small class="dica-campo">DDI + DDD + número, somente números.</small>
         </div>
       </div>
 
       <div class="fg">
-        <label>Plano</label>
+        <label>Plano <span class="tag-opc">Opcional</span></label>
         <select [ngModel]="form().planoId" (ngModelChange)="update('planoId', $event)">
           <option value="">Selecione um plano...</option>
           <option value="1">1 - Básico</option>
@@ -163,339 +169,375 @@
           <option value="3">3 - Demonstração</option>
         </select>
       </div>
-
-      <div class="fg">
-        <label>Meta Access Token</label>
-        <!-- password, nao text: com o token em texto puro ele ficava legivel na tela ao colar
-             um novo, e vazava em screenshot/compartilhamento de tela. autocomplete off pra o
-             gerenciador de senhas do navegador nao tratar o token como senha do usuario. -->
-        <input type="password" autocomplete="off" placeholder="Token de acesso permanente (EAANhG...)"
-               [ngModel]="form().metaAccessToken" (ngModelChange)="update('metaAccessToken', $event)">
-        <!-- Por segurança o token não é devolvido pela API: a listagem traz só os últimos
-             dígitos. Deixar o campo como veio mantém o token atual. -->
-        <small class="dica" *ngIf="editingId()">
-          Por segurança, o token cadastrado não é exibido por inteiro. Deixe como está para
-          mantê-lo, ou cole um token novo para substituí-lo.
-        </small>
-        <small class="dica" *ngIf="!editingId()">
-          WABA, Phone Number ID, App ID e token em branco usam as credenciais da Contact Solution
-          (a empresa dispara pelo número dela). Preencha só se a empresa tiver conta Meta própria.
-        </small>
-      </div>
-
-      <div class="btn-grp">
-        <button class="btn btn-primary" (click)="salvar()">
-          {{ editingId() ? '💾 Salvar Alterações' : '✅ Incluir' }}
-        </button>
-
-        <button *ngIf="editingId()" class="btn btn-ghost" (click)="cancelarEdicao()">
-          Cancelar
-        </button>
-      </div>
-
-      <div class="payload-display" *ngIf="response()" style="margin-top: 14px">
-        {{ response() }}
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-head">
-      <div>
-        <div class="card-title">Empresas Cadastradas</div>
-        <div class="card-sub">{{ empresas().length }} registros</div>
-      </div>
-      <button class="btn btn-ghost btn-sm" (click)="obterEmpresas()">🔄</button>
     </div>
 
-    <div class="crud-search-bar">
-      <span class="crud-search-icon">🔍</span>
-      <input class="crud-search-input"
-             placeholder="Buscar por nome, CNPJ ou e-mail..."
-             [ngModel]="search()"
-             (ngModelChange)="search.set($event)">
-      <span class="crud-search-count" *ngIf="search()">{{ empresasFiltradas().length }} de {{ empresas().length }}</span>
-    </div>
-
-    <div class="crud-list">
-      <ng-container *ngFor="let e of empresasFiltradas()">
-        <div class="crud-item">
-          <div class="crud-avatar" style="background: linear-gradient(135deg, #3D6EE8, #4B7BFF)">
-            {{ e.nome ? e.nome.substring(0, 2).toUpperCase() : 'EP' }}
-          </div>
-          <div class="crud-info">
-            <div class="crud-name">{{ e.nome }}</div>
-            <div class="crud-meta">
-              <span *ngIf="e.cnpj">{{ e.cnpj }}</span>
-              <span *ngIf="e.email"> · {{ e.email }}</span>
-              <span *ngIf="e.telefone"> · {{ e.telefone }}</span>
-            </div>
-            <div class="crud-meta" style="display: flex; gap: 10px; margin-top: 4px;">
-              <span *ngIf="e.wabaId" style="color: #25D366; font-size: 11px; font-weight: 500;">
-                WABA ID: {{ e.wabaId }}
-              </span>
-              <span *ngIf="e.phoneNumberId" style="color: #3d6ee8; font-size: 11px; font-weight: 500;">
-                PHONE ID: {{ e.phoneNumberId }}
-              </span>
-            </div>
-          </div>
-          <div class="crud-actions">
-            @if (ehAdminDaPlataforma()) {
-              <button class="btn btn-ghost btn-xs" (click)="toggleUsuarios(e.id)" title="Ver e gerenciar os usuários desta empresa">
-                {{ empresaComUsuariosAbertos() === e.id ? '👥 Fechar' : '👥 Usuários' }}
-              </button>
-              <button class="btn btn-ghost btn-xs" (click)="prepararAcesso(e)" title="Criar o acesso do dono desta empresa">🔑 Acesso</button>
-              <button class="btn btn-ghost btn-xs" (click)="conectarMeta(e)" [disabled]="conectandoMeta() === e.id"
-                      title="Conectar esta empresa à própria conta Meta (WABA e número próprios, via Embedded Signup)">
-                {{ conectandoMeta() === e.id ? '⏳ Conectando...' : '📱 Conectar ao WhatsApp' }}
-              </button>
-            }
-            <button class="btn btn-ghost btn-xs" (click)="prepararEdicao(e)">Editar</button>
-            <button class="btn btn-danger btn-xs" (click)="excluir(e.id)">🗑</button>
-          </div>
-        </div>
-
-        @if (empresaComUsuariosAbertos() === e.id) {
-          <div class="usuarios-da-linha">
-            <app-usuarios-da-empresa [empresaId]="e.id" />
-          </div>
-        }
-      </ng-container>
-      <div class="crud-empty" *ngIf="empresas().length === 0">
-        Nenhuma empresa cadastrada
+    <!-- ===================== 2. Conexão com o WhatsApp ===================== -->
+    <div class="form-setor">
+      <div class="form-setor-titulo">2. Conexão com o WhatsApp (Meta)</div>
+      <div class="form-setor-sub">
+        Todos opcionais: em branco, a empresa usa as credenciais da Contact Solution e dispara pelo número da plataforma.
+        Preencha (ou use "Conectar ao WhatsApp") só se a empresa tiver conta Meta própria.
       </div>
-      <div class="crud-empty" *ngIf="empresas().length > 0 && empresasFiltradas().length === 0">
-        Nenhuma empresa encontrada para "{{ search() }}".
-      </div>
-    </div>
-  </div>
-</div>
 
-@if (editingId()) {
-<div class="card dados-bancarios">
-  <div class="card-head">
-    <div>
-      <div class="card-title">🏦 Dados bancários</div>
-      <div class="card-sub">
-        Subconta Asaas onde {{ form().nome || 'a empresa' }} recebe o valor das cobranças pagas pelos clientes dela.
-        O cliente paga pelo link de cobrança e o valor, já descontada a comissão da plataforma, é repassado automaticamente para esta subconta.
-      </div>
-    </div>
-    @if (bancario().cobrancaPixAtiva) {
-      <span class="selo selo-ativo">Cobrança Pix ativa</span>
-    } @else {
-      <span class="selo">Cobrança Pix desativada</span>
-    }
-  </div>
-  <div class="card-body">
-    @if (carregandoBancario()) {
-      <div class="dica-campo">Carregando dados bancários...</div>
-    } @else {
-
-      <div class="secao-titulo">Subconta Asaas para repasse</div>
-      @if (bancario().asaasWalletId) {
-        <small class="dica-campo">
-          @if (bancario().carteiraExterna) {
-            Repasse para a conta Asaas própria da empresa (carteira <strong>{{ bancario().asaasWalletId }}</strong>),
-            vinculada{{ bancario().asaasContaCriadaEm ? ' em ' + (bancario().asaasContaCriadaEm | date:'dd/MM/yyyy') : '' }}.
-            A empresa acessa e saca pela própria conta dela no Asaas.
-          } @else {
-            Subconta criada{{ bancario().asaasContaCriadaEm ? ' em ' + (bancario().asaasContaCriadaEm | date:'dd/MM/yyyy') : '' }}
-            (carteira <strong>{{ bancario().asaasWalletId }}</strong>). A empresa acessa e saca pelo app ou site do Asaas,
-            com o e-mail informado na criação.
+      @if (empresaEmEdicao(); as e) {
+        <div class="conexao-atual" [class.propria]="e.tipoConexao === 'CONTA_PROPRIA'">
+          <strong>{{ rotuloConexao(e) }}</strong>
+          <span>{{ ajudaConexao(e) }}</span>
+          @if (ehAdminDaPlataforma()) {
+            <button class="btn btn-outline btn-xs" (click)="conectarMeta(e)" [disabled]="conectandoMeta() === e.id"
+                    title="Conectar esta empresa à própria conta Meta (WABA e número próprios, via Embedded Signup)">
+              {{ conectandoMeta() === e.id ? '⏳ Conectando...' : (e.tipoConexao === 'CONTA_PROPRIA' ? '📱 Reconectar ao WhatsApp' : '📱 Conectar ao WhatsApp') }}
+            </button>
           }
-        </small>
-        <div>
-          <button class="btn btn-outline" (click)="consultarSituacaoSubconta()" [disabled]="consultandoSituacao()">
-            {{ consultandoSituacao() ? 'Consultando...' : '🔎 Situação da subconta no Asaas' }}
-          </button>
         </div>
-        @if (msgSituacao()) {
-          <div class="erro-conta">{{ msgSituacao() }}</div>
-        }
-        @if (situacaoSubconta(); as s) {
-          @if (!s.consultaDisponivel) {
-            <small class="dica-campo">
-              {{ s.carteiraExterna ? 'Conta Asaas própria da empresa' : 'Subconta vinculada pelo painel do Asaas' }}:
-              a situação cadastral e os documentos só aparecem no Asaas.
-            </small>
-          } @else {
-            <small class="dica-campo">
-              Situação geral: <strong>{{ rotuloStatusAsaas(s.geral) }}</strong> ·
-              dados comerciais: {{ rotuloStatusAsaas(s.dadosComerciais) }} ·
-              conta bancária: {{ rotuloStatusAsaas(s.dadosBancarios) }} ·
-              documentos: {{ rotuloStatusAsaas(s.documentacao) }}.
-              @if (!s.aprovada) {
-                Enquanto a subconta não for aprovada, o repasse das cobranças pagas cai nela mas não pode ser sacado.
-              }
-            </small>
-            @if (s.motivoRecusa) {
-              <div class="erro-conta">Motivo informado pelo Asaas: {{ s.motivoRecusa }}</div>
-            }
-            @for (d of s.documentos; track $index) {
-              <small class="dica-campo">
-                <strong>{{ d.titulo }}</strong>{{ d.responsavel ? ' (' + d.responsavel + ')' : '' }}: {{ rotuloStatusAsaas(d.status) }}
-                @if (d.linkEnvio && (d.status === 'NOT_SENT' || d.status === 'REJECTED')) {
-                  · <a [href]="d.linkEnvio" target="_blank" rel="noopener">enviar documentos</a>
-                }
-              </small>
-            }
-          }
-        }
-      } @else {
-        <small class="dica-campo">
-          A empresa ainda não tem subconta. Preencha os dados do titular (o mesmo CPF/CNPJ que vai sacar o dinheiro).
-          O Asaas envia ao e-mail o acesso para concluir o cadastro e enviar os documentos.
-        </small>
-        <div class="fg-row">
-          <div class="fg">
-            <label>Nome / razão social</label>
-            <input type="text" maxlength="255" [ngModel]="subconta().nome" (ngModelChange)="atualizarSubconta('nome', $event)">
-          </div>
-          <div class="fg">
-            <label>CPF ou CNPJ</label>
-            <input type="text" maxlength="18" [ngModel]="subconta().cpfCnpj" (ngModelChange)="atualizarSubconta('cpfCnpj', $event)">
-          </div>
-        </div>
-        <div class="fg-row">
-          @if (subcontaEhCpf()) {
-            <div class="fg">
-              <label>Data de nascimento</label>
-              <input type="date" [ngModel]="subconta().dataNascimento" (ngModelChange)="atualizarSubconta('dataNascimento', $event)">
-            </div>
-          } @else {
-            <div class="fg">
-              <label>Tipo da empresa</label>
-              <select [ngModel]="subconta().tipoEmpresa" (ngModelChange)="atualizarSubconta('tipoEmpresa', $event)">
-                <option value="">Selecione...</option>
-                <option value="MEI">MEI</option>
-                <option value="LIMITED">Limitada (LTDA)</option>
-                <option value="INDIVIDUAL">Individual (EI/SLU)</option>
-                <option value="ASSOCIATION">Associação</option>
-              </select>
-            </div>
-          }
-          <div class="fg">
-            <label>Faturamento / renda mensal (R$)</label>
-            <input type="number" min="0" step="0.01" [ngModel]="subconta().faturamentoMensal" (ngModelChange)="atualizarSubconta('faturamentoMensal', $event)">
-          </div>
-        </div>
-        <div class="fg-row">
-          <div class="fg">
-            <label>E-mail</label>
-            <input type="email" maxlength="255" [ngModel]="subconta().email" (ngModelChange)="atualizarSubconta('email', $event)">
-          </div>
-          <div class="fg">
-            <label>Celular</label>
-            <input type="text" maxlength="20" placeholder="(11) 99999-8888" [ngModel]="subconta().celular" (ngModelChange)="atualizarSubconta('celular', $event)">
-          </div>
-        </div>
-        <div class="fg-row">
-          <div class="fg">
-            <label>CEP</label>
-            <input type="text" maxlength="9" [ngModel]="subconta().cep" (ngModelChange)="atualizarSubconta('cep', $event)">
-          </div>
-          <div class="fg">
-            <label>Endereço</label>
-            <input type="text" maxlength="255" [ngModel]="subconta().endereco" (ngModelChange)="atualizarSubconta('endereco', $event)">
-          </div>
-        </div>
-        <div class="fg-row">
-          <div class="fg">
-            <label>Número</label>
-            <input type="text" maxlength="20" [ngModel]="subconta().numero" (ngModelChange)="atualizarSubconta('numero', $event)">
-          </div>
-          <div class="fg">
-            <label>Complemento</label>
-            <input type="text" maxlength="100" [ngModel]="subconta().complemento" (ngModelChange)="atualizarSubconta('complemento', $event)">
-          </div>
-          <div class="fg">
-            <label>Bairro</label>
-            <input type="text" maxlength="100" [ngModel]="subconta().bairro" (ngModelChange)="atualizarSubconta('bairro', $event)">
-          </div>
-        </div>
-        @if (msgSubconta()) {
-          <div class="erro-conta">{{ msgSubconta() }}</div>
-        }
-        <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 8px;">
-          <button class="btn btn-outline" (click)="criarSubconta()" [disabled]="criandoSubconta()">
-            {{ criandoSubconta() ? 'Criando subconta...' : '🏦 Criar subconta Asaas' }}
-          </button>
-        </div>
+      }
 
-        @if (ehAdminDaPlataforma()) {
-          <small class="dica-campo" style="display: block; margin-top: 16px;">
-            Já criou a subconta pelo painel do Asaas? Informe o walletId dela (detalhes da subconta no Asaas) para vincular.
-            Se a empresa já tem conta Asaas própria (o Asaas recusa abrir outra no mesmo CNPJ), peça o walletId ao titular
-            e marque a opção abaixo.
+      <div class="fg-row">
+        <div class="fg">
+          <label>WhatsApp Business Account ID (WABA) <span class="tag-opc">Opcional</span></label>
+          <input type="text" placeholder="Ex: 905956475254036"
+                 [ngModel]="form().wabaId" (ngModelChange)="update('wabaId', $event)">
+        </div>
+        <div class="fg">
+          <label>Meta Phone Number ID <span class="tag-opc">Opcional</span></label>
+          <input type="text" placeholder="Ex: 956946084171393"
+                 [ngModel]="form().phoneNumberId" (ngModelChange)="update('phoneNumberId', $event)">
+        </div>
+      </div>
+
+      <div class="fg-row">
+        <div class="fg">
+          <label>Meta App ID <span class="tag-opc">Opcional</span></label>
+          <input type="text" placeholder="Ex: 951197071189547"
+                 [ngModel]="form().appIdMeta" (ngModelChange)="update('appIdMeta', $event)">
+        </div>
+        <div class="fg">
+          <label>Meta Access Token <span class="tag-opc">Opcional</span></label>
+          <!-- password, nao text: com o token em texto puro ele ficava legivel na tela ao colar
+               um novo, e vazava em screenshot/compartilhamento de tela. autocomplete off pra o
+               gerenciador de senhas do navegador nao tratar o token como senha do usuario. -->
+          <input type="password" autocomplete="off" placeholder="Token de acesso permanente (EAANhG...)"
+                 [ngModel]="form().metaAccessToken" (ngModelChange)="update('metaAccessToken', $event)">
+          <!-- Por segurança o token não é devolvido pela API: a listagem traz só os últimos
+               dígitos. Deixar o campo como veio mantém o token atual. -->
+          <small class="dica" *ngIf="editingId()">
+            Por segurança, o token cadastrado não é exibido por inteiro. Deixe como está para
+            mantê-lo, ou cole um token novo para substituí-lo.
           </small>
-          <label class="opcao-pagamento">
-            <input type="checkbox" [checked]="carteiraExterna()" (change)="carteiraExterna.set(!carteiraExterna()); msgVinculo.set('')">
-            <span>
-              Conta Asaas própria da empresa (fora da plataforma)
-              <small>O Asaas não confirma de quem é a carteira: só vincule um walletId recebido do próprio titular. O CNPJ do cadastro da empresa vira o cliente padrão das cobranças.</small>
-            </span>
-          </label>
-          <div class="fg-row">
-            <div class="fg">
-              <label>WalletId da subconta existente</label>
-              <input type="text" maxlength="36" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                     [ngModel]="walletIdExistente()" (ngModelChange)="walletIdExistente.set($event); msgVinculo.set('')">
-            </div>
-          </div>
-          @if (msgVinculo()) {
-            <div class="erro-conta">{{ msgVinculo() }}</div>
-          }
-          <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 8px;">
-            <button class="btn btn-outline" (click)="vincularSubconta()" [disabled]="vinculandoSubconta() || !walletIdExistente().trim()">
-              {{ vinculandoSubconta() ? 'Vinculando...' : (carteiraExterna() ? '🔗 Vincular conta Asaas própria' : '🔗 Vincular subconta existente') }}
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== 3. Dados bancários (Pix) ===================== -->
+    @if (editingId()) {
+    <div class="form-setor">
+      <div class="form-setor-titulo">
+        3. Dados bancários (cobrança Pix)
+        @if (bancario().cobrancaPixAtiva) {
+          <span class="selo selo-ativo">Cobrança Pix ativa</span>
+        } @else {
+          <span class="selo">Cobrança Pix desativada</span>
+        }
+      </div>
+      <div class="form-setor-sub">
+        Opcional: só para empresas que cobram os próprios clientes pela plataforma. Subconta Asaas onde
+        {{ form().nome || 'a empresa' }} recebe o valor das cobranças pagas; o valor, já descontada a comissão da
+        plataforma, é repassado automaticamente.
+      </div>
+
+      @if (carregandoBancario()) {
+        <div class="dica-campo">Carregando dados bancários...</div>
+      } @else {
+
+        <div class="secao-titulo">Subconta Asaas para repasse</div>
+        @if (bancario().asaasWalletId) {
+          <small class="dica-campo">
+            @if (bancario().carteiraExterna) {
+              Repasse para a conta Asaas própria da empresa (carteira <strong>{{ bancario().asaasWalletId }}</strong>),
+              vinculada{{ bancario().asaasContaCriadaEm ? ' em ' + (bancario().asaasContaCriadaEm | date:'dd/MM/yyyy') : '' }}.
+              A empresa acessa e saca pela própria conta dela no Asaas.
+            } @else {
+              Subconta criada{{ bancario().asaasContaCriadaEm ? ' em ' + (bancario().asaasContaCriadaEm | date:'dd/MM/yyyy') : '' }}
+              (carteira <strong>{{ bancario().asaasWalletId }}</strong>). A empresa acessa e saca pelo app ou site do Asaas,
+              com o e-mail informado na criação.
+            }
+          </small>
+          <div>
+            <button class="btn btn-outline" (click)="consultarSituacaoSubconta()" [disabled]="consultandoSituacao()">
+              {{ consultandoSituacao() ? 'Consultando...' : '🔎 Situação da subconta no Asaas' }}
             </button>
           </div>
+          @if (msgSituacao()) {
+            <div class="erro-conta">{{ msgSituacao() }}</div>
+          }
+          @if (situacaoSubconta(); as s) {
+            @if (!s.consultaDisponivel) {
+              <small class="dica-campo">
+                {{ s.carteiraExterna ? 'Conta Asaas própria da empresa' : 'Subconta vinculada pelo painel do Asaas' }}:
+                a situação cadastral e os documentos só aparecem no Asaas.
+              </small>
+            } @else {
+              <small class="dica-campo">
+                Situação geral: <strong>{{ rotuloStatusAsaas(s.geral) }}</strong> ·
+                dados comerciais: {{ rotuloStatusAsaas(s.dadosComerciais) }} ·
+                conta bancária: {{ rotuloStatusAsaas(s.dadosBancarios) }} ·
+                documentos: {{ rotuloStatusAsaas(s.documentacao) }}.
+                @if (!s.aprovada) {
+                  Enquanto a subconta não for aprovada, o repasse das cobranças pagas cai nela mas não pode ser sacado.
+                }
+              </small>
+              @if (s.motivoRecusa) {
+                <div class="erro-conta">Motivo informado pelo Asaas: {{ s.motivoRecusa }}</div>
+              }
+              @for (d of s.documentos; track $index) {
+                <small class="dica-campo">
+                  <strong>{{ d.titulo }}</strong>{{ d.responsavel ? ' (' + d.responsavel + ')' : '' }}: {{ rotuloStatusAsaas(d.status) }}
+                  @if (d.linkEnvio && (d.status === 'NOT_SENT' || d.status === 'REJECTED')) {
+                    · <a [href]="d.linkEnvio" target="_blank" rel="noopener">enviar documentos</a>
+                  }
+                </small>
+              }
+            }
+          }
+        } @else {
+          <small class="dica-campo">
+            A empresa ainda não tem subconta. Preencha os dados do titular (o mesmo CPF/CNPJ que vai sacar o dinheiro).
+            O Asaas envia ao e-mail o acesso para concluir o cadastro e enviar os documentos.
+          </small>
+          <div class="fg-row">
+            <div class="fg">
+              <label>Nome / razão social <span class="tag-cond">Para o Pix</span></label>
+              <input type="text" maxlength="255" [ngModel]="subconta().nome" (ngModelChange)="atualizarSubconta('nome', $event)">
+            </div>
+            <div class="fg">
+              <label>CPF ou CNPJ <span class="tag-cond">Para o Pix</span></label>
+              <input type="text" maxlength="18" [ngModel]="subconta().cpfCnpj" (ngModelChange)="atualizarSubconta('cpfCnpj', $event)">
+            </div>
+          </div>
+          <div class="fg-row">
+            @if (subcontaEhCpf()) {
+              <div class="fg">
+                <label>Data de nascimento <span class="tag-cond">Para o Pix</span></label>
+                <input type="date" [ngModel]="subconta().dataNascimento" (ngModelChange)="atualizarSubconta('dataNascimento', $event)">
+              </div>
+            } @else {
+              <div class="fg">
+                <label>Tipo da empresa <span class="tag-cond">Para o Pix</span></label>
+                <select [ngModel]="subconta().tipoEmpresa" (ngModelChange)="atualizarSubconta('tipoEmpresa', $event)">
+                  <option value="">Selecione...</option>
+                  <option value="MEI">MEI</option>
+                  <option value="LIMITED">Limitada (LTDA)</option>
+                  <option value="INDIVIDUAL">Individual (EI/SLU)</option>
+                  <option value="ASSOCIATION">Associação</option>
+                </select>
+              </div>
+            }
+            <div class="fg">
+              <label>Faturamento / renda mensal (R$) <span class="tag-cond">Para o Pix</span></label>
+              <input type="number" min="0" step="0.01" [ngModel]="subconta().faturamentoMensal" (ngModelChange)="atualizarSubconta('faturamentoMensal', $event)">
+            </div>
+          </div>
+          <div class="fg-row">
+            <div class="fg">
+              <label>E-mail <span class="tag-cond">Para o Pix</span></label>
+              <input type="email" maxlength="255" [ngModel]="subconta().email" (ngModelChange)="atualizarSubconta('email', $event)">
+            </div>
+            <div class="fg">
+              <label>Celular <span class="tag-cond">Para o Pix</span></label>
+              <input type="text" maxlength="20" placeholder="(11) 99999-8888" [ngModel]="subconta().celular" (ngModelChange)="atualizarSubconta('celular', $event)">
+            </div>
+          </div>
+          <div class="fg-row">
+            <div class="fg">
+              <label>CEP <span class="tag-cond">Para o Pix</span></label>
+              <input type="text" maxlength="9" [ngModel]="subconta().cep" (ngModelChange)="atualizarSubconta('cep', $event)">
+            </div>
+            <div class="fg">
+              <label>Endereço <span class="tag-cond">Para o Pix</span></label>
+              <input type="text" maxlength="255" [ngModel]="subconta().endereco" (ngModelChange)="atualizarSubconta('endereco', $event)">
+            </div>
+          </div>
+          <div class="fg-row-3">
+            <div class="fg">
+              <label>Número <span class="tag-cond">Para o Pix</span></label>
+              <input type="text" maxlength="20" [ngModel]="subconta().numero" (ngModelChange)="atualizarSubconta('numero', $event)">
+            </div>
+            <div class="fg">
+              <label>Complemento <span class="tag-opc">Opcional</span></label>
+              <input type="text" maxlength="100" [ngModel]="subconta().complemento" (ngModelChange)="atualizarSubconta('complemento', $event)">
+            </div>
+            <div class="fg">
+              <label>Bairro <span class="tag-cond">Para o Pix</span></label>
+              <input type="text" maxlength="100" [ngModel]="subconta().bairro" (ngModelChange)="atualizarSubconta('bairro', $event)">
+            </div>
+          </div>
+          @if (msgSubconta()) {
+            <div class="erro-conta">{{ msgSubconta() }}</div>
+          }
+          <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 8px;">
+            <button class="btn btn-outline" (click)="criarSubconta()" [disabled]="criandoSubconta()">
+              {{ criandoSubconta() ? 'Criando subconta...' : '🏦 Criar subconta Asaas' }}
+            </button>
+          </div>
+
+          @if (ehAdminDaPlataforma()) {
+            <small class="dica-campo" style="display: block; margin-top: 16px;">
+              Já criou a subconta pelo painel do Asaas? Informe o walletId dela (detalhes da subconta no Asaas) para vincular.
+              Se a empresa já tem conta Asaas própria (o Asaas recusa abrir outra no mesmo CNPJ), peça o walletId ao titular
+              e marque a opção abaixo.
+            </small>
+            <label class="opcao-pagamento">
+              <input type="checkbox" [checked]="carteiraExterna()" (change)="carteiraExterna.set(!carteiraExterna()); msgVinculo.set('')">
+              <span>
+                Conta Asaas própria da empresa (fora da plataforma)
+                <small>O Asaas não confirma de quem é a carteira: só vincule um walletId recebido do próprio titular. O CNPJ do cadastro da empresa vira o cliente padrão das cobranças.</small>
+              </span>
+            </label>
+            <div class="fg-row">
+              <div class="fg">
+                <label>WalletId da subconta existente</label>
+                <input type="text" maxlength="36" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                       [ngModel]="walletIdExistente()" (ngModelChange)="walletIdExistente.set($event); msgVinculo.set('')">
+              </div>
+            </div>
+            @if (msgVinculo()) {
+              <div class="erro-conta">{{ msgVinculo() }}</div>
+            }
+            <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 8px;">
+              <button class="btn btn-outline" (click)="vincularSubconta()" [disabled]="vinculandoSubconta() || !walletIdExistente().trim()">
+                {{ vinculandoSubconta() ? 'Vinculando...' : (carteiraExterna() ? '🔗 Vincular conta Asaas própria' : '🔗 Vincular subconta existente') }}
+              </button>
+            </div>
+          }
+        }
+
+        <div class="secao-titulo">Comissão da plataforma</div>
+        @if (ehAdminDaPlataforma()) {
+          <div class="fg-row">
+            <div class="fg">
+              <label>Tipo da comissão <span class="tag-cond">Para o Pix</span></label>
+              <select [ngModel]="bancario().comissaoTipo" (ngModelChange)="atualizarBancario('comissaoTipo', $event)">
+                <option value="">Não definida</option>
+                <option value="PERCENTUAL">Percentual do valor cobrado</option>
+                <option value="FIXA">Valor fixo por cobrança</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>{{ bancario().comissaoTipo === 'FIXA' ? 'Valor (R$)' : 'Percentual (%)' }} <span class="tag-cond">Para o Pix</span></label>
+              <input type="number" min="0" step="0.01" placeholder="0,00"
+                     [disabled]="!bancario().comissaoTipo"
+                     [ngModel]="bancario().comissaoValor" (ngModelChange)="atualizarComissaoValor($event)">
+              <small class="dica-campo">Fica na conta da plataforma; o restante é repassado à empresa. Precisa cobrir a taxa do Asaas por Pix, que sai da parte da plataforma.</small>
+            </div>
+          </div>
+        } @else {
+          <small class="dica-campo">Comissão: <strong>{{ descricaoComissao() }}</strong>. Definida pela Contact Solution.</small>
+        }
+
+        <label class="opcao-pagamento">
+          <input type="checkbox" [checked]="bancario().cobrancaPixAtiva"
+                 (change)="atualizarBancario('cobrancaPixAtiva', !bancario().cobrancaPixAtiva)">
+          <span>
+            Ativar cobrança via Pix
+            <small>As mensagens de cobrança desta empresa passam a levar o link de pagamento Pix. Só é possível ativar com a subconta Asaas criada e a comissão definida. Contato sem CPF/CNPJ no cadastro recebe o Pix em nome da própria empresa.</small>
+          </span>
+        </label>
+
+        @if (msgBancario()) {
+          <div [class]="msgBancarioErro() ? 'erro-conta' : 'ok-bancario'">{{ msgBancario() }}</div>
         }
       }
-
-      <div class="secao-titulo">Comissão da plataforma</div>
-      @if (ehAdminDaPlataforma()) {
-        <div class="fg-row">
-          <div class="fg">
-            <label>Tipo da comissão</label>
-            <select [ngModel]="bancario().comissaoTipo" (ngModelChange)="atualizarBancario('comissaoTipo', $event)">
-              <option value="">Não definida</option>
-              <option value="PERCENTUAL">Percentual do valor cobrado</option>
-              <option value="FIXA">Valor fixo por cobrança</option>
-            </select>
-          </div>
-          <div class="fg">
-            <label>{{ bancario().comissaoTipo === 'FIXA' ? 'Valor (R$)' : 'Percentual (%)' }}</label>
-            <input type="number" min="0" step="0.01" placeholder="0,00"
-                   [disabled]="!bancario().comissaoTipo"
-                   [ngModel]="bancario().comissaoValor" (ngModelChange)="atualizarComissaoValor($event)">
-            <small class="dica-campo">Fica na conta da plataforma; o restante é repassado à empresa. Precisa cobrir a taxa do Asaas por Pix, que sai da parte da plataforma.</small>
-          </div>
-        </div>
-      } @else {
-        <small class="dica-campo">Comissão: <strong>{{ descricaoComissao() }}</strong>. Definida pela Contact Solution.</small>
-      }
-
-      <label class="opcao-pagamento">
-        <input type="checkbox" [checked]="bancario().cobrancaPixAtiva"
-               (change)="atualizarBancario('cobrancaPixAtiva', !bancario().cobrancaPixAtiva)">
-        <span>
-          Ativar cobrança via Pix
-          <small>As mensagens de cobrança desta empresa passam a levar o link de pagamento Pix. Só é possível ativar com a subconta Asaas criada e a comissão definida. Contato sem CPF/CNPJ no cadastro recebe o Pix em nome da própria empresa.</small>
-        </span>
-      </label>
-
-      @if (msgBancario()) {
-        <div [class]="msgBancarioErro() ? 'erro-conta' : 'ok-bancario'">{{ msgBancario() }}</div>
-      }
-
-      <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 16px;">
-        <button class="btn btn-primary" (click)="salvarDadosBancarios()" [disabled]="salvandoBancario()">
-          {{ salvandoBancario() ? 'Salvando...' : '💾 Salvar dados bancários' }}
-        </button>
-      </div>
+    </div>
     }
+
+    <div class="btn-grp form-acoes">
+      <button class="btn btn-primary" (click)="salvar()" [disabled]="salvando()">
+        {{ salvando() ? 'Salvando...' : (editingId() ? '💾 Salvar Alterações' : '✅ Incluir') }}
+      </button>
+
+      <button *ngIf="editingId()" class="btn btn-ghost" (click)="cancelarEdicao()">
+        Cancelar
+      </button>
+    </div>
+
+    <div class="payload-display" *ngIf="response()" style="margin-top: 14px">
+      {{ response() }}
+    </div>
   </div>
 </div>
-}
+
+<div class="card lista-empresas">
+  <div class="card-head">
+    <div>
+      <div class="card-title">Empresas Cadastradas</div>
+      <div class="card-sub">{{ empresas().length }} registros</div>
+    </div>
+    <button class="btn btn-ghost btn-sm" (click)="obterEmpresas()">🔄</button>
+  </div>
+
+  <div class="crud-search-bar">
+    <span class="crud-search-icon">🔍</span>
+    <input class="crud-search-input"
+           placeholder="Buscar por nome, CNPJ ou e-mail..."
+           [ngModel]="search()"
+           (ngModelChange)="search.set($event)">
+    <span class="crud-search-count" *ngIf="search()">{{ empresasFiltradas().length }} de {{ empresas().length }}</span>
+  </div>
+
+  <div class="crud-list">
+    <ng-container *ngFor="let e of empresasFiltradas()">
+      <div class="crud-item">
+        <div class="crud-avatar" style="background: linear-gradient(135deg, #3D6EE8, #4B7BFF)">
+          {{ e.nome ? e.nome.substring(0, 2).toUpperCase() : 'EP' }}
+        </div>
+        <div class="crud-info">
+          <div class="crud-name">
+            {{ e.nome }}
+            <span class="selo-conexao selo-conexao-mini" [class.propria]="e.tipoConexao === 'CONTA_PROPRIA'" [title]="ajudaConexao(e)">
+              {{ rotuloConexao(e) }}
+            </span>
+          </div>
+          <div class="crud-meta">
+            <span *ngIf="e.cnpj">{{ e.cnpj }}</span>
+            <span *ngIf="e.email"> · {{ e.email }}</span>
+            <span *ngIf="e.telefone"> · {{ e.telefone }}</span>
+          </div>
+          <div class="crud-meta" style="display: flex; gap: 10px; margin-top: 4px;">
+            <span *ngIf="e.wabaId" style="color: #25D366; font-size: 11px; font-weight: 500;">
+              WABA ID: {{ e.wabaId }}
+            </span>
+            <span *ngIf="e.phoneNumberId" style="color: #3d6ee8; font-size: 11px; font-weight: 500;">
+              PHONE ID: {{ e.phoneNumberId }}
+            </span>
+          </div>
+        </div>
+        <div class="crud-actions">
+          @if (ehAdminDaPlataforma()) {
+            <button class="btn btn-ghost btn-xs" (click)="toggleUsuarios(e.id)" title="Ver e gerenciar os usuários desta empresa">
+              {{ empresaComUsuariosAbertos() === e.id ? '👥 Fechar' : '👥 Usuários' }}
+            </button>
+            <button class="btn btn-ghost btn-xs" (click)="prepararAcesso(e)" title="Criar o acesso do dono desta empresa">🔑 Acesso</button>
+            <button class="btn btn-ghost btn-xs" (click)="conectarMeta(e)" [disabled]="conectandoMeta() === e.id"
+                    title="Conectar esta empresa à própria conta Meta (WABA e número próprios, via Embedded Signup)">
+              {{ conectandoMeta() === e.id ? '⏳ Conectando...' : '📱 Conectar ao WhatsApp' }}
+            </button>
+          }
+          <button class="btn btn-ghost btn-xs" (click)="prepararEdicao(e)">Editar</button>
+          <button class="btn btn-danger btn-xs" (click)="excluir(e.id)">🗑</button>
+        </div>
+      </div>
+
+      @if (empresaComUsuariosAbertos() === e.id) {
+        <div class="usuarios-da-linha">
+          <app-usuarios-da-empresa [empresaId]="e.id" />
+        </div>
+      }
+    </ng-container>
+    <div class="crud-empty" *ngIf="empresas().length === 0">
+      Nenhuma empresa cadastrada
+    </div>
+    <div class="crud-empty" *ngIf="empresas().length > 0 && empresasFiltradas().length === 0">
+      Nenhuma empresa encontrada para "{{ search() }}".
+    </div>
+  </div>
+</div>

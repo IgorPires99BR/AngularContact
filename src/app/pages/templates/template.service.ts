@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { Template } from './template.models';
+import { Template, TemplateGatilho } from './template.models';
 
 @Injectable({ providedIn: 'root' })
 export class TemplateService {
@@ -23,6 +23,15 @@ export class TemplateService {
   // Flag local (a Meta não sabe dela): funciona até em modelo já aprovado, sem reenviar.
   alterarGeraCobranca(id: string, geraCobranca: boolean) {
     return this.http.patch(`${this.API_URL}/${id}/gera-cobranca`, { geraCobranca });
+  }
+
+  // Momentos de disparo automático (ao cadastrar contato, atraso de pagamento). Também locais.
+  listarGatilhos(empresaId: string) {
+    return this.http.get<TemplateGatilho[]>(`${this.API_URL}/gatilhos/${empresaId}`);
+  }
+
+  salvarGatilhos(templateId: string, gatilhos: TemplateGatilho[]) {
+    return this.http.put(`${this.API_URL}/${templateId}/gatilhos`, { gatilhos });
   }
 
   excluir(id: string) {

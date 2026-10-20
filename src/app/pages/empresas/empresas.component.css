@@ -132,12 +132,6 @@
   color: var(--text2);
 }
 
-/* Fica abaixo da grade, largura cheia: so aparece editando uma empresa ja cadastrada, porque
-   os dados bancarios sao gravados por empresaId. */
-.dados-bancarios {
-  margin-top: 22px;
-}
-
 .secao-titulo {
   margin: 18px 0 10px;
   font-size: .74rem;
@@ -175,4 +169,70 @@
   border: 1px solid rgba(34, 197, 94, .35);
   font-size: .86rem;
   color: var(--text);
+}
+
+.form-empresa {
+  margin-bottom: 22px;
+}
+
+.form-acoes {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* Como a empresa fala com a Meta: conta propria (Embedded Signup) ou o numero da plataforma. */
+.selo-conexao {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border2);
+  background: var(--blue-light);
+  font-size: .74rem;
+  color: var(--text2);
+  white-space: nowrap;
+}
+
+.selo-conexao.propria {
+  background: var(--green-light);
+  border-color: rgba(34, 197, 94, .35);
+  color: var(--text);
+}
+
+.selo-conexao-mini {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  font-size: .64rem;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+.conexao-atual {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-bottom: 14px;
+  padding: 11px 14px;
+  border-radius: var(--r-md);
+  background: var(--blue-light);
+  border: 1px solid var(--border2);
+  font-size: .82rem;
+  color: var(--text2);
+}
+
+.conexao-atual.propria {
+  background: var(--green-light);
+  border-color: rgba(34, 197, 94, .35);
+}
+
+.conexao-atual strong {
+  color: var(--text);
+}
+
+.conexao-atual button {
+  margin-left: auto;
 }

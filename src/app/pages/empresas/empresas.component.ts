@@ -22,6 +22,9 @@ interface Empresa {
   appIdMeta?: string;     // Mapeado de AppIdMeta (usado no upload de mídia de exemplo dos templates)
   dataCriacao: string;
   planoId?: string;
+  // CONTA_PROPRIA = WABA próprio (Embedded Signup); CONTACT_SOLUTION = dispara pelo número da
+  // plataforma. Calculado na API comparando com o WABA da Contact Solution.
+  tipoConexao?: 'CONTA_PROPRIA' | 'CONTACT_SOLUTION';
 }
 
 interface DadosBancarios {
@@ -132,7 +135,20 @@ export class EmpresasComponent implements OnInit, OnDestroy {
   });
   response = signal('');
   editingId = signal<string | null>(null);
+  // Linha em edição como veio da API: o tipo de conexão não é campo do formulário.
+  empresaEmEdicao = computed(() => this.empresas().find(e => e.id === this.editingId()) ?? null);
+  salvando = signal(false);
   search = signal('');
+
+  rotuloConexao(e: Empresa): string {
+    return e.tipoConexao === 'CONTA_PROPRIA' ? '📱 Embedded Signup (conta Meta própria)' : '🏢 Domínio Contact Solution';
+  }
+
+  ajudaConexao(e: Empresa): string {
+    return e.tipoConexao === 'CONTA_PROPRIA'
+      ? 'A empresa tem WABA e número próprios: os disparos saem pela conta Meta dela.'
+      : 'A empresa usa o WABA e o número da Contact Solution: os disparos saem pelo número da plataforma.';
+  }
 
   empresasFiltradas = computed(() => {
     const termo = this.search().toLowerCase().trim();
@@ -255,7 +271,9 @@ export class EmpresasComponent implements OnInit, OnDestroy {
   // junto do salvar da empresa) porque a comissao so pode ser mexida pelo admin da plataforma.
   bancario = signal<DadosBancarios>(this.dadosBancariosVazios());
   carregandoBancario = signal(false);
-  salvandoBancario = signal(false);
+  // O salvar único só grava os dados bancários se eles carregaram: senão mandaria os valores
+  // vazios do formulário e desligaria a cobrança Pix de quem tinha.
+  private bancarioCarregado = signal(false);
   msgBancario = signal('');
   msgBancarioErro = signal(false);
 
@@ -413,6 +431,7 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     this.situacaoSubconta.set(null);
     this.msgSituacao.set('');
     this.carregandoBancario.set(true);
+    this.bancarioCarregado.set(false);
 
     this.http.get<any>(`${this.BASE_URL}/${empresaId}/dados-bancarios`).subscribe({
       next: (d) => {
@@ -420,6 +439,7 @@ export class EmpresasComponent implements OnInit, OnDestroy {
         if (this.editingId() !== empresaId) return;
         this.carregandoBancario.set(false);
         this.aplicarDadosBancarios(d);
+        this.bancarioCarregado.set(true);
       },
       error: (err) => {
         this.carregandoBancario.set(false);
@@ -440,9 +460,17 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     this.atualizarBancario('comissaoValor', numero !== null && isNaN(numero) ? null : numero);
   }
 
-  salvarDadosBancarios() {
+  // Segunda metade do salvar único da edição: roda depois que os dados da empresa foram gravados.
+  // Só fecha o formulário se deu tudo certo; aviso ou erro do Asaas deixa aberto para corrigir.
+  private salvarDadosBancarios() {
     const empresaId = this.editingId();
     if (!empresaId) return;
+
+    if (!this.bancarioCarregado()) {
+      this.salvando.set(false);
+      this.response.set('✅ Empresa atualizada. Os dados bancários não carregaram e não foram alterados.');
+      return;
+    }
 
     const b = this.bancario();
     // A API ignora a comissao de quem nao e admin da plataforma; nem manda, pra deixar claro.
@@ -455,29 +483,30 @@ export class EmpresasComponent implements OnInit, OnDestroy {
       payload.comissaoValor = b.comissaoValor;
     }
 
-    this.salvandoBancario.set(true);
     this.msgBancario.set('');
 
     this.http.put<any>(`${this.BASE_URL}/dados-bancarios`, payload).subscribe({
       next: (r) => {
-        this.salvandoBancario.set(false);
+        this.salvando.set(false);
         this.aplicarDadosBancarios(r?.dadosBancarios ?? r);
         // Ao ativar a cobrança a API já testa a conexão com o Asaas; os dados ficam salvos
         // mesmo se ela falhar, por isso vem como aviso e não como erro.
         if (r?.avisoIntegracao) {
           this.msgBancarioErro.set(true);
           this.msgBancario.set('⚠️ ' + r.avisoIntegracao);
-        } else {
-          this.msgBancarioErro.set(false);
-          this.msgBancario.set(r?.credenciaisConferidas
-            ? '✅ Dados bancários salvos. Conexão com o Asaas conferida.'
-            : '✅ Dados bancários salvos.');
+          this.response.set('✅ Empresa e dados bancários salvos, com um aviso do Asaas (veja em Dados bancários).');
+          return;
         }
+        this.cancelarEdicao();
+        this.response.set(r?.credenciaisConferidas
+          ? '✅ Empresa atualizada. Conexão com o Asaas conferida.'
+          : '✅ Empresa atualizada com sucesso!');
       },
       error: (err) => {
-        this.salvandoBancario.set(false);
+        this.salvando.set(false);
         this.msgBancarioErro.set(true);
         this.msgBancario.set(extrairMensagemErro(err, 'Não foi possível salvar os dados bancários.'));
+        this.response.set('⚠️ Dados da empresa salvos, mas os dados bancários não (veja em Dados bancários).');
       }
     });
   }
@@ -509,7 +538,8 @@ export class EmpresasComponent implements OnInit, OnDestroy {
       appIdMeta: empresa.appIdMeta || ''
     });
     this.response.set(`Editando: ${empresa.nome}`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // O formulario fica abaixo do cadastro rapido: rola ate ele, nao ate o topo.
+    document.querySelector('.form-empresa')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   cancelarEdicao() {
@@ -517,6 +547,7 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     this.form.set({ nome: '', cnpj: '', email: '', tel: '', metaAccessToken: '', planoId: '', wabaId: '', phoneNumberId: '', appIdMeta: '' });
     this.response.set('');
     this.aplicarDadosBancarios(null);
+    this.bancarioCarregado.set(false);
     this.msgBancario.set('');
     this.subconta.set(this.subcontaVazia());
     this.msgSubconta.set('');
@@ -527,7 +558,7 @@ export class EmpresasComponent implements OnInit, OnDestroy {
   salvar() {
     const f = this.form();
     if (!f.nome || !f.cnpj) {
-      this.response.set('❌ Nome e CNPJ são obrigatórios');
+      this.response.set('❌ Razão social e CNPJ são obrigatórios.');
       return;
     }
 
@@ -558,28 +589,34 @@ export class EmpresasComponent implements OnInit, OnDestroy {
       appIdMeta: f.appIdMeta
     };
 
+    payload.accessToken = f.metaAccessToken;
+    this.salvando.set(true);
+
     if (this.editingId()) {
       payload.id = this.editingId();
-      payload.accessToken = f.metaAccessToken; // Mapeia para alterar
 
       this.http.put(`${this.BASE_URL}/alterar`, payload).subscribe({
         next: () => {
-          this.response.set('✅ Empresa atualizada com sucesso!');
-          this.cancelarEdicao();
           this.obterEmpresas();
+          this.salvarDadosBancarios();
         },
-        error: (err) => this.response.set('❌ ' + extrairMensagemErro(err, 'Erro ao atualizar empresa.'))
+        error: (err) => {
+          this.salvando.set(false);
+          this.response.set('❌ ' + extrairMensagemErro(err, 'Erro ao atualizar empresa.'));
+        }
       });
-    } else { // <-- AGORA SIM! Adicionado o else correto
-      payload.accessToken = f.metaAccessToken; // Mapeia Corretamente para incluir
-
+    } else {
       this.http.post(`${this.BASE_URL}/incluir`, payload).subscribe({
         next: () => {
-          this.response.set('✅ Empresa cadastrada com sucesso!');
+          this.salvando.set(false);
           this.cancelarEdicao();
+          this.response.set('✅ Empresa cadastrada! Clique em Editar nela para configurar os dados bancários.');
           this.obterEmpresas();
         },
-        error: (err) => this.response.set('❌ ' + extrairMensagemErro(err, 'Falha ao salvar empresa.'))
+        error: (err) => {
+          this.salvando.set(false);
+          this.response.set('❌ ' + extrairMensagemErro(err, 'Falha ao salvar empresa.'));
+        }
       });
     }
   }

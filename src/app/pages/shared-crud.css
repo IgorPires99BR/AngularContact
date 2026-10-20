@@ -173,3 +173,87 @@
   line-height: 1.4;
   color: #8ba0bd;
 }
+
+/* Formulario dividido em setores (Empresas, Contatos): cada setor tem titulo e legenda, e cada
+   campo diz no proprio rotulo se e obrigatorio ou opcional -- antes so dava pra descobrir
+   tentando salvar. */
+.form-setor {
+  padding: 16px 0 4px;
+  border-top: 1px solid var(--border);
+}
+
+.form-setor:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.form-setor-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.form-setor-sub {
+  margin: 4px 0 14px;
+  font-size: .76rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.tag-obrig,
+.tag-opc {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.tag-obrig {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.tag-opc {
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.tag-cond {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  background: var(--warn-light);
+  color: var(--warn);
+}
+
+.form-legenda {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  font-size: .72rem;
+  color: var(--muted);
+}
+
+.form-legenda .tag-obrig,
+.form-legenda .tag-opc,
+.form-legenda .tag-cond {
+  margin-left: 0;
+  margin-right: 4px;
+}

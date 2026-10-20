@@ -7,13 +7,6 @@ import { environment } from '../../../environments/environment';
 import { isEmailValido } from '../../shared/utils/validators';
 import { extrairMensagemErro } from '../../core/utils/erro-api.util';
 
-// Padrao de negocio atual: contato novo sem esses campos preenchidos cai nesses defaults
-// (ver Contato.DiaVencimentoPadrao/TaxaJurosPadrao/etc no backend).
-const DIA_VENCIMENTO_PADRAO = 20;
-const TAXA_JUROS_PADRAO = 2;
-const TAXA_JUROS_MENSAL_PADRAO = 2;
-const VALOR_FATURA_PADRAO = 405;
-
 interface Contato {
   id?: string;
   usuarioId: string;
@@ -30,7 +23,7 @@ interface Contato {
   origemAnuncio?: string | null;
   origemData?: string | null;
   // Dados financeiros -- so preenchidos por quem revende a plataforma pros proprios
-  // clientes de cobranca (ex: Sebrecon); pra maioria das empresas ficam vazios/default.
+  // clientes de cobranca (ex: Sebrecon); pra maioria das empresas ficam vazios.
   nomeCliente?: string | null;
   // Opcional: sem ele o Pix sai no cliente padrao da empresa (CNPJ da subconta Asaas).
   cpfCnpj?: string | null;
@@ -58,6 +51,9 @@ export class ContatosComponent implements OnInit {
 
   form = signal(this.formVazio());
 
+  // Dados de cobrança começam vazios: antes vinham preenchidos com 20 / 2% / R$ 405 e todo
+  // contato parecia pronto para cobrar com um valor que ninguém digitou. Agora são opcionais no
+  // cadastro e exigidos só para gerar o Pix no Asaas (o backend barra lá).
   private formVazio() {
     return {
       nomeContato: '',
@@ -66,12 +62,28 @@ export class ContatosComponent implements OnInit {
       email: '',
       nomeCliente: '',
       cpfCnpj: '',
-      diaVencimento: DIA_VENCIMENTO_PADRAO,
-      taxaJuros: TAXA_JUROS_PADRAO,
-      taxaJurosMensal: TAXA_JUROS_MENSAL_PADRAO,
-      valorFatura: VALOR_FATURA_PADRAO,
+      diaVencimento: null as number | null,
+      taxaJuros: null as number | null,
+      taxaJurosMensal: null as number | null,
+      valorFatura: null as number | null,
     };
   }
+
+  // Mesma regra do PreparadorCobrancaPix.FaltaDadoDeCobranca no backend. Só avisa: o contato
+  // salva igual. Formulário todo vazio (contato sem cobrança) não é aviso, é o caso normal.
+  faltaParaCobrar = computed(() => {
+    const f = this.form();
+    const vazio = (v: unknown) => v === null || v === undefined || v === '';
+    const campos: [unknown, string][] = [
+      [f.valorFatura, 'valor da fatura'],
+      [f.diaVencimento, 'dia de vencimento'],
+      [f.taxaJuros, 'taxa de juros (multa)'],
+      [f.taxaJurosMensal, 'juros ao mês'],
+    ];
+    const faltando = campos.filter(([v]) => vazio(v)).map(([, nome]) => nome);
+    if (faltando.length === 0 || faltando.length === campos.length) return '';
+    return faltando.join(', ');
+  });
 
   search = signal('');
   editingId = signal<string | null>(null);
@@ -94,7 +106,7 @@ export class ContatosComponent implements OnInit {
     this.buscar();
   }
 
-  update(field: string, value: string | number) {
+  update(field: string, value: string | number | null) {
     this.form.set({ ...this.form(), [field]: value });
   }
 
@@ -270,10 +282,10 @@ export class ContatosComponent implements OnInit {
       email: c.email || '',
       nomeCliente: c.nomeCliente || '',
       cpfCnpj: c.cpfCnpj || '',
-      diaVencimento: c.diaVencimento ?? DIA_VENCIMENTO_PADRAO,
-      taxaJuros: c.taxaJuros ?? TAXA_JUROS_PADRAO,
-      taxaJurosMensal: c.taxaJurosMensal ?? TAXA_JUROS_MENSAL_PADRAO,
-      valorFatura: c.valorFatura ?? VALOR_FATURA_PADRAO,
+      diaVencimento: c.diaVencimento ?? null,
+      taxaJuros: c.taxaJuros ?? null,
+      taxaJurosMensal: c.taxaJurosMensal ?? null,
+      valorFatura: c.valorFatura ?? null,
     });
   }
 

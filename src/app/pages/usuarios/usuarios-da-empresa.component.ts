@@ -65,8 +65,13 @@ export class UsuariosDaEmpresaComponent implements OnInit {
     email: '',
     senhaHash: '',
     perfil: 'operador' as Perfil,
-    perfilId: '' as string | null
+    perfilId: '' as string | null,
+    // Só no modo "todas as empresas": a conta de plataforma escolhe em qual empresa o usuário
+    // nasce. Antes ela precisava abrir a empresa na tela Empresas para criar o usuário lá.
+    empresaId: ''
   });
+
+  empresas = signal<{ id: string; nome: string }[]>([]);
 
   response = signal('');
   usuarios = signal<Usuario[]>([]);
@@ -95,11 +100,20 @@ export class UsuariosDaEmpresaComponent implements OnInit {
   ngOnInit() {
     this.listar();
     this.listarPerfis();
+    this.listarEmpresas();
+  }
+
+  listarEmpresas() {
+    if (!this.todasAsEmpresas) return;
+    this.http.get<{ id: string; nome: string }[]>(`${environment.apiUrl}/v2/empresa/obter`).subscribe({
+      next: (dados) => this.empresas.set(dados),
+      error: () => this.empresas.set([]),
+    });
   }
 
   listarPerfis() {
-    // No modo "todas as empresas" nao ha uma unica empresa pra listar perfis (e por isso
-    // que o formulario de criar usuario fica escondido nesse modo, ver template).
+    // No modo "todas as empresas" nao ha uma unica empresa pra listar perfis: o select de
+    // perfil de acesso some e o usuario nasce no perfil padrao do papel escolhido.
     if (!this.empresaId || this.todasAsEmpresas) return;
     this.http.get<PerfilAcesso[]>(`${this.PERFIL_URL}/obter-por-empresa`).subscribe({
       next: (dados) => this.perfisAcesso.set(dados),
@@ -141,6 +155,11 @@ export class UsuariosDaEmpresaComponent implements OnInit {
       return;
     }
 
+    if (this.todasAsEmpresas && !this.editingId() && !f.empresaId) {
+      this.response.set('❌ Escolha a empresa do usuário.');
+      return;
+    }
+
     if (!isEmailValido(f.email)) {
       this.response.set('❌ E-mail inválido.');
       return;
@@ -151,7 +170,9 @@ export class UsuariosDaEmpresaComponent implements OnInit {
       return;
     }
 
-    const empresaAlvo = this.todasAsEmpresas ? this.editingEmpresaId() : this.empresaId;
+    const empresaAlvo = this.todasAsEmpresas
+      ? (this.editingId() ? this.editingEmpresaId() : f.empresaId)
+      : this.empresaId;
     const payload = { ...f, perfilId: f.perfilId || null, empresaId: empresaAlvo };
 
     if (this.editingId()) {
@@ -183,7 +204,8 @@ export class UsuariosDaEmpresaComponent implements OnInit {
       email: u.email,
       senhaHash: '', // Senha geralmente não volta da API por segurança
       perfil: u.perfil,
-      perfilId: u.perfilId || ''
+      perfilId: u.perfilId || '',
+      empresaId: u.empresaId
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -200,7 +222,8 @@ export class UsuariosDaEmpresaComponent implements OnInit {
       email: '',
       senhaHash: '',
       perfil: 'operador',
-      perfilId: ''
+      perfilId: '',
+      empresaId: ''
     });
   }
 

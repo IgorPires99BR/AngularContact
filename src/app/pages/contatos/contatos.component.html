@@ -21,58 +21,90 @@
     </div>
 
     <div class="card-body">
-      <div class="fg-row">
-        <div class="fg">
-          <label>Nome do Contato</label>
-          <input type="text" placeholder="Ex: Maria Silva" maxlength="100" [ngModel]="form().nomeContato" (ngModelChange)="update('nomeContato', $event)">
+      <div class="form-legenda">
+        <span><span class="tag-obrig">Obrigatório</span>precisa preencher para salvar</span>
+        <span><span class="tag-opc">Opcional</span>pode ficar em branco</span>
+        <span><span class="tag-cond">Para cobrar</span>opcional no cadastro, exigido para cobrar pelo Asaas</span>
+      </div>
+
+      <!-- ===================== 1. Contato ===================== -->
+      <div class="form-setor">
+        <div class="form-setor-titulo">1. Contato</div>
+        <div class="form-setor-sub">Quem recebe as mensagens no WhatsApp.</div>
+
+        <div class="fg-row">
+          <div class="fg">
+            <label>Telefone <span class="tag-obrig">Obrigatório</span></label>
+            <input #telefoneInput type="text" inputmode="numeric" placeholder="Ex: 5511999999999" [ngModel]="form().telefone" (input)="updateSomenteNumeros('telefone', telefoneInput, 15)">
+            <small class="dica-campo">DDI + DDD + número, somente números.</small>
+          </div>
+          <div class="fg">
+            <label>Telefone 2 <span class="tag-opc">Opcional</span></label>
+            <input #telefone2Input type="text" inputmode="numeric" placeholder="Ex: 5511988888888" [ngModel]="form().telefone2" (input)="updateSomenteNumeros('telefone2', telefone2Input, 15)">
+            <small class="dica-campo">Recebe as mesmas mensagens do telefone principal.</small>
+          </div>
         </div>
-        <div class="fg">
-          <label>Nome do Cliente (se diferente do contato)</label>
-          <input type="text" placeholder="Ex: João da Silva" maxlength="255" [ngModel]="form().nomeCliente" (ngModelChange)="update('nomeCliente', $event)">
-        </div>
-        <div class="fg">
-          <label>CPF/CNPJ do Cliente (opcional)</label>
-          <input type="text" placeholder="Ex: 123.456.789-09" maxlength="18" [ngModel]="form().cpfCnpj" (ngModelChange)="update('cpfCnpj', $event)">
-          <small class="dica-campo">Necessário para gerar o Pix da cobrança.</small>
+
+        <div class="fg-row">
+          <div class="fg">
+            <label>Nome do contato <span class="tag-opc">Opcional</span></label>
+            <input type="text" placeholder="Ex: Maria Silva" maxlength="100" [ngModel]="form().nomeContato" (ngModelChange)="update('nomeContato', $event)">
+          </div>
+          <div class="fg">
+            <label>E-mail <span class="tag-opc">Opcional</span></label>
+            <input type="email" placeholder="maria@email.com" [ngModel]="form().email" (ngModelChange)="update('email', $event)">
+          </div>
         </div>
       </div>
 
-      <div class="fg-row">
-        <div class="fg">
-          <label>Telefone (DDI + DDD + Número, somente números)</label>
-          <input #telefoneInput type="text" inputmode="numeric" placeholder="Ex: 5511999999999" [ngModel]="form().telefone" (input)="updateSomenteNumeros('telefone', telefoneInput, 15)">
+      <!-- ===================== 2. Cobrança ===================== -->
+      <div class="form-setor">
+        <div class="form-setor-titulo">2. Dados de cobrança</div>
+        <div class="form-setor-sub">
+          Só para quem cobra os próprios clientes pela plataforma. Pode cadastrar o contato sem eles, mas a
+          cobrança pelo Asaas (Pix) só é gerada com valor, vencimento e juros preenchidos — zero vale.
         </div>
-        <div class="fg">
-          <label>Telefone 2 (opcional — recebe as mesmas mensagens)</label>
-          <input #telefone2Input type="text" inputmode="numeric" placeholder="Ex: 5511988888888" [ngModel]="form().telefone2" (input)="updateSomenteNumeros('telefone2', telefone2Input, 15)">
-        </div>
-      </div>
 
-      <div class="fg">
-        <label>E-mail</label>
-        <input type="email" placeholder="maria@email.com" [ngModel]="form().email" (ngModelChange)="update('email', $event)">
-      </div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>Nome do cliente <span class="tag-opc">Opcional</span></label>
+            <input type="text" placeholder="Ex: João da Silva" maxlength="255" [ngModel]="form().nomeCliente" (ngModelChange)="update('nomeCliente', $event)">
+            <small class="dica-campo">Titular da fatura, se for diferente do contato.</small>
+          </div>
+          <div class="fg">
+            <label>CPF/CNPJ do cliente <span class="tag-opc">Opcional</span></label>
+            <input type="text" placeholder="Ex: 123.456.789-09" maxlength="18" [ngModel]="form().cpfCnpj" (ngModelChange)="update('cpfCnpj', $event)">
+            <small class="dica-campo">Sem ele, o Pix sai em nome da própria empresa.</small>
+          </div>
+        </div>
 
-      <div class="fg-row">
-        <div class="fg">
-          <label>Dia de Vencimento</label>
-          <input type="number" min="1" max="31" [ngModel]="form().diaVencimento" (ngModelChange)="update('diaVencimento', $event)">
+        <div class="fg-row">
+          <div class="fg">
+            <label>Valor da fatura (R$) <span class="tag-cond">Para cobrar</span></label>
+            <input type="number" min="0" step="0.01" placeholder="Ex: 405,00" [ngModel]="form().valorFatura" (ngModelChange)="update('valorFatura', $event)">
+          </div>
+          <div class="fg">
+            <label>Dia de vencimento <span class="tag-cond">Para cobrar</span></label>
+            <input type="number" min="1" max="31" placeholder="Ex: 20" [ngModel]="form().diaVencimento" (ngModelChange)="update('diaVencimento', $event)">
+          </div>
         </div>
-        <div class="fg">
-          <label>Valor da Fatura (R$)</label>
-          <input type="number" min="0" step="0.01" [ngModel]="form().valorFatura" (ngModelChange)="update('valorFatura', $event)">
-        </div>
-      </div>
 
-      <div class="fg-row">
-        <div class="fg">
-          <label>Taxa de Juros (%)</label>
-          <input type="number" min="0" step="0.01" [ngModel]="form().taxaJuros" (ngModelChange)="update('taxaJuros', $event)">
+        <div class="fg-row">
+          <div class="fg">
+            <label>Taxa de juros / multa (%) <span class="tag-cond">Para cobrar</span></label>
+            <input type="number" min="0" step="0.01" placeholder="Ex: 2" [ngModel]="form().taxaJuros" (ngModelChange)="update('taxaJuros', $event)">
+            <small class="dica-campo">Multa única cobrada depois do vencimento.</small>
+          </div>
+          <div class="fg">
+            <label>Juros ao mês (%) <span class="tag-cond">Para cobrar</span></label>
+            <input type="number" min="0" step="0.01" placeholder="Ex: 1" [ngModel]="form().taxaJurosMensal" (ngModelChange)="update('taxaJurosMensal', $event)">
+            <small class="dica-campo">Proporcional aos dias de atraso.</small>
+          </div>
         </div>
-        <div class="fg">
-          <label>Taxa de Juros ao Mês (%)</label>
-          <input type="number" min="0" step="0.01" [ngModel]="form().taxaJurosMensal" (ngModelChange)="update('taxaJurosMensal', $event)">
-        </div>
+
+        @if (faltaParaCobrar(); as falta) {
+          <div class="aviso-cobranca">⚠️ Sem {{ falta }}: o contato é salvo, mas não recebe cobrança Pix pelo Asaas.</div>
+        }
       </div>
 
       <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 16px;">

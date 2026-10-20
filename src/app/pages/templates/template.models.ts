@@ -1,6 +1,8 @@
 // Modelos compartilhados de Template (WhatsApp/Meta), usados pela tela de Templates, pelo
 // Disparador e pelo Mapa Mental — para não ter 3 definições divergentes do mesmo formato.
 
+import { VariavelTemplate } from '../../shared/variaveis/variavel-template';
+
 // --- Formato armazenado em Template.componentesJson (serializado em PascalCase pelo backend
 // via Newtonsoft, independente da política de casing usada nos demais campos da resposta) ---
 
@@ -43,6 +45,38 @@ export interface Template {
   dataAtualizacao?: string;
   // Disparar este template abre uma cobrança para o cliente (tela Cobranças de Clientes).
   geraCobranca?: boolean;
+}
+
+// --- Momento de disparo automático do template (TemplateGatilho no backend, BD/55) ---
+export type TipoGatilho = 'CADASTRO_CONTATO' | 'ATRASO_PAGAMENTO';
+
+export interface TemplateGatilho {
+  id?: string;
+  templateId?: string;
+  tipo: TipoGatilho;
+  // Só ATRASO_PAGAMENTO: dias depois do vencimento da cobrança ainda em aberto.
+  diasAtraso?: number | null;
+  ativo: boolean;
+  variaveis: VariavelTemplate[];
+}
+
+export const GATILHOS_INFO: { tipo: TipoGatilho; titulo: string; descricao: string }[] = [
+  {
+    tipo: 'CADASTRO_CONTATO',
+    titulo: 'Disparar ao cadastrar contato',
+    descricao: 'Sai sozinho assim que um contato é cadastrado na tela de Contatos (a importação por CSV não dispara).',
+  },
+  {
+    tipo: 'ATRASO_PAGAMENTO',
+    titulo: 'Disparar quando houver atraso de pagamento',
+    descricao: 'Verificado todo dia às 9h: quem tem cobrança em aberto (Cobranças de Clientes) há esse número de dias depois do vencimento recebe a mensagem uma vez por cobrança. Vale para cobranças que atrasarem depois que o momento foi ligado.',
+  },
+];
+
+export function rotuloGatilho(g: TemplateGatilho): string {
+  return g.tipo === 'CADASTRO_CONTATO'
+    ? 'Ao cadastrar contato'
+    : `Atraso de pagamento (${g.diasAtraso ?? 0} dia${g.diasAtraso === 1 ? '' : 's'})`;
 }
 
 // --- Estado de botão usado no formulário de criação/edição (tipo como string, formato que a

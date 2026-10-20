@@ -305,6 +305,7 @@
               <span class="badge badge-muted">{{ t.categoria }}</span>
               <span class="badge badge-muted">{{ t.idioma }}</span>
               <span class="badge badge-blue" *ngIf="t.geraCobranca" title="Cada envio abre uma cobrança em Cobranças de Clientes">💰 Gera cobrança</span>
+              <span class="badge badge-violet" *ngFor="let g of gatilhosDe(t)" title="Sai sozinho neste momento">⚡ {{ rotuloGatilho(g) }}</span>
             </div>
           </div>
           <span class="badge" [ngClass]="statusInfo(t).classe" [title]="statusInfo(t).ajuda">{{ statusInfo(t).rotulo }}</span>
@@ -336,8 +337,22 @@
                   (click)="alternarGeraCobranca(t)">
             {{ alterandoCobranca() === t.id ? '⏳' : (t.geraCobranca ? '💰 Desligar cobrança' : '💰 Ligar cobrança') }}
           </button>
+          <button class="btn btn-ghost btn-xs"
+                  title="Definir quando este modelo sai sozinho (ao cadastrar contato, atraso de pagamento)"
+                  (click)="alternarGatilhos(t)">
+            {{ gatilhosAbertos() === t.id ? '⚡ Fechar momentos' : '⚡ Momentos de disparo' }}
+          </button>
           <button class="btn btn-ghost btn-xs" title="Excluir modelo" (click)="excluir(t.id)">🗑 Excluir</button>
         </div>
+
+        @if (gatilhosAbertos() === t.id) {
+          <app-template-gatilhos
+            [template]="t"
+            [gatilhos]="gatilhosDe(t)"
+            [parametros]="parametros()"
+            (salvo)="gatilhosSalvos(t, $event)">
+          </app-template-gatilhos>
+        }
       </div>
 
       <div class="crud-empty" *ngIf="templates().length === 0">

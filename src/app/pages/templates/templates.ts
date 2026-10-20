@@ -11,6 +11,9 @@ import { TemplateBodyEditorComponent } from './template-body-editor/template-bod
 import { TemplateFooterEditorComponent } from './template-footer-editor/template-footer-editor';
 import { TemplateBotoesEditorComponent } from './template-botoes-editor/template-botoes-editor';
 import { TemplatePreviewComponent } from './template-preview/template-preview';
+import { TemplateGatilhosComponent } from './template-gatilhos/template-gatilhos';
+import { ParametroService } from '../parametros/parametro.service';
+import { ParametroEmpresa } from '../../shared/variaveis/variavel-template';
 import { WhatsappFormatPipe } from '../../shared/pipes/whatsapp-format.pipe';
 import {
   Template,
@@ -32,6 +35,8 @@ import {
   motivoNaoEditavel,
   nomeDoTemplate,
   StatusExplicado,
+  TemplateGatilho,
+  rotuloGatilho,
 } from './template.models';
 
 @Component({
@@ -46,6 +51,7 @@ import {
     TemplateFooterEditorComponent,
     TemplateBotoesEditorComponent,
     TemplatePreviewComponent,
+    TemplateGatilhosComponent,
     WhatsappFormatPipe,
   ],
   templateUrl: './templates.html',
@@ -78,6 +84,14 @@ export class TemplatesComponent implements OnInit {
   uploadingHeader = signal(false);
   geraCobranca = signal(false);
   alterandoCobranca = signal<string | null>(null);
+
+  // Momentos de disparo automático de todos os modelos da empresa (badges na lista) e qual
+  // modelo está com a seção aberta (um por vez).
+  private parametroService = inject(ParametroService);
+  gatilhos = signal<TemplateGatilho[]>([]);
+  parametros = signal<ParametroEmpresa[]>([]);
+  gatilhosAbertos = signal<string | null>(null);
+  rotuloGatilho = rotuloGatilho;
 
   // Botão de URL com parte variável apontando pra página do Pix da cobrança (/pix/{txid}). No
   // envio a API preenche o {{1}} com o Pix de cada contato -- ninguém digita nada no disparo.
@@ -333,6 +347,28 @@ export class TemplatesComponent implements OnInit {
       next: (res) => this.templates.set(res),
       error: (err) => this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao buscar templates locais.')}`)
     });
+
+    // Sem os gatilhos a lista só perde os selos; não vale derrubar a tela por isso.
+    this.templateService.listarGatilhos(empId).subscribe({
+      next: (res) => this.gatilhos.set(res),
+      error: () => this.gatilhos.set([])
+    });
+    this.parametroService.listar(empId).subscribe({
+      next: (res) => this.parametros.set(res),
+      error: () => this.parametros.set([])
+    });
+  }
+
+  gatilhosDe(t: Template): TemplateGatilho[] {
+    return this.gatilhos().filter(g => g.templateId === t.id && g.ativo);
+  }
+
+  alternarGatilhos(t: Template) {
+    this.gatilhosAbertos.set(this.gatilhosAbertos() === t.id ? null : t.id);
+  }
+
+  gatilhosSalvos(t: Template, lista: TemplateGatilho[]) {
+    this.gatilhos.update(todos => [...todos.filter(g => g.templateId !== t.id), ...lista]);
   }
 
   salvar() {

@@ -17,3 +17,15 @@
   color: var(--muted);
   line-height: 1.45;
 }
+
+/* Contato com parte dos dados de cobranca: salva, mas nao recebe Pix. Aviso, nao erro. */
+.aviso-cobranca {
+  margin-bottom: 12px;
+  padding: 10px 13px;
+  border-radius: var(--r-md);
+  background: var(--warn-light);
+  border: 1px solid rgba(245, 158, 11, .35);
+  font-size: .8rem;
+  color: var(--text);
+  line-height: 1.5;
+}

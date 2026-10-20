@@ -1,4 +1,4 @@
-<div class="g2" *ngIf="!todasAsEmpresas || editingId()">
+<div class="g2">
   <div class="card">
     <div class="card-head">
       <div>
@@ -8,24 +8,36 @@
       </div>
     </div>
     <div class="card-body">
+      <!-- Conta de plataforma: escolhe a empresa aqui mesmo. Na edição fica travado -- mover um
+           usuário de empresa levaria junto o acesso dele aos dados da outra. -->
+      <div class="fg" *ngIf="todasAsEmpresas">
+        <label>Empresa <span class="tag-obrig">Obrigatório</span></label>
+        <select [ngModel]="form().empresaId" (ngModelChange)="update('empresaId', $event)" [disabled]="!!editingId()">
+          <option value="">Selecione a empresa...</option>
+          <option *ngFor="let e of empresas()" [value]="e.id">{{ e.nome }}</option>
+        </select>
+      </div>
+
       <div class="fg">
-        <label>Nome Completo</label>
+        <label>Nome Completo <span class="tag-obrig">Obrigatório</span></label>
         <input type="text" placeholder="Ex: João Silva" maxlength="100" [ngModel]="form().nome" (ngModelChange)="update('nome', $event)">
       </div>
 
       <div class="fg-row">
         <div class="fg">
-          <label>E-mail</label>
+          <label>E-mail <span class="tag-obrig">Obrigatório</span></label>
           <input type="email" placeholder="email@empresa.com" [ngModel]="form().email" (ngModelChange)="update('email', $event)">
         </div>
         <div class="fg">
-          <label>Senha</label>
-          <input type="password" placeholder="••••••••" [ngModel]="form().senhaHash" (ngModelChange)="update('senhaHash', $event)">
+          <label>Senha
+            <span [class]="editingId() ? 'tag-opc' : 'tag-obrig'">{{ editingId() ? 'Opcional' : 'Obrigatório' }}</span>
+          </label>
+          <input type="password" [placeholder]="editingId() ? 'Em branco mantém a senha atual' : '••••••••'" [ngModel]="form().senhaHash" (ngModelChange)="update('senhaHash', $event)">
         </div>
       </div>
 
       <div class="fg">
-        <label>Perfil (papel)</label>
+        <label>Perfil (papel) <span class="tag-obrig">Obrigatório</span></label>
         <select [ngModel]="form().perfil" (ngModelChange)="update('perfil', $event)">
           <option value="operador">Operador — Disparos, Contatos, Números e Templates</option>
           <option value="admin">Administrador — acesso total, inclusive Chats e Flows</option>
@@ -33,7 +45,7 @@
       </div>
 
       <div class="fg" *ngIf="perfisAcesso().length > 0">
-        <label>Perfil de Acesso (telas visíveis)</label>
+        <label>Perfil de Acesso (telas visíveis) <span class="tag-opc">Opcional</span></label>
         <select [ngModel]="form().perfilId" (ngModelChange)="update('perfilId', $event)">
           <option [ngValue]="''">Padrão (segue o Perfil acima)</option>
           <option *ngFor="let p of perfisAcesso()" [ngValue]="p.id">{{ p.nome }}</option>
@@ -54,10 +66,6 @@
       <div class="payload-display" *ngIf="response()" style="margin-top: 14px">{{ response() }}</div>
     </div>
   </div>
-</div>
-
-<div class="crud-empty" *ngIf="todasAsEmpresas && !editingId()" style="margin-bottom: 16px;">
-  Pra criar um usuário novo, abra a empresa dele na tela <strong>Empresas</strong> e use o painel de Usuários daquela linha.
 </div>
 
 
