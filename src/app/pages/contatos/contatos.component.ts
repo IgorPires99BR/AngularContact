@@ -31,6 +31,10 @@ interface Contato {
   taxaJuros?: number | null;
   taxaJurosMensal?: number | null;
   valorFatura?: number | null;
+  // Excluir contato com historico (disparo, conversa, cobranca) so o inativa: ele sai da lista
+  // principal e aparece em "Inativos", de onde pode ser reativado.
+  ativo?: boolean;
+  dataInativacao?: string | null;
 }
 
 @Component({
@@ -89,6 +93,7 @@ export class ContatosComponent implements OnInit {
   editingId = signal<string | null>(null);
   response = signal('');
   contatos = signal<Contato[]>([]);
+  mostrandoInativos = signal(false);
 
   contatosFiltrados = computed(() => {
     const termo = this.search().toLowerCase().trim();
@@ -125,11 +130,13 @@ export class ContatosComponent implements OnInit {
       return;
     }
 
-    this.http.get<Contato[]>(`${this.API_URL}/obter-por-usuario/${id}`)
+    const inativos = this.mostrandoInativos();
+    this.http.get<Contato[]>(`${this.API_URL}/obter-por-usuario/${id}`, { params: inativos ? { inativos: 'true' } : {} })
       .subscribe({
         next: (res) => {
           this.contatos.set(res);
-          this.response.set(res.length > 0 ? `✅ ${res.length} contatos encontrados` : '⚠ Nenhum contato.');
+          const rotulo = inativos ? 'contatos inativos' : 'contatos';
+          this.response.set(res.length > 0 ? `✅ ${res.length} ${rotulo} encontrados` : `⚠ Nenhum ${inativos ? 'contato inativo' : 'contato'}.`);
         },
         error: (err) => {
           this.response.set(`❌ ${extrairMensagemErro(err, 'Erro na requisição. Verifique o console.')}`);
@@ -297,12 +304,34 @@ export class ContatosComponent implements OnInit {
   excluir(id: string) {
     if (!confirm('Deseja excluir este contato?')) return;
 
-    this.http.delete(`${this.API_URL}/excluir/${id}`).subscribe({
-      next: () => {
+    this.http.delete<{ inativado?: boolean }>(`${this.API_URL}/excluir/${id}`).subscribe({
+      next: (res) => {
         this.contatos.update(lista => lista.filter(c => c.id !== id));
-        this.response.set('✅ Contato excluído.');
+        this.response.set(res?.inativado
+          ? '✅ Contato inativado: já tinha mensagens, que continuam guardadas. Para trazê-lo de volta, use "Ver inativos".'
+          : '✅ Contato excluído.');
       },
       error: (err) => this.response.set(`❌ Erro ao excluir: ${extrairMensagemErro(err)}`)
+    });
+  }
+
+  alternarInativos() {
+    this.mostrandoInativos.update(v => !v);
+    this.search.set('');
+    this.cancelarEdicao();
+    this.buscar();
+  }
+
+  // Reativar dispara de novo o momento "ao cadastrar contato" dos templates, como um cadastro novo.
+  reativar(id: string) {
+    if (!confirm('Reativar este contato? As mensagens automáticas de cadastro serão enviadas de novo.')) return;
+
+    this.http.put(`${this.API_URL}/reativar/${id}`, {}).subscribe({
+      next: () => {
+        this.contatos.update(lista => lista.filter(c => c.id !== id));
+        this.response.set('✅ Contato reativado.');
+      },
+      error: (err) => this.response.set(`❌ Erro ao reativar: ${extrairMensagemErro(err)}`)
     });
   }
 }
