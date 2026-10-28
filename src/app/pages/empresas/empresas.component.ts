@@ -349,11 +349,13 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     this.vinculandoSubconta.set(true);
     this.msgVinculo.set('');
 
-    this.http.post<any>(`${this.BASE_URL}/dados-bancarios/vincular-subconta-asaas`, { empresaId, walletId: this.walletIdExistente().trim(), carteiraExterna: this.carteiraExterna() }).subscribe({
+    this.http.post<any>(`${this.BASE_URL}/dados-bancarios/vincular-subconta-asaas`, { empresaId, walletId: this.walletIdExistente().trim(), carteiraExterna: this.carteiraExterna(), substituir: !!this.bancario().asaasWalletId }).subscribe({
       next: (r) => {
         this.vinculandoSubconta.set(false);
         this.walletIdExistente.set('');
         this.carteiraExterna.set(false);
+        // A situação mostrada era da conta anterior.
+        this.situacaoSubconta.set(null);
         this.aplicarDadosBancarios(r?.dadosBancarios ?? r);
         this.msgBancarioErro.set(false);
         this.msgBancario.set(`✅ Subconta${r?.nomeSubconta ? ' de ' + r.nomeSubconta : ''} vinculada. As cobranças Pix pagas passam a ser repassadas para ela.`);

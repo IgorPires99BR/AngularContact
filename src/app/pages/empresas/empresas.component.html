@@ -379,36 +379,41 @@
               {{ criandoSubconta() ? 'Criando subconta...' : '🏦 Criar subconta Asaas' }}
             </button>
           </div>
+        }
 
-          @if (ehAdminDaPlataforma()) {
-            <small class="dica-campo" style="display: block; margin-top: 16px;">
+        @if (ehAdminDaPlataforma()) {
+          <small class="dica-campo" style="display: block; margin-top: 16px;">
+            @if (bancario().asaasWalletId) {
+              <strong>Trocar a conta de repasse:</strong> informe o walletId da nova subconta (ou da conta Asaas própria,
+              marcando a opção abaixo). Os Pix gerados daqui pra frente repassam para ela; os já enviados mantêm o repasse antigo.
+            } @else {
               Já criou a subconta pelo painel do Asaas? Informe o walletId dela (detalhes da subconta no Asaas) para vincular.
               Se a empresa já tem conta Asaas própria (o Asaas recusa abrir outra no mesmo CNPJ), peça o walletId ao titular
               e marque a opção abaixo.
-            </small>
-            <label class="opcao-pagamento">
-              <input type="checkbox" [checked]="carteiraExterna()" (change)="carteiraExterna.set(!carteiraExterna()); msgVinculo.set('')">
-              <span>
-                Conta Asaas própria da empresa (fora da plataforma)
-                <small>O Asaas não confirma de quem é a carteira: só vincule um walletId recebido do próprio titular. O CNPJ do cadastro da empresa vira o cliente padrão das cobranças.</small>
-              </span>
-            </label>
-            <div class="fg-row">
-              <div class="fg">
-                <label>WalletId da subconta existente</label>
-                <input type="text" maxlength="36" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                       [ngModel]="walletIdExistente()" (ngModelChange)="walletIdExistente.set($event); msgVinculo.set('')">
-              </div>
-            </div>
-            @if (msgVinculo()) {
-              <div class="erro-conta">{{ msgVinculo() }}</div>
             }
-            <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 8px;">
-              <button class="btn btn-outline" (click)="vincularSubconta()" [disabled]="vinculandoSubconta() || !walletIdExistente().trim()">
-                {{ vinculandoSubconta() ? 'Vinculando...' : (carteiraExterna() ? '🔗 Vincular conta Asaas própria' : '🔗 Vincular subconta existente') }}
-              </button>
+          </small>
+          <label class="opcao-pagamento">
+            <input type="checkbox" [checked]="carteiraExterna()" (change)="carteiraExterna.set(!carteiraExterna()); msgVinculo.set('')">
+            <span>
+              Conta Asaas própria da empresa (fora da plataforma)
+              <small>O Asaas não confirma de quem é a carteira: só vincule um walletId recebido do próprio titular. O CNPJ do cadastro da empresa vira o cliente padrão das cobranças.</small>
+            </span>
+          </label>
+          <div class="fg-row">
+            <div class="fg">
+              <label>WalletId da subconta existente</label>
+              <input type="text" maxlength="36" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                     [ngModel]="walletIdExistente()" (ngModelChange)="walletIdExistente.set($event); msgVinculo.set('')">
             </div>
+          </div>
+          @if (msgVinculo()) {
+            <div class="erro-conta">{{ msgVinculo() }}</div>
           }
+          <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 8px;">
+            <button class="btn btn-outline" (click)="vincularSubconta()" [disabled]="vinculandoSubconta() || !walletIdExistente().trim()">
+              {{ vinculandoSubconta() ? 'Vinculando...' : (bancario().asaasWalletId ? '🔁 Substituir conta de repasse' : (carteiraExterna() ? '🔗 Vincular conta Asaas própria' : '🔗 Vincular subconta existente')) }}
+            </button>
+          </div>
         }
 
         <div class="secao-titulo">Comissão da plataforma</div>
