@@ -46,6 +46,9 @@
                 <optgroup label="Texto">
                   <option value="fixo">Escrever um texto</option>
                 </optgroup>
+                <optgroup label="Data">
+                  <option value="mesAtual">Mês atual</option>
+                </optgroup>
                 @if (parametros.length > 0) {
                   <optgroup label="Parâmetros cadastrados">
                     @for (p of parametros; track p.id) {

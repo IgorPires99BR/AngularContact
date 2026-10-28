@@ -7,7 +7,9 @@ export type CampoContato =
   | 'diaVencimento' | 'dataVencimento' | 'taxaJuros' | 'taxaJurosMensal'
   | 'valorAtualizado' | 'pixCopiaECola' | 'linkPagamento';
 
-export type OrigemVariavel = 'fixo' | 'parametro' | CampoContato;
+// 'mesAtual': nome do mês do envio ("Outubro"), igual pra todos -- num agendamento recorrente
+// acompanha o mês de cada execução, porque o backend resolve na hora.
+export type OrigemVariavel = 'fixo' | 'parametro' | 'mesAtual' | CampoContato;
 
 export interface VariavelTemplate {
   origem: OrigemVariavel;
@@ -66,6 +68,12 @@ export function rotuloDoCampo(chave: string): string {
 }
 
 const FORMATO_BR = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+
+// Mesmo formato do ResolvedorDeVariaveis.NomeDoMes: "outubro" capitalizado.
+export function nomeDoMes(hoje: Date = new Date()): string {
+  const mes = hoje.toLocaleDateString('pt-BR', { month: 'long' });
+  return mes.charAt(0).toUpperCase() + mes.slice(1);
+}
 
 // Data de vencimento = dia do contato aplicado ao mês/ano de "hoje", com o dia clampado pro
 // último dia do mês (dia 31 em abril vira 30). Mesmo critério do backend.
@@ -139,7 +147,7 @@ function parametroDaVariavel(v: VariavelTemplate, parametros: ParametroEmpresa[]
 
 // O valor muda de contato pra contato? Só texto fixo (direto ou por parâmetro FIXO) vale igual pra todos.
 export function dependeDoContato(v: VariavelTemplate, parametros: ParametroEmpresa[]): boolean {
-  if (v.origem === 'fixo') return false;
+  if (v.origem === 'fixo' || v.origem === 'mesAtual') return false;
   if (v.origem === 'parametro') return parametroDaVariavel(v, parametros)?.tipo === 'CAMPO_CONTATO';
   return true;
 }
@@ -149,6 +157,7 @@ export function valorDaVariavel(
   parametros: ParametroEmpresa[], hoje: Date = new Date()
 ): string {
   if (v.origem === 'fixo') return v.valorFixo;
+  if (v.origem === 'mesAtual') return nomeDoMes(hoje);
 
   if (v.origem === 'parametro') {
     const p = parametroDaVariavel(v, parametros);
@@ -181,6 +190,9 @@ export function variavelDaSelecao(selecao: string): Partial<VariavelTemplate> {
 
 export function dicaDaVariavel(v: VariavelTemplate, parametros: ParametroEmpresa[]): string {
   if (v.origem === 'fixo') return '';
+  if (v.origem === 'mesAtual') {
+    return `Todos recebem o nome do mês em que a mensagem for enviada (hoje: "${nomeDoMes()}").`;
+  }
 
   if (v.origem === 'parametro') {
     const p = parametroDaVariavel(v, parametros);
