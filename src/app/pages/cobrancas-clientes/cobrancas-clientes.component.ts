@@ -28,6 +28,10 @@ interface CobrancaCliente {
   valorPago?: number | null;
   valorComissao?: number | null;
   valorRepasse?: number | null;
+  // Pix sem split: o valor inteiro caiu na conta da Contact Solution.
+  recebidaNaPlataforma?: boolean;
+  // Quem gerou o Pix: ASAAS ou MERCADOPAGO.
+  provedor?: string | null;
 }
 
 // Uma etapa da linha do tempo da cobrança, do envio no WhatsApp até o pagamento.
@@ -257,9 +261,11 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
     const situacao = this.situacaoDe(c);
     if (situacao === 'PAGA') {
       if (c.pagoViaPix) {
-        const repasse = c.valorRepasse != null
-          ? ` · ${moeda(c.valorRepasse)} na sua subconta${c.valorComissao ? ' (comissão ' + moeda(c.valorComissao) + ')' : ''}`
-          : '';
+        const repasse = c.recebidaNaPlataforma
+          ? ` · recebido na conta da Contact Solution${c.provedor === 'MERCADOPAGO' ? ' (Mercado Pago)' : ''}`
+          : c.valorRepasse != null
+            ? ` · ${moeda(c.valorRepasse)} na sua subconta${c.valorComissao ? ' (comissão ' + moeda(c.valorComissao) + ')' : ''}`
+            : '';
         etapas.push({
           titulo: 'Pago via Pix',
           detalhe: `${c.dataPagamento ? dataHora(c.dataPagamento) + ' · ' : ''}${moeda(c.valorPago ?? c.valorCobrado ?? c.valor)}${repasse}`,

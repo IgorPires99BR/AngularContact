@@ -37,6 +37,8 @@ interface DadosBancarios {
   // Definida só pelo admin da plataforma; para os demais é só leitura.
   comissaoTipo: string;
   comissaoValor: number | null;
+  // Pix sem split, tudo na conta Asaas da Contact Solution. Só o admin da plataforma altera.
+  recebimentoNaPlataforma: boolean;
 }
 
 @Component({
@@ -270,6 +272,10 @@ export class EmpresasComponent implements OnInit, OnDestroy {
   // valor menos a comissao (o Asaas so faz split entre contas Asaas). Endpoint proprio (nao vai
   // junto do salvar da empresa) porque a comissao so pode ser mexida pelo admin da plataforma.
   bancario = signal<DadosBancarios>(this.dadosBancariosVazios());
+  // Provedor que gera os Pix novos (Cobranca:Provedor na API). Sem split (Mercado Pago) o valor
+  // fica todo na conta da Contact Solution: subconta e comissão não são exigidas.
+  provedorAtivo = signal<string>('');
+  provedorFazSplit = signal(true);
   carregandoBancario = signal(false);
   // O salvar único só grava os dados bancários se eles carregaram: senão mandaria os valores
   // vazios do formulário e desligaria a cobrança Pix de quem tinha.
@@ -413,7 +419,7 @@ export class EmpresasComponent implements OnInit, OnDestroy {
   });
 
   private dadosBancariosVazios(): DadosBancarios {
-    return { asaasWalletId: '', asaasContaCriadaEm: null, carteiraExterna: false, cobrancaPixAtiva: false, comissaoTipo: '', comissaoValor: null };
+    return { asaasWalletId: '', asaasContaCriadaEm: null, carteiraExterna: false, cobrancaPixAtiva: false, comissaoTipo: '', comissaoValor: null, recebimentoNaPlataforma: false };
   }
 
   private aplicarDadosBancarios(d: any) {
@@ -424,6 +430,7 @@ export class EmpresasComponent implements OnInit, OnDestroy {
       cobrancaPixAtiva: !!d?.cobrancaPixAtiva,
       comissaoTipo: d?.comissaoTipo ?? '',
       comissaoValor: d?.comissaoValor ?? null,
+      recebimentoNaPlataforma: !!d?.recebimentoNaPlataforma,
     });
   }
 
@@ -441,6 +448,8 @@ export class EmpresasComponent implements OnInit, OnDestroy {
         if (this.editingId() !== empresaId) return;
         this.carregandoBancario.set(false);
         this.aplicarDadosBancarios(d);
+        this.provedorAtivo.set(d?.provedorAtivo ?? '');
+        this.provedorFazSplit.set(d?.provedorFazSplit !== false);
         this.bancarioCarregado.set(true);
       },
       error: (err) => {
@@ -483,6 +492,7 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     if (this.ehAdminDaPlataforma()) {
       payload.comissaoTipo = b.comissaoTipo || null;
       payload.comissaoValor = b.comissaoValor;
+      payload.recebimentoNaPlataforma = b.recebimentoNaPlataforma;
     }
 
     this.msgBancario.set('');

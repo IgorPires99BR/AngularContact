@@ -249,6 +249,26 @@
         <div class="dica-campo">Carregando dados bancários...</div>
       } @else {
 
+        <div class="secao-titulo">Onde o pagamento é recebido</div>
+        @if (!provedorFazSplit()) {
+          <small class="dica-campo">
+            As cobranças Pix são geradas pelo <strong>{{ provedorAtivo() === 'MERCADOPAGO' ? 'Mercado Pago' : provedorAtivo() }}</strong>
+            e recebidas na conta da Contact Solution, que faz o repasse à empresa por fora. Subconta Asaas e comissão
+            ficam guardadas para quando o Asaas voltar a ser o provedor.
+          </small>
+        } @else if (ehAdminDaPlataforma()) {
+          <label class="opcao-pagamento">
+            <input type="checkbox" [checked]="bancario().recebimentoNaPlataforma"
+                   (change)="atualizarBancario('recebimentoNaPlataforma', !bancario().recebimentoNaPlataforma)">
+            <span>
+              Receber na conta Asaas da Contact Solution
+              <small>O Pix sai sem split: o valor pago fica inteiro na conta da Contact Solution e o acerto com a empresa é feito por fora. Dispensa subconta e comissão; uma subconta já vinculada fica guardada para quando a opção for desmarcada.</small>
+            </span>
+          </label>
+        } @else if (bancario().recebimentoNaPlataforma) {
+          <small class="dica-campo">As cobranças Pix desta empresa são recebidas na conta Asaas da Contact Solution, que faz o repasse por fora.</small>
+        }
+
         <div class="secao-titulo">Subconta Asaas para repasse</div>
         @if (bancario().asaasWalletId) {
           <small class="dica-campo">
@@ -444,7 +464,13 @@
                  (change)="atualizarBancario('cobrancaPixAtiva', !bancario().cobrancaPixAtiva)">
           <span>
             Ativar cobrança via Pix
-            <small>As mensagens de cobrança desta empresa passam a levar o link de pagamento Pix. Só é possível ativar com a subconta Asaas criada e a comissão definida. Contato sem CPF/CNPJ no cadastro recebe o Pix em nome da própria empresa.</small>
+            <small>
+              As mensagens de cobrança desta empresa passam a levar o link de pagamento Pix.
+              {{ bancario().recebimentoNaPlataforma || !provedorFazSplit()
+                ? 'O valor é recebido na conta da Contact Solution.'
+                : 'Só é possível ativar com a subconta Asaas criada e a comissão definida.' }}
+              Contato sem CPF/CNPJ no cadastro recebe o Pix em nome da própria empresa.
+            </small>
           </span>
         </label>
 
