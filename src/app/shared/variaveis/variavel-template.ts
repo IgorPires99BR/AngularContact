@@ -57,7 +57,7 @@ export const CAMPOS_DO_CONTATO: CampoContatoInfo[] = [
   { chave: 'taxaJuros', rotulo: 'Taxa de juros' },
   { chave: 'taxaJurosMensal', rotulo: 'Taxa de juros mensal' },
   // Os três abaixo só funcionam em template marcado "gera cobrança"; os dois de Pix exigem a
-  // cobrança Pix ativa nos dados bancários da empresa (o Pix é gerado no Itaú na hora do envio).
+  // cobrança Pix ativa nos dados bancários da empresa (o Pix é gerado no envio, na adquirente da empresa).
   { chave: 'valorAtualizado', rotulo: 'Valor atualizado (fatura + multa + juros)' },
   { chave: 'pixCopiaECola', rotulo: 'Pix copia e cola (gerado no envio)' },
   { chave: 'linkPagamento', rotulo: 'Link da página de pagamento Pix (gerado no envio)' },

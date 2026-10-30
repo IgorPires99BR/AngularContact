@@ -28,6 +28,17 @@ interface Empresa {
 }
 
 interface DadosBancarios {
+  // Conta onde a empresa recebe (só uma): MERCADOPAGO (padrão) ou ASAAS.
+  provedorRecebimento: 'MERCADOPAGO' | 'ASAAS';
+  // Conta Mercado Pago da empresa, conectada por OAuth (os tokens ficam só na API).
+  mercadoPagoConectado: boolean;
+  mercadoPagoUserId: string | null;
+  mercadoPagoConectadoEm: string | null;
+  mercadoPagoTokenExpiraEm: string | null;
+  // Onde as cobranças caem hoje, calculado na API: conta da empresa (com a comissão para a
+  // plataforma) ou conta da Contact Solution, com o motivo.
+  recebimentoNaContaDaEmpresa: boolean;
+  motivoRecebimentoNaPlataforma: string | null;
   // Subconta Asaas que recebe o repasse; vazio = ainda não criada.
   asaasWalletId: string;
   asaasContaCriadaEm: string | null;
@@ -163,8 +174,44 @@ export class EmpresasComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit() {
+    this.lerRetornoMercadoPago();
     this.obterEmpresas();
     window.addEventListener('message', this.embeddedSignupListener);
+  }
+
+  // Volta do OAuth do Mercado Pago: a API redireciona para cá com ?mercadopago=conectado&empresa=
+  // ou ?mercadopago=erro&mensagem=. Reabre a empresa e mostra o resultado em Dados bancários.
+  private retornoMercadoPago: { empresaId: string | null; ok: boolean; mensagem: string } | null = null;
+
+  private lerRetornoMercadoPago() {
+    const params = new URLSearchParams(window.location.search);
+    const resultado = params.get('mercadopago');
+    if (!resultado) return;
+
+    this.retornoMercadoPago = {
+      empresaId: params.get('empresa'),
+      ok: resultado === 'conectado',
+      mensagem: resultado === 'conectado'
+        ? '✅ Conta Mercado Pago conectada. As cobranças desta empresa passam a sair em nome dela, com a comissão da plataforma.'
+        : (params.get('mensagem') || 'Não foi possível conectar a conta Mercado Pago.'),
+    };
+    // Tira os parâmetros da URL: recarregar a página não deve repetir o aviso.
+    history.replaceState(null, '', window.location.pathname);
+  }
+
+  private aplicarRetornoMercadoPago() {
+    const retorno = this.retornoMercadoPago;
+    if (!retorno) return;
+    this.retornoMercadoPago = null;
+
+    const empresa = retorno.empresaId ? this.empresas().find(e => e.id === retorno.empresaId) : null;
+    if (empresa) this.prepararEdicao(empresa);
+    if (retorno.ok || empresa) {
+      this.msgBancarioErro.set(!retorno.ok);
+      this.msgBancario.set(retorno.mensagem);
+    } else {
+      this.response.set('❌ ' + retorno.mensagem);
+    }
   }
 
   ngOnDestroy() {
@@ -262,20 +309,65 @@ export class EmpresasComponent implements OnInit, OnDestroy {
 
   obterEmpresas() {
     this.http.get<Empresa[]>(`${this.BASE_URL}/obter`).subscribe({
-      next: (dados) => this.empresas.set(dados),
+      next: (dados) => {
+        this.empresas.set(dados);
+        this.aplicarRetornoMercadoPago();
+      },
       error: (err) => this.response.set('❌ ' + extrairMensagemErro(err, 'Erro ao carregar empresas.'))
     });
   }
 
-  // --- Dados bancarios: subconta Asaas onde a empresa recebe o repasse das cobrancas aos
-  // clientes dela. O Pix e gerado na conta Asaas da plataforma e o split manda para a subconta o
-  // valor menos a comissao (o Asaas so faz split entre contas Asaas). Endpoint proprio (nao vai
-  // junto do salvar da empresa) porque a comissao so pode ser mexida pelo admin da plataforma.
+  // --- Dados bancarios: conta onde a empresa recebe as cobrancas aos clientes dela -- Mercado
+  // Pago (conectada por OAuth; a comissao vai no marketplace_fee) ou subconta Asaas (split). So
+  // uma vale. Sem a conta ou sem a comissao, a cobranca e da propria Contact Solution. Endpoint
+  // proprio (nao vai junto do salvar da empresa) porque a comissao so pode ser mexida pelo admin
+  // da plataforma.
   bancario = signal<DadosBancarios>(this.dadosBancariosVazios());
-  // Provedor que gera os Pix novos (Cobranca:Provedor na API). Sem split (Mercado Pago) o valor
-  // fica todo na conta da Contact Solution: subconta e comissão não são exigidas.
+  // Provedor das cobranças da própria Contact Solution (Cobranca:Provedor na API).
   provedorAtivo = signal<string>('');
-  provedorFazSplit = signal(true);
+  conectandoMercadoPago = signal(false);
+  desconectandoMercadoPago = signal(false);
+
+  nomeProvedor(provedor: string): string {
+    return provedor === 'MERCADOPAGO' ? 'Mercado Pago' : provedor === 'ASAAS' ? 'Asaas' : provedor;
+  }
+
+  // Leva o navegador para a autorização no Mercado Pago; a volta cai em lerRetornoMercadoPago.
+  conectarMercadoPago() {
+    const empresaId = this.editingId();
+    if (!empresaId) return;
+    this.conectandoMercadoPago.set(true);
+    this.msgBancario.set('');
+    this.http.post<any>(`${this.BASE_URL}/${empresaId}/dados-bancarios/mercadopago/conectar`, {}).subscribe({
+      next: (r) => { window.location.href = r.urlAutorizacao; },
+      error: (err) => {
+        this.conectandoMercadoPago.set(false);
+        this.msgBancarioErro.set(true);
+        this.msgBancario.set(extrairMensagemErro(err, 'Não foi possível iniciar a conexão com o Mercado Pago.'));
+      }
+    });
+  }
+
+  desconectarMercadoPago() {
+    const empresaId = this.editingId();
+    if (!empresaId) return;
+    if (!confirm('Desconectar a conta Mercado Pago? As próximas cobranças desta empresa saem pela conta da Contact Solution, e os Pix pendentes já enviados na conta da empresa deixam de ter baixa automática.')) return;
+
+    this.desconectandoMercadoPago.set(true);
+    this.http.delete<any>(`${this.BASE_URL}/${empresaId}/dados-bancarios/mercadopago`).subscribe({
+      next: (r) => {
+        this.desconectandoMercadoPago.set(false);
+        this.aplicarDadosBancarios(r);
+        this.msgBancarioErro.set(false);
+        this.msgBancario.set('Conta Mercado Pago desconectada.');
+      },
+      error: (err) => {
+        this.desconectandoMercadoPago.set(false);
+        this.msgBancarioErro.set(true);
+        this.msgBancario.set(extrairMensagemErro(err, 'Não foi possível desconectar a conta Mercado Pago.'));
+      }
+    });
+  }
   carregandoBancario = signal(false);
   // O salvar único só grava os dados bancários se eles carregaram: senão mandaria os valores
   // vazios do formulário e desligaria a cobrança Pix de quem tinha.
@@ -419,11 +511,24 @@ export class EmpresasComponent implements OnInit, OnDestroy {
   });
 
   private dadosBancariosVazios(): DadosBancarios {
-    return { asaasWalletId: '', asaasContaCriadaEm: null, carteiraExterna: false, cobrancaPixAtiva: false, comissaoTipo: '', comissaoValor: null, recebimentoNaPlataforma: false };
+    return {
+      provedorRecebimento: 'MERCADOPAGO', mercadoPagoConectado: false, mercadoPagoUserId: null,
+      mercadoPagoConectadoEm: null, mercadoPagoTokenExpiraEm: null,
+      recebimentoNaContaDaEmpresa: false, motivoRecebimentoNaPlataforma: null,
+      asaasWalletId: '', asaasContaCriadaEm: null, carteiraExterna: false, cobrancaPixAtiva: false,
+      comissaoTipo: '', comissaoValor: null, recebimentoNaPlataforma: false,
+    };
   }
 
   private aplicarDadosBancarios(d: any) {
     this.bancario.set({
+      provedorRecebimento: d?.provedorRecebimento === 'ASAAS' ? 'ASAAS' : 'MERCADOPAGO',
+      mercadoPagoConectado: !!d?.mercadoPagoConectado,
+      mercadoPagoUserId: d?.mercadoPagoUserId ?? null,
+      mercadoPagoConectadoEm: d?.mercadoPagoConectadoEm ?? null,
+      mercadoPagoTokenExpiraEm: d?.mercadoPagoTokenExpiraEm ?? null,
+      recebimentoNaContaDaEmpresa: !!d?.recebimentoNaContaDaEmpresa,
+      motivoRecebimentoNaPlataforma: d?.motivoRecebimentoNaPlataforma ?? null,
       asaasWalletId: d?.asaasWalletId ?? '',
       asaasContaCriadaEm: d?.asaasContaCriadaEm ?? null,
       carteiraExterna: !!d?.carteiraExterna,
@@ -449,7 +554,6 @@ export class EmpresasComponent implements OnInit, OnDestroy {
         this.carregandoBancario.set(false);
         this.aplicarDadosBancarios(d);
         this.provedorAtivo.set(d?.provedorAtivo ?? '');
-        this.provedorFazSplit.set(d?.provedorFazSplit !== false);
         this.bancarioCarregado.set(true);
       },
       error: (err) => {
@@ -488,6 +592,7 @@ export class EmpresasComponent implements OnInit, OnDestroy {
     const payload: any = {
       empresaId,
       cobrancaPixAtiva: b.cobrancaPixAtiva,
+      provedorRecebimento: b.provedorRecebimento,
     };
     if (this.ehAdminDaPlataforma()) {
       payload.comissaoTipo = b.comissaoTipo || null;

@@ -1,11 +1,12 @@
-import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, computed, inject, signal } from '@angular/core';
+import { ProvedorCobrancaService, camposComProvedor } from '../../../shared/variaveis/provedor-cobranca.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { extrairMensagemErro } from '../../../core/utils/erro-api.util';
 import { TemplateService } from '../template.service';
 import { GATILHOS_INFO, Template, TemplateGatilho, TipoGatilho } from '../template.models';
 import {
-  CAMPOS_DO_CONTATO, ParametroEmpresa, VariavelTemplate, dicaDaVariavel, selecaoDaVariavel,
+  ParametroEmpresa, VariavelTemplate, dicaDaVariavel, selecaoDaVariavel,
   variavelDaSelecao, variavelIncompleta
 } from '../../../shared/variaveis/variavel-template';
 
@@ -34,7 +35,11 @@ export class TemplateGatilhosComponent implements OnInit {
   private templateService = inject(TemplateService);
 
   readonly info = GATILHOS_INFO;
-  readonly camposDoContato = CAMPOS_DO_CONTATO;
+  // Adquirente da empresa do template entre parênteses nas variáveis de Pix (o template pode ser
+  // de outra empresa quando quem edita é o admin da plataforma).
+  private empresaDoTemplate = signal<string | null>(null);
+  private provedorCobranca = inject(ProvedorCobrancaService).provedorDa(this.empresaDoTemplate);
+  readonly camposDoContato = computed(() => camposComProvedor(this.provedorCobranca()));
 
   estados = signal<EstadoGatilho[]>([]);
   salvando = signal(false);
@@ -42,6 +47,7 @@ export class TemplateGatilhosComponent implements OnInit {
   erro = signal(false);
 
   ngOnInit() {
+    this.empresaDoTemplate.set(this.template.empresaId ?? null);
     const qtd = (this.template.conteudo.match(/\{\{\d+\}\}/g) || []).length;
     this.estados.set(GATILHOS_INFO.map(i => {
       const existente = this.gatilhos.find(g => g.tipo === i.tipo);

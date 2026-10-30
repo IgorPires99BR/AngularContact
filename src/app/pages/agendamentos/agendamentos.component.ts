@@ -1,3 +1,4 @@
+import { ProvedorCobrancaService, camposComProvedor } from '../../shared/variaveis/provedor-cobranca.service';
 import { Component, signal, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -15,7 +16,7 @@ import {
 } from './agendamento.models';
 import { ParametroService } from '../parametros/parametro.service';
 import {
-  CAMPOS_DO_CONTATO, ParametroEmpresa, dicaDaVariavel, selecaoDaVariavel,
+  ParametroEmpresa, dicaDaVariavel, selecaoDaVariavel,
   valorDaVariavel as resolverValorDaVariavel, variavelDaSelecao, variavelIncompleta
 } from '../../shared/variaveis/variavel-template';
 
@@ -88,7 +89,9 @@ export class AgendamentosComponent implements OnInit {
   variaveis = signal<AgendamentoVariavel[]>([]);
   // Parâmetros cadastrados da empresa (tela Parâmetros), oferecidos como origem de cada variável.
   parametros = signal<ParametroEmpresa[]>([]);
-  readonly camposDoContato = CAMPOS_DO_CONTATO;
+  // Adquirente da empresa entre parênteses nas variáveis de Pix.
+  private provedorCobranca = inject(ProvedorCobrancaService).provedorDa(this.empresaId);
+  readonly camposDoContato = computed(() => camposComProvedor(this.provedorCobranca()));
 
   contatosFiltrados = computed(() => {
     const termo = this.search().toLowerCase().trim();

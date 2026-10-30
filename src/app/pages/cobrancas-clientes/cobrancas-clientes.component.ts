@@ -264,7 +264,7 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
         const repasse = c.recebidaNaPlataforma
           ? ` · recebido na conta da Contact Solution${c.provedor === 'MERCADOPAGO' ? ' (Mercado Pago)' : ''}`
           : c.valorRepasse != null
-            ? ` · ${moeda(c.valorRepasse)} na sua subconta${c.valorComissao ? ' (comissão ' + moeda(c.valorComissao) + ')' : ''}`
+            ? ` · ${moeda(c.valorRepasse)} na sua ${c.provedor === 'MERCADOPAGO' ? 'conta Mercado Pago' : 'subconta'}${c.valorComissao ? ' (comissão ' + moeda(c.valorComissao) + ')' : ''}`
             : '';
         etapas.push({
           titulo: 'Pago via Pix',

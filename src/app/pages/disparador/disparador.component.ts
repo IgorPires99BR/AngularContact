@@ -1,3 +1,4 @@
+import { ProvedorCobrancaService, camposComProvedor } from '../../shared/variaveis/provedor-cobranca.service';
 import { Component, signal, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -10,7 +11,7 @@ import { Template, TemplateComponente, parseComponentes, nomeDoTemplate } from '
 import { AssistenteIaBotaoComponent } from '../../shared/assistente-ia/assistente-ia-botao';
 import { ParametroService } from '../parametros/parametro.service';
 import {
-  CAMPOS_DO_CONTATO, ParametroEmpresa, VariavelTemplate, dependeDoContato, dicaDaVariavel,
+  ParametroEmpresa, VariavelTemplate, dependeDoContato, dicaDaVariavel,
   selecaoDaVariavel, valorDaVariavel as resolverValorDaVariavel, variavelDaSelecao, variavelIncompleta
 } from '../../shared/variaveis/variavel-template';
 
@@ -82,7 +83,9 @@ export class DisparadorComponent implements OnInit {
   variaveis = signal<VariavelBody[]>([]);
   // Parâmetros cadastrados da empresa (tela Parâmetros), oferecidos como origem de cada variável.
   parametros = signal<ParametroEmpresa[]>([]);
-  readonly camposDoContato = CAMPOS_DO_CONTATO;
+  // Adquirente da empresa entre parênteses nas variáveis de Pix.
+  private provedorCobranca = inject(ProvedorCobrancaService).provedorDa(this.empresaId);
+  readonly camposDoContato = computed(() => camposComProvedor(this.provedorCobranca()));
   buttonParams = signal<{ value: string }[]>([]);
   headerMediaUrl = signal('');
   temMediaHeader = signal(false);

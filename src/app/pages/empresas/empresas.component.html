@@ -240,9 +240,9 @@
         }
       </div>
       <div class="form-setor-sub">
-        Opcional: só para empresas que cobram os próprios clientes pela plataforma. Subconta Asaas onde
-        {{ form().nome || 'a empresa' }} recebe o valor das cobranças pagas; o valor, já descontada a comissão da
-        plataforma, é repassado automaticamente.
+        Opcional: para {{ form().nome || 'a empresa' }} cobrar os próprios clientes e receber na conta dela. A Contact
+        Solution fica só com a comissão. Sem a conta conectada (ou sem a comissão definida), as cobranças são feitas
+        pela conta da própria Contact Solution.
       </div>
 
       @if (carregandoBancario()) {
@@ -250,24 +250,64 @@
       } @else {
 
         <div class="secao-titulo">Onde o pagamento é recebido</div>
-        @if (!provedorFazSplit()) {
+        @if (bancario().recebimentoNaContaDaEmpresa) {
+          <div class="ok-bancario">
+            Na conta {{ nomeProvedor(bancario().provedorRecebimento) }} da empresa. A comissão da plataforma
+            ({{ descricaoComissao() }}) é descontada automaticamente.
+          </div>
+        } @else {
           <small class="dica-campo">
-            As cobranças Pix são geradas pelo <strong>{{ provedorAtivo() === 'MERCADOPAGO' ? 'Mercado Pago' : provedorAtivo() }}</strong>
-            e recebidas na conta da Contact Solution, que faz o repasse à empresa por fora. Subconta Asaas e comissão
-            ficam guardadas para quando o Asaas voltar a ser o provedor.
+            Hoje as cobranças saem pela <strong>conta da Contact Solution</strong>{{ provedorAtivo() ? ' (' + nomeProvedor(provedorAtivo()) + ')' : '' }}{{ bancario().motivoRecebimentoNaPlataforma ? ': ' + bancario().motivoRecebimentoNaPlataforma + '.' : '.' }}
           </small>
-        } @else if (ehAdminDaPlataforma()) {
-          <label class="opcao-pagamento">
-            <input type="checkbox" [checked]="bancario().recebimentoNaPlataforma"
-                   (change)="atualizarBancario('recebimentoNaPlataforma', !bancario().recebimentoNaPlataforma)">
-            <span>
-              Receber na conta Asaas da Contact Solution
-              <small>O Pix sai sem split: o valor pago fica inteiro na conta da Contact Solution e o acerto com a empresa é feito por fora. Dispensa subconta e comissão; uma subconta já vinculada fica guardada para quando a opção for desmarcada.</small>
-            </span>
-          </label>
-        } @else if (bancario().recebimentoNaPlataforma) {
-          <small class="dica-campo">As cobranças Pix desta empresa são recebidas na conta Asaas da Contact Solution, que faz o repasse por fora.</small>
         }
+
+        <div class="secao-titulo">Conta de recebimento da empresa</div>
+        <small class="dica-campo">Só uma conta vale. Ao trocar, salve a empresa para a escolha passar a valer.</small>
+        <div class="fg-row">
+          <label class="opcao-pagamento">
+            <input type="radio" name="provedorRecebimento" [checked]="bancario().provedorRecebimento === 'MERCADOPAGO'"
+                   (change)="atualizarBancario('provedorRecebimento', 'MERCADOPAGO')">
+            <span>Mercado Pago <small>A empresa conecta a conta Mercado Pago dela.</small></span>
+          </label>
+          <label class="opcao-pagamento">
+            <input type="radio" name="provedorRecebimento" [checked]="bancario().provedorRecebimento === 'ASAAS'"
+                   (change)="atualizarBancario('provedorRecebimento', 'ASAAS')">
+            <span>Asaas <small>Subconta Asaas da empresa, com repasse automático.</small></span>
+          </label>
+        </div>
+
+        @if (bancario().provedorRecebimento === 'MERCADOPAGO') {
+        <div class="secao-titulo">Conta Mercado Pago da empresa</div>
+        @if (bancario().mercadoPagoConectado) {
+          <small class="dica-campo">
+            Conta Mercado Pago <strong>{{ bancario().mercadoPagoUserId }}</strong> conectada{{ bancario().mercadoPagoConectadoEm ? ' em ' + (bancario().mercadoPagoConectadoEm | date:'dd/MM/yyyy') : '' }}.
+            As cobranças saem em nome da empresa e o valor (menos a taxa do Mercado Pago e a comissão da plataforma)
+            cai direto na conta dela.
+            @if (bancario().mercadoPagoTokenExpiraEm) {
+              Autorização válida até {{ bancario().mercadoPagoTokenExpiraEm | date:'dd/MM/yyyy' }} (renovada automaticamente).
+            }
+          </small>
+          <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 8px;">
+            <button class="btn btn-outline" (click)="conectarMercadoPago()" [disabled]="conectandoMercadoPago()">
+              {{ conectandoMercadoPago() ? 'Abrindo o Mercado Pago...' : '🔁 Conectar outra conta' }}
+            </button>
+            <button class="btn btn-outline" (click)="desconectarMercadoPago()" [disabled]="desconectandoMercadoPago()">
+              {{ desconectandoMercadoPago() ? 'Desconectando...' : 'Desconectar' }}
+            </button>
+          </div>
+        } @else {
+          <small class="dica-campo">
+            O titular da conta Mercado Pago da empresa entra no Mercado Pago e autoriza a Contact Solution a gerar as
+            cobranças em nome dele. Nenhuma senha passa por aqui. Salve as alterações da empresa antes: a página sai para o
+            Mercado Pago e volta para cá.
+          </small>
+          <div class="btn-grp" style="display: flex; gap: 8px; margin-top: 8px;">
+            <button class="btn btn-outline" (click)="conectarMercadoPago()" [disabled]="conectandoMercadoPago()">
+              {{ conectandoMercadoPago() ? 'Abrindo o Mercado Pago...' : '🔗 Conectar conta Mercado Pago' }}
+            </button>
+          </div>
+        }
+        } @else {
 
         <div class="secao-titulo">Subconta Asaas para repasse</div>
         @if (bancario().asaasWalletId) {
@@ -435,6 +475,7 @@
             </button>
           </div>
         }
+        }
 
         <div class="secao-titulo">Comissão da plataforma</div>
         @if (ehAdminDaPlataforma()) {
@@ -459,17 +500,25 @@
           <small class="dica-campo">Comissão: <strong>{{ descricaoComissao() }}</strong>. Definida pela Contact Solution.</small>
         }
 
+        @if (ehAdminDaPlataforma()) {
+          <label class="opcao-pagamento">
+            <input type="checkbox" [checked]="bancario().recebimentoNaPlataforma"
+                   (change)="atualizarBancario('recebimentoNaPlataforma', !bancario().recebimentoNaPlataforma)">
+            <span>
+              Forçar recebimento na conta da Contact Solution
+              <small>Mesmo com a conta da empresa conectada, as cobranças saem pela conta da Contact Solution e o acerto com a empresa é feito por fora. A conta da empresa fica guardada para quando a opção for desmarcada.</small>
+            </span>
+          </label>
+        }
+
         <label class="opcao-pagamento">
           <input type="checkbox" [checked]="bancario().cobrancaPixAtiva"
                  (change)="atualizarBancario('cobrancaPixAtiva', !bancario().cobrancaPixAtiva)">
           <span>
             Ativar cobrança via Pix
             <small>
-              As mensagens de cobrança desta empresa passam a levar o link de pagamento Pix.
-              {{ bancario().recebimentoNaPlataforma || !provedorFazSplit()
-                ? 'O valor é recebido na conta da Contact Solution.'
-                : 'Só é possível ativar com a subconta Asaas criada e a comissão definida.' }}
-              Contato sem CPF/CNPJ no cadastro recebe o Pix em nome da própria empresa.
+              As mensagens de cobrança desta empresa passam a levar o link de pagamento Pix: na conta da empresa quando
+              ela estiver conectada e com comissão definida, senão na conta da Contact Solution.
             </small>
           </span>
         </label>

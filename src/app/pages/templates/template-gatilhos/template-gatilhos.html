@@ -39,7 +39,7 @@
               <label>Campo {{ i + 1 }} da mensagem</label>
               <select [ngModel]="selecao(v)" (ngModelChange)="trocarOrigem(e.tipo, i, $event)">
                 <optgroup label="Dado de cada contato">
-                  @for (c of camposDoContato; track c.chave) {
+                  @for (c of camposDoContato(); track c.chave) {
                     <option [value]="c.chave">{{ c.rotulo }}</option>
                   }
                 </optgroup>

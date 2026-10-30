@@ -38,7 +38,7 @@
         <label>Campo {{ i + 1 }} da mensagem</label>
         <select [ngModel]="selecaoDaVariavel(v)" (ngModelChange)="trocarOrigem(i, $event)">
           <optgroup label="Dado de cada contato">
-            <option *ngFor="let c of camposDoContato" [value]="c.chave">{{ c.rotulo }}</option>
+            <option *ngFor="let c of camposDoContato()" [value]="c.chave">{{ c.rotulo }}</option>
           </optgroup>
           <optgroup label="Texto">
             <option value="fixo">Escrever um texto</option>
