@@ -32,6 +32,8 @@ interface CobrancaCliente {
   recebidaNaPlataforma?: boolean;
   // Quem gerou o Pix: ASAAS ou MERCADOPAGO.
   provedor?: string | null;
+  // A empresa tem modelo de recorrência ligado em Momentos de disparo.
+  recorrenciaDisponivel?: boolean;
 }
 
 // Uma etapa da linha do tempo da cobrança, do envio no WhatsApp até o pagamento.
@@ -94,6 +96,10 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
   dataPagamento = signal(this.formatarData(new Date()));
   hoje = this.formatarData(new Date());
   marcandoPaga = signal<string | null>(null);
+  confirmandoRecorrencia = signal<string | null>(null);
+  enviandoRecorrencia = signal<string | null>(null);
+  avisoRecorrencia = signal('');
+  erroRecorrencia = signal('');
 
   // Situacao e filtrada no front (nao no endpoint) pra os cards de total continuarem mostrando
   // o periodo inteiro enquanto a tabela e recortada.
@@ -277,7 +283,7 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
     } else if (situacao === 'CANCELADA') {
       etapas.push({ titulo: 'Cancelada', estado: 'falhou' });
     } else if (this.pixExpirado(c)) {
-      etapas.push({ titulo: 'Pix expirou sem pagamento', detalhe: 'Envie uma nova cobrança para gerar outro Pix', estado: 'falhou' });
+      etapas.push({ titulo: 'Pix expirou sem pagamento', detalhe: c.recorrenciaDisponivel ? 'Envie a recorrência para gerar outro Pix' : 'Envie uma nova cobrança para gerar outro Pix', estado: 'falhou' });
     } else {
       etapas.push({
         titulo: c.temPix ? 'Aguardando pagamento' : 'Aguardando confirmação manual',
@@ -298,6 +304,37 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
     navigator.clipboard?.writeText(c.linkPagamento).then(() => {
       this.linkCopiado.set(c.id);
       setTimeout(() => { if (this.linkCopiado() === c.id) this.linkCopiado.set(null); }, 2500);
+    });
+  }
+
+  // Confirmacao na propria linha (sem confirm() do navegador): a mensagem vai direto ao cliente e
+  // nao da para desfazer.
+  enviarRecorrencia(c: CobrancaCliente) {
+    this.erroRecorrencia.set('');
+    this.avisoRecorrencia.set('');
+    this.confirmandoRecorrencia.set(null);
+    this.enviandoRecorrencia.set(c.id);
+
+    const { inicio, fim } = this.periodoAplicado();
+    this.http.post<any>(`${this.API}/${c.id}/enviar-recorrencia`, {}).subscribe({
+      next: (res) => {
+        const r = res?.value ?? res;
+        const nome = c.nomeCliente || c.nomeContato || c.telefone || 'cliente';
+        const valor = r?.valorCobrado != null
+          ? ` Valor: ${Number(r.valorCobrado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.` : '';
+        const falhas = r?.totalFalhas ? ` ${r.totalFalhas} número(s) do contato não receberam.` : '';
+        this.avisoRecorrencia.set(`✅ Recorrência enviada para ${nome}.${r?.pixRenovado ? ' Novo Pix gerado.' : ''}${valor}${falhas}`);
+        this.enviandoRecorrencia.set(null);
+        // O Pix pode ter mudado (validade, valor com encargos).
+        this.carregarPeriodo(inicio, fim);
+      },
+      error: (err) => {
+        // Nao usa erro(): a tabela leria como falha ao carregar a lista.
+        this.erroRecorrencia.set(extrairMensagemErro(err, 'Não foi possível enviar a recorrência.'));
+        this.enviandoRecorrencia.set(null);
+        // A baixa pode ter sido feita no caminho (o cliente já tinha pago).
+        this.carregarPeriodo(inicio, fim);
+      }
     });
   }
 

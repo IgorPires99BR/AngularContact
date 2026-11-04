@@ -48,7 +48,7 @@ export interface Template {
 }
 
 // --- Momento de disparo automático do template (TemplateGatilho no backend, BD/55) ---
-export type TipoGatilho = 'CADASTRO_CONTATO' | 'ATRASO_PAGAMENTO';
+export type TipoGatilho = 'CADASTRO_CONTATO' | 'ATRASO_PAGAMENTO' | 'RECORRENCIA_MANUAL';
 
 export interface TemplateGatilho {
   id?: string;
@@ -71,12 +71,17 @@ export const GATILHOS_INFO: { tipo: TipoGatilho; titulo: string; descricao: stri
     titulo: 'Disparar quando houver atraso de pagamento',
     descricao: 'Verificado todo dia às 9h: quem tem cobrança em aberto (Cobranças de Clientes) há esse número de dias depois do vencimento recebe a mensagem uma vez por cobrança. Vale para cobranças que atrasarem depois que o momento foi ligado.',
   },
+  {
+    tipo: 'RECORRENCIA_MANUAL',
+    titulo: 'Botão de recorrência em Cobranças de Clientes',
+    descricao: 'Não sai sozinho: adiciona em cada cobrança em aberto um botão que envia este modelo ao cliente, usando o Pix da própria cobrança (se vencido, gera outro com multa e juros do dia). O modelo precisa do botão "Pagar com Pix" e não pode gerar cobrança.',
+  },
 ];
 
 export function rotuloGatilho(g: TemplateGatilho): string {
-  return g.tipo === 'CADASTRO_CONTATO'
-    ? 'Ao cadastrar contato'
-    : `Atraso de pagamento (${g.diasAtraso ?? 0} dia${g.diasAtraso === 1 ? '' : 's'})`;
+  if (g.tipo === 'CADASTRO_CONTATO') return 'Ao cadastrar contato';
+  if (g.tipo === 'RECORRENCIA_MANUAL') return 'Botão de recorrência';
+  return `Atraso de pagamento (${g.diasAtraso ?? 0} dia${g.diasAtraso === 1 ? '' : 's'})`;
 }
 
 // --- Estado de botão usado no formulário de criação/edição (tipo como string, formato que a

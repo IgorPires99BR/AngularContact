@@ -79,6 +79,20 @@
   </div>
 }
 
+@if (avisoRecorrencia()) {
+  <div class="cc-aviso-pagamento" role="status">
+    <span>{{ avisoRecorrencia() }}</span>
+    <button class="btn btn-ghost btn-xs" (click)="avisoRecorrencia.set('')" aria-label="Fechar aviso">✕</button>
+  </div>
+}
+
+@if (erroRecorrencia()) {
+  <div class="payload-display mb-14" role="alert">
+    ❌ {{ erroRecorrencia() }}
+    <button class="btn btn-ghost btn-xs" (click)="erroRecorrencia.set('')" aria-label="Fechar erro">✕</button>
+  </div>
+}
+
 <div class="card">
   <div class="card-head">
     <div>
@@ -191,6 +205,18 @@
                         <button class="btn btn-ghost btn-xs" (click)="copiarLink(c)">
                           {{ linkCopiado() === c.id ? '✅ Link copiado' : '📋 Copiar link' }}
                         </button>
+                      </div>
+                      <div class="cc-andamento-acoes" *ngIf="c.recorrenciaDisponivel && c.status === 'PENDENTE'">
+                        <button *ngIf="confirmandoRecorrencia() !== c.id" class="btn btn-ghost btn-xs"
+                                [disabled]="enviandoRecorrencia() === c.id"
+                                (click)="confirmandoRecorrencia.set(c.id)">
+                          {{ enviandoRecorrencia() === c.id ? '⏳ Enviando...' : '🔁 Enviar recorrência' }}
+                        </button>
+                        <span *ngIf="confirmandoRecorrencia() === c.id" class="cc-confirmacao">
+                          <label>Enviar a mensagem de recorrência agora para o cliente?</label>
+                          <button class="btn btn-success btn-xs" (click)="enviarRecorrencia(c)">Enviar</button>
+                          <button class="btn btn-ghost btn-xs" (click)="confirmandoRecorrencia.set(null)">Cancelar</button>
+                        </span>
                       </div>
                     </td>
                   </tr>
