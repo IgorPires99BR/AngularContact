@@ -6,7 +6,7 @@
   <a class="btn btn-ghost btn-sm" routerLink="/templates/mapa">🧠 Mapa Mental 3D</a>
 </div>
 
-<div class="stats-grid">
+<div class="stats-grid" *ngIf="!mostrandoInativos()">
   <div class="stat-card">
     <div class="stat-icon green">✅</div>
     <div class="tpl-stat-body">
@@ -275,10 +275,13 @@
   <div class="card">
     <div class="card-head">
       <div>
-        <div class="card-title">Seus modelos</div>
-        <div class="card-sub">{{ templates().length }} cadastrado(s)</div>
+        <div class="card-title">{{ mostrandoInativos() ? '🗄 Modelos inativos' : 'Seus modelos' }}</div>
+        <div class="card-sub">{{ templates().length }} {{ mostrandoInativos() ? 'inativo(s) — fora das telas e dos envios' : 'cadastrado(s)' }}</div>
       </div>
-      <div style="display: flex; gap: 6px;">
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <button class="btn btn-ghost btn-sm" (click)="alternarInativos()">
+          {{ mostrandoInativos() ? '← Voltar aos ativos' : 'Ver inativos' }}
+        </button>
         <button class="btn btn-ghost btn-sm" title="Busca na Meta a situação atual de cada modelo" (click)="sincronizarComMeta()" [disabled]="sincronizando()">
           {{ sincronizando() ? '⏳ Atualizando...' : '🔄 Atualizar da Meta' }}
         </button>
@@ -327,7 +330,12 @@
           </div>
         </div>
 
-        <div class="tpl-item-actions">
+        <div class="tpl-item-actions" *ngIf="mostrandoInativos()">
+          <button class="btn btn-primary btn-xs" (click)="reativar(t)">Reativar</button>
+          <button class="btn btn-ghost btn-xs" title="Apaga da Meta e do cadastro, sem volta" (click)="excluir(t.id)">🗑 Excluir de vez</button>
+        </div>
+
+        <div class="tpl-item-actions" *ngIf="!mostrandoInativos()">
           <button class="btn btn-ghost btn-xs"
                   [title]="podeEditarTexto(t) ? 'Editar nome e texto (texto alterado é reenviado para a Meta)' : 'Editar o nome no sistema. ' + motivoNaoEditavel(t)"
                   (click)="iniciarEdicao(t)">✏️ Editar</button>
@@ -342,7 +350,7 @@
                   (click)="alternarGatilhos(t)">
             {{ gatilhosAbertos() === t.id ? '⚡ Fechar momentos' : '⚡ Momentos de disparo' }}
           </button>
-          <button class="btn btn-ghost btn-xs" title="Excluir modelo" (click)="excluir(t.id)">🗑 Excluir</button>
+          <button class="btn btn-ghost btn-xs" title="Tira das telas e dos envios, sem apagar nada" (click)="inativar(t)">🗄 Inativar</button>
         </div>
 
         @if (gatilhosAbertos() === t.id) {
@@ -355,7 +363,8 @@
         }
       </div>
 
-      <div class="crud-empty" *ngIf="templates().length === 0">
+      <div class="crud-empty" *ngIf="templates().length === 0 && mostrandoInativos()">Nenhum modelo inativo.</div>
+      <div class="crud-empty" *ngIf="templates().length === 0 && !mostrandoInativos()">
         Você ainda não tem modelos. Crie o primeiro ao lado, ou clique em "Atualizar da Meta" para trazer os que já existem na sua conta.
       </div>
       <div class="crud-empty" *ngIf="templates().length > 0 && templatesFiltrados().length === 0">Nenhum modelo encontrado para "{{ search() }}".</div>

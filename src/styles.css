@@ -651,7 +651,7 @@ a {
 
 /* Grid de escolha de destinatarios (Disparos e Agendamentos). Mostra os dados de cobranca
    (cliente, vencimento, valor) pra conferir quem recebe sem abrir a tela de Contatos. */
-.tbl-destinatarios { min-width: 760px; }
+.tbl-destinatarios { min-width: 880px; }
   .tbl-destinatarios th,
   .tbl-destinatarios td { padding: 10px 12px; }
   /* A lista rola dentro do .disp-tabela; o cabecalho precisa de fundo opaco pra ficar fixo. */

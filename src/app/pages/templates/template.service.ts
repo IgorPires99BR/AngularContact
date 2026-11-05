@@ -8,8 +8,14 @@ export class TemplateService {
   private http = inject(HttpClient);
   private readonly API_URL = `${environment.apiUrl}/template`;
 
-  listar(empresaId: string) {
-    return this.http.get<Template[]>(`${this.API_URL}/Listar/${empresaId}`);
+  // Sem pedir os inativos vêm só os ativos: é o que Disparos, Agendamentos e os mapas devem ver.
+  listar(empresaId: string, inativos = false) {
+    return this.http.get<Template[]>(`${this.API_URL}/Listar/${empresaId}`, { params: inativos ? { inativos: 'true' } : {} });
+  }
+
+  // Local: o modelo continua aprovado na Meta, pronto para ser reativado.
+  alterarAtivo(id: string, ativo: boolean) {
+    return this.http.patch(`${this.API_URL}/${id}/ativo`, { ativo });
   }
 
   incluir(payload: unknown) {

@@ -34,6 +34,9 @@ interface CobrancaCliente {
   provedor?: string | null;
   // A empresa tem modelo de recorrência ligado em Momentos de disparo.
   recorrenciaDisponivel?: boolean;
+  // Inativa (antiga ou acertada por fora): só aparece na aba de inativas.
+  ativo?: boolean;
+  dataInativacao?: string | null;
 }
 
 // Uma etapa da linha do tempo da cobrança, do envio no WhatsApp até o pagamento.
@@ -98,8 +101,15 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
   marcandoPaga = signal<string | null>(null);
   confirmandoRecorrencia = signal<string | null>(null);
   enviandoRecorrencia = signal<string | null>(null);
-  avisoRecorrencia = signal('');
-  erroRecorrencia = signal('');
+  // Resultado de recorrência, inativação e reativação. Não usa erro(): a tabela leria como falha
+  // ao carregar a lista.
+  avisoAcao = signal('');
+  erroAcao = signal('');
+
+  visualizacao = signal<'cliente' | 'cobranca'>('cliente');
+  mostrandoInativas = signal(false);
+  confirmandoInativacao = signal<string | null>(null);
+  alterandoAtivo = signal<string | null>(null);
 
   // Situacao e filtrada no front (nao no endpoint) pra os cards de total continuarem mostrando
   // o periodo inteiro enquanto a tabela e recortada.
@@ -135,6 +145,16 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
     }
     // Quem deve mais (vencido, depois em aberto) aparece primeiro: e o que o cliente quer ver.
     return lista.sort((a, b) => (b.vencido - a.vencido) || (b.emAberto - a.emAberto) || a.nome.localeCompare(b.nome));
+  });
+
+  // Visualização por extenso: cada cobrança numa linha, da mais recente para a mais antiga.
+  cobrancasFiltradas = computed<CobrancaCliente[]>(() => {
+    const termo = this.busca().toLowerCase().trim();
+    const situacao = this.situacao();
+    return this.cobrancas()
+      .filter(c => !situacao || this.situacaoDe(c) === situacao)
+      .filter(c => !termo || [c.nomeCliente, c.nomeContato, c.telefone].some(v => v?.toLowerCase().includes(termo)))
+      .sort((a, b) => b.dataCriacao.localeCompare(a.dataCriacao));
   });
 
   resumo = computed(() => {
@@ -176,6 +196,7 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
     let params = new HttpParams();
     if (inicio) params = params.set('dataInicio', inicio);
     if (fim) params = params.set('dataFim', fim);
+    if (this.mostrandoInativas()) params = params.set('inativas', 'true');
 
     this.http.get<any>(this.API, { params }).subscribe({
       next: (res) => {
@@ -238,7 +259,7 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
       this.avisoPagamento.set(pagas.length > 1
         ? `💰 ${pagas.length} pagamentos recebidos via Pix, entre eles ${nome} (${valor}).`
         : `💰 Pagamento recebido via Pix: ${nome} pagou ${valor}.`);
-      this.expandidos.update(atual => new Set(atual).add(paga.contatoId));
+      this.expandidos.update(atual => new Set(atual).add(paga.contatoId).add(paga.id));
       this.destacada.set(paga.id);
       setTimeout(() => { if (this.destacada() === paga.id) this.destacada.set(null); }, 8000);
     });
@@ -296,7 +317,13 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
   }
 
   pixExpirado(c: CobrancaCliente): boolean {
-    return !!c.temPix && c.status === 'PENDENTE' && !!c.pixExpiraEm && new Date(c.pixExpiraEm) < new Date();
+    return !!c.temPix && this.emAberto(c) && !!c.pixExpiraEm && new Date(c.pixExpiraEm) < new Date();
+  }
+
+  // VENCIDA gravada (a recorrência já foi enviada) continua podendo ser paga e receber outra recorrência.
+  emAberto(c: CobrancaCliente): boolean {
+    const status = (c.status || '').toUpperCase();
+    return status === 'PENDENTE' || status === 'VENCIDA';
   }
 
   copiarLink(c: CobrancaCliente) {
@@ -310,8 +337,8 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
   // Confirmacao na propria linha (sem confirm() do navegador): a mensagem vai direto ao cliente e
   // nao da para desfazer.
   enviarRecorrencia(c: CobrancaCliente) {
-    this.erroRecorrencia.set('');
-    this.avisoRecorrencia.set('');
+    this.erroAcao.set('');
+    this.avisoAcao.set('');
     this.confirmandoRecorrencia.set(null);
     this.enviandoRecorrencia.set(c.id);
 
@@ -323,15 +350,56 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
         const valor = r?.valorCobrado != null
           ? ` Valor: ${Number(r.valorCobrado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.` : '';
         const falhas = r?.totalFalhas ? ` ${r.totalFalhas} número(s) do contato não receberam.` : '';
-        this.avisoRecorrencia.set(`✅ Recorrência enviada para ${nome}.${r?.pixRenovado ? ' Novo Pix gerado.' : ''}${valor}${falhas}`);
+        this.avisoAcao.set(`✅ Recorrência enviada para ${nome}. A cobrança agora consta como vencida.${r?.pixRenovado ? ' Novo Pix gerado.' : ''}${valor}${falhas}`);
         this.enviandoRecorrencia.set(null);
         // O Pix pode ter mudado (validade, valor com encargos).
         this.carregarPeriodo(inicio, fim);
       },
       error: (err) => {
-        // Nao usa erro(): a tabela leria como falha ao carregar a lista.
-        this.erroRecorrencia.set(extrairMensagemErro(err, 'Não foi possível enviar a recorrência.'));
+        this.erroAcao.set(extrairMensagemErro(err, 'Não foi possível enviar a recorrência.'));
         this.enviandoRecorrencia.set(null);
+        // A baixa pode ter sido feita no caminho (o cliente já tinha pago).
+        this.carregarPeriodo(inicio, fim);
+      }
+    });
+  }
+
+  // A aba abre em todo o período: quem inativa costuma mexer em cobrança antiga, que o recorte do
+  // mês esconderia dando a entender que ela sumiu. Na volta, retoma o mês corrente.
+  alternarInativas() {
+    this.mostrandoInativas.update(v => !v);
+    this.confirmandoInativacao.set(null);
+    this.avisoAcao.set('');
+    this.erroAcao.set('');
+
+    if (this.mostrandoInativas()) {
+      this.dataInicio.set('');
+      this.dataFim.set('');
+    } else {
+      const hoje = new Date();
+      this.dataInicio.set(this.formatarData(new Date(hoje.getFullYear(), hoje.getMonth(), 1)));
+      this.dataFim.set(this.formatarData(hoje));
+    }
+    this.buscar();
+  }
+
+  alterarAtivo(c: CobrancaCliente, ativo: boolean) {
+    this.confirmandoInativacao.set(null);
+    this.avisoAcao.set('');
+    this.erroAcao.set('');
+    this.alterandoAtivo.set(c.id);
+
+    const { inicio, fim } = this.periodoAplicado();
+    const nome = c.nomeCliente || c.nomeContato || c.telefone || 'cliente';
+    this.http.patch<any>(`${this.API}/${c.id}/ativo`, { ativo }).subscribe({
+      next: () => {
+        this.avisoAcao.set(ativo ? `✅ Cobrança de ${nome} reativada.` : `✅ Cobrança de ${nome} inativada. Ela continua guardada em "Ver inativas".`);
+        this.alterandoAtivo.set(null);
+        this.carregarPeriodo(inicio, fim);
+      },
+      error: (err) => {
+        this.erroAcao.set(extrairMensagemErro(err, 'Não foi possível alterar a cobrança.'));
+        this.alterandoAtivo.set(null);
         // A baixa pode ter sido feita no caminho (o cliente já tinha pago).
         this.carregarPeriodo(inicio, fim);
       }
@@ -411,8 +479,8 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
     });
   }
 
-  // VENCIDA nao e gravada no banco: e PENDENTE com vencimento antes de hoje (mesma regra do
-  // filtro status=VENCIDA do backend).
+  // VENCIDA e gravada pelo envio de recorrencia ou, sem ele, PENDENTE com vencimento antes de hoje
+  // (mesma regra do filtro status=VENCIDA do backend).
   situacaoDe(c: CobrancaCliente): Situacao {
     const status = (c.status || '').toUpperCase();
     if (status === 'PENDENTE' && c.dataVencimento.substring(0, 10) < this.formatarData(new Date())) {

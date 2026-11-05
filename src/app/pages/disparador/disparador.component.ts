@@ -1,5 +1,5 @@
 import { ProvedorCobrancaService, camposComProvedor } from '../../shared/variaveis/provedor-cobranca.service';
-import { Component, signal, inject, OnInit, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, OnDestroy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -40,6 +40,27 @@ interface NumeroMeta {
   dataCriacao: string;
 }
 
+interface PendenciaLote {
+  contatoId: string;
+  nome?: string | null;
+  telefone?: string | null;
+  status: 'FALHOU' | 'INCERTO' | 'ENVIADO';
+  erro?: string | null;
+}
+
+interface LoteDisparo {
+  id: string;
+  dataCriacao: string;
+  nomeTemplate?: string | null;
+  total: number;
+  aguardando: number;
+  enviados: number;
+  falhas: number;
+  incertos: number;
+  concluido: boolean;
+  pendencias: PendenciaLote[];
+}
+
 interface TemplateMeta extends Template {
   componentesParsed?: TemplateComponente[]; // Cache local pós-parse
 }
@@ -55,7 +76,7 @@ type VariavelBody = VariavelTemplate;
   templateUrl: './disparador.component.html',
   styleUrls: ['../shared-crud.css', './disparador.component.css'],
 })
-export class DisparadorComponent implements OnInit {
+export class DisparadorComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   private templateService = inject(TemplateService);
@@ -70,6 +91,8 @@ export class DisparadorComponent implements OnInit {
 
   // Signals de Estado
   contatos = signal<Contato[]>([]);
+  // Data do último template enviado a cada contato (contatoId -> data).
+  private ultimosDisparos = signal<Record<string, string>>({});
   templates = signal<TemplateMeta[]>([]);
   readonly nomeDoTemplate = nomeDoTemplate;
   numerosAtivos = signal<NumeroMeta[]>([]);
@@ -92,8 +115,19 @@ export class DisparadorComponent implements OnInit {
   // Cabeçalho de imagem em template de cobrança: em branco, a API coloca o QR code do Pix.
   cabecalhoOpcional = signal(false);
   response = signal('');
-  errosLote = signal<{ telefone: string; erro: string }[]>([]);
   explicacaoTemplate = signal('');
+
+  // O envio roda na fila do servidor: dá para sair da tela e voltar sem perder nada.
+  loteAtual = signal<LoteDisparo | null>(null);
+  lotesRecentes = signal<LoteDisparo[]>([]);
+  percentualLote = computed(() => {
+    const l = this.loteAtual();
+    return l && l.total > 0 ? Math.round(((l.total - l.aguardando) / l.total) * 100) : 0;
+  });
+  private timerLote?: ReturnType<typeof setTimeout>;
+  // Mesma chave enquanto o pedido for o mesmo: repetir depois de uma falha de rede não cria outro
+  // lote (o primeiro pode ter sido aceito sem a resposta chegar aqui).
+  private pedidoSemResposta: { assinatura: string; chave: string } | null = null;
 
   // Passo a passo: 1 escolher mensagem, 2 preencher o que muda, 3 escolher quem recebe,
   // 4 conferir e enviar. Envio custa dinheiro e não tem desfazer -- o passo 4 existe pra
@@ -185,6 +219,89 @@ export class DisparadorComponent implements OnInit {
     this.buscarTemplates();
     this.buscarNumeros();
     this.buscarParametros();
+    this.buscarUltimosDisparos();
+    this.buscarLotesRecentes(true);
+  }
+
+  ngOnDestroy() {
+    clearTimeout(this.timerLote);
+  }
+
+  buscarLotesRecentes(retomar = false) {
+    const empId = this.empresaId();
+    if (!empId) return;
+    this.http.get<{ lotes: LoteDisparo[] }>(`${this.API_DISPARO}/lotes/recentes/${empId}`).subscribe({
+      next: (res) => {
+        this.lotesRecentes.set(res?.lotes ?? []);
+        const emAndamento = this.lotesRecentes().find(l => !l.concluido);
+        if (retomar && emAndamento) this.acompanharLote(emAndamento.id);
+      },
+      // A lista é só atalho; sem ela o envio continua funcionando.
+      error: () => this.lotesRecentes.set([])
+    });
+  }
+
+  acompanharLote(id: string) {
+    clearTimeout(this.timerLote);
+    this.http.get<{ lotes: LoteDisparo[] }>(`${this.API_DISPARO}/lotes/${id}`).subscribe({
+      next: (res) => {
+        const lote = res?.lotes?.[0] ?? null;
+        this.loteAtual.set(lote);
+        if (lote && !lote.concluido) {
+          this.timerLote = setTimeout(() => this.acompanharLote(id), 3000);
+        } else {
+          this.buscarUltimosDisparos();
+          this.buscarLotesRecentes();
+        }
+      },
+      // Falha aqui é só da consulta: o envio segue no servidor, então continua perguntando.
+      error: () => { this.timerLote = setTimeout(() => this.acompanharLote(id), 10000); }
+    });
+  }
+
+  fecharLote() {
+    clearTimeout(this.timerLote);
+    this.loteAtual.set(null);
+  }
+
+  buscarUltimosDisparos() {
+    const empId = this.empresaId();
+    if (!empId) return;
+    this.http.get<{ contatoId: string; dataUltimoDisparo: string }[]>(`${this.API_DISPARO}/ultimos-disparos/${empId}`).subscribe({
+      next: (res) => this.ultimosDisparos.set(Object.fromEntries(res.map(u => [u.contatoId, u.dataUltimoDisparo]))),
+      // Sem a informação a coluna fica com "—"; não vale impedir o disparo por isso.
+      error: () => this.ultimosDisparos.set({})
+    });
+  }
+
+  ultimoDisparo(c: Contato): string | null {
+    return this.ultimosDisparos()[c.id] ?? null;
+  }
+
+  // Conta dias de calendário, não 24h corridas: "ontem às 23h" é 1 dia mesmo visto à 1h da manhã.
+  diasDesdeUltimoDisparo(c: Contato): number | null {
+    const ultimo = this.ultimoDisparo(c);
+    if (!ultimo) return null;
+
+    const data = new Date(ultimo);
+    const agora = new Date();
+    const dias = Math.round(
+      (new Date(agora.getFullYear(), agora.getMonth(), agora.getDate()).getTime()
+        - new Date(data.getFullYear(), data.getMonth(), data.getDate()).getTime()) / 86400000);
+    return Math.max(0, dias);
+  }
+
+  // Abaixo de 5 dias a tela destaca: mandar de novo tão cedo costuma ser cobrança em duplicidade.
+  disparoRecente(c: Contato): boolean {
+    const dias = this.diasDesdeUltimoDisparo(c);
+    return dias !== null && dias < 5;
+  }
+
+  rotuloDiasDesdeDisparo(c: Contato): string {
+    const dias = this.diasDesdeUltimoDisparo(c);
+    if (dias === null) return '';
+    if (dias === 0) return 'hoje';
+    return dias === 1 ? 'ontem' : `há ${dias} dias`;
   }
 
   buscarParametros() {
@@ -400,53 +517,30 @@ export class DisparadorComponent implements OnInit {
     const alvos = this.selecionados();
     const vars = this.variaveis();
 
-    // Só os valores que valem pra todo mundo. Os de cada contato o backend resolve a partir de
-    // "variaveis" com os dados do banco (ex: valorFatura), por CONTATO -- nunca por telefone,
-    // que pode se repetir entre contatos e faria um receber os valores do outro.
-    const parametrosBody = vars.map(v =>
-      dependeDoContato(v, this.parametros()) ? '' : this.valorDaVariavel(v, null).trim());
-
-    const payload = {
+    // Só diz quem recebe e de onde sai cada valor. Telefone e dados de cada contato o backend lê
+    // do banco -- o front nunca informa o que cada um tem (ex: valorFatura).
+    const pedido = {
       idEmpresa: empId,
-      empresaId: empId,
-      telefones: alvos.map(c => c.telefone),
-      contatosIds: alvos.map(c => c.id),
-      nomeTemplate: tpl.nomeTemplate,
-      idioma: tpl.idioma || 'pt_BR',
       templateId: tpl.id,
+      contatosIds: alvos.map(c => c.id),
       parametroHeaderMediaUrl: this.temMediaHeader() ? this.headerMediaUrl().trim() : null,
-      parametrosBody,
       variaveis: vars.map(v => ({ origem: v.origem, valorFixo: v.valorFixo, parametroId: v.parametroId ?? null })),
       parametrosButton: this.buttonParams().map(bp => bp.value.trim()),
-      contatoId: '00000000-0000-0000-0000-000000000000'
     };
 
+    const assinatura = JSON.stringify(pedido);
+    if (this.pedidoSemResposta?.assinatura !== assinatura) {
+      this.pedidoSemResposta = { assinatura, chave: crypto.randomUUID() };
+    }
+
     this.enviando.set(true);
-    this.response.set(`⏳ Enviando para ${alvos.length} contato(s)...`);
-    this.errosLote.set([]);
+    this.response.set(`⏳ Colocando ${alvos.length} contato(s) na fila...`);
 
-    this.http.post<any>(`${this.API_DISPARO}/EnviarMensagemTemplateLote`, payload).subscribe({
-      next: (res: any) => {
-        // O endpoint retorna o envelope Response<T> cru (sem passar por ValidateResponse),
-        // então o resultado real vem em res.value, não em res.data.
-        const relatorioDisparos: Record<string, boolean> = res?.value?.relatorioDisparos || {};
-        const relatorioErros: Record<string, string> = res?.value?.relatorioErros || {};
-        const telefones = Object.keys(relatorioDisparos);
-        // Totais por destinatário (o backend os conta por contato); o relatório por telefone
-        // subconta quando dois contatos dividem o mesmo número.
-        const total: number = res?.value?.totalProcessado ?? telefones.length;
-        const sucesso: number = res?.value?.totalSucesso ?? telefones.filter(t => relatorioDisparos[t]).length;
-
+    this.http.post<{ loteId: string }>(`${this.API_DISPARO}/lotes`, { ...pedido, chaveIdempotencia: this.pedidoSemResposta.chave }).subscribe({
+      next: (res) => {
+        this.pedidoSemResposta = null;
         this.enviando.set(false);
-        this.errosLote.set(Object.entries(relatorioErros).map(([telefone, erro]) => ({ telefone, erro })));
-
-        if (total === 0) {
-          this.response.set('⚠ O envio terminou, mas o servidor não informou o resultado de nenhum contato.');
-        } else if (sucesso === total) {
-          this.response.set(`✅ Enviado para ${sucesso} contato(s). Acompanhe as respostas em Chats.`);
-        } else {
-          this.response.set(`⚠ Enviado para ${sucesso} de ${total}. Os que falharam estão listados abaixo.`);
-        }
+        this.response.set(`✅ ${alvos.length} contato(s) na fila. O envio continua mesmo se você sair desta tela.`);
 
         this.variaveis.set([]);
         this.buttonParams.set([]);
@@ -455,10 +549,15 @@ export class DisparadorComponent implements OnInit {
         this.updateForm('templateId', '');
         this.contatos.update(list => list.map(c => ({ ...c, checked: false })));
         this.passo.set(1);
+        this.buscarLotesRecentes();
+        this.acompanharLote(res.loteId);
       },
       error: (err) => {
         this.enviando.set(false);
-        this.response.set(`❌ Falha: ${extrairMensagemErro(err, 'Erro ao enviar as mensagens.')}`);
+        // 4xx = recusado com certeza; o próximo pedido é outro. Sem resposta ou 5xx o lote pode ter
+        // sido aceito: tentar de novo com a mesma chave devolve esse lote em vez de cobrar duas vezes.
+        if (err?.status >= 400 && err?.status < 500) this.pedidoSemResposta = null;
+        this.response.set(`❌ ${extrairMensagemErro(err, 'Não foi possível colocar o envio na fila.')}`);
       }
     });
   }

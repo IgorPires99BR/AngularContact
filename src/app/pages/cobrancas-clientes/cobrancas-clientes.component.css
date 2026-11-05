@@ -46,6 +46,18 @@
   cursor: pointer;
 }
 
+.cc-controles {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Na visualizacao por extenso o andamento so abre no clique: 76 linhas abertas nao dariam leitura. */
+.cc-linha-extenso > td {
+  border-bottom: none;
+}
+
 .cc-seta {
   color: var(--muted);
   font-size: 12px;

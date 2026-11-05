@@ -436,7 +436,9 @@ export class AgendamentosComponent implements OnInit {
         this.editingId.set(detalhe.id);
         this.form.set({
           nome: detalhe.nome,
-          templateId: detalhe.templateId,
+          // Modelo inativado não está na lista: em branco, obriga a escolher outro em vez de
+          // salvar de novo um modelo que não aparece e não envia.
+          templateId: this.templates().some(t => t.id === detalhe.templateId) ? detalhe.templateId : '',
           tipoRecorrencia: detalhe.tipoRecorrencia,
           dataInicio: paraDataCurta(detalhe.dataInicio),
           dataFim: detalhe.dataFim ? paraDataCurta(detalhe.dataFim) : '',

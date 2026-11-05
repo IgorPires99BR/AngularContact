@@ -45,6 +45,9 @@ export interface Template {
   dataAtualizacao?: string;
   // Disparar este template abre uma cobrança para o cliente (tela Cobranças de Clientes).
   geraCobranca?: boolean;
+  // Inativo só aparece na aba de inativos da tela de Templates e não é enviado.
+  ativo?: boolean;
+  dataInativacao?: string | null;
 }
 
 // --- Momento de disparo automático do template (TemplateGatilho no backend, BD/55) ---

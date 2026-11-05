@@ -1,7 +1,7 @@
 <div class="ph">
   <div>
     <h1 class="ph-title">Cobranças de Clientes</h1>
-    <div class="ph-sub">Cobranças enviadas pelo WhatsApp em seu nome, agrupadas por cliente. Pagamentos via Pix aparecem aqui automaticamente.</div>
+    <div class="ph-sub">Cobranças enviadas pelo WhatsApp em seu nome. Pagamentos via Pix aparecem aqui automaticamente.</div>
   </div>
   <button class="btn btn-ghost btn-sm" (click)="buscar()" [disabled]="carregando()">
     {{ carregando() ? '⏳ Carregando...' : '🔁 Atualizar' }}
@@ -37,7 +37,7 @@
   </div>
 </div>
 
-<div class="stats-grid">
+<div class="stats-grid" *ngIf="!mostrandoInativas()">
   <div class="stat-card">
     <div class="stat-icon violet">🧾</div>
     <div>
@@ -67,7 +67,7 @@
     <div>
       <div class="stat-label">Vencido</div>
       <div class="stat-value danger">{{ resumo().vencido | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</div>
-      <div class="cc-hint">{{ resumo().qtdVencido }} passaram do vencimento sem pagamento</div>
+      <div class="cc-hint">{{ resumo().qtdVencido }} vencida(s) sem pagamento</div>
     </div>
   </div>
 </div>
@@ -79,33 +79,134 @@
   </div>
 }
 
-@if (avisoRecorrencia()) {
+@if (avisoAcao()) {
   <div class="cc-aviso-pagamento" role="status">
-    <span>{{ avisoRecorrencia() }}</span>
-    <button class="btn btn-ghost btn-xs" (click)="avisoRecorrencia.set('')" aria-label="Fechar aviso">✕</button>
+    <span>{{ avisoAcao() }}</span>
+    <button class="btn btn-ghost btn-xs" (click)="avisoAcao.set('')" aria-label="Fechar aviso">✕</button>
   </div>
 }
 
-@if (erroRecorrencia()) {
+@if (erroAcao()) {
   <div class="payload-display mb-14" role="alert">
-    ❌ {{ erroRecorrencia() }}
-    <button class="btn btn-ghost btn-xs" (click)="erroRecorrencia.set('')" aria-label="Fechar erro">✕</button>
+    ❌ {{ erroAcao() }}
+    <button class="btn btn-ghost btn-xs" (click)="erroAcao.set('')" aria-label="Fechar erro">✕</button>
   </div>
 }
+
+<!-- Usados nas duas visualizacoes, para a regra de cada botao ficar num lugar so. -->
+<ng-template #acoesDaCobranca let-c>
+  <ng-container *ngIf="!mostrandoInativas()">
+    <ng-container *ngIf="emAberto(c)">
+      <button *ngIf="confirmandoPagamento() !== c.id" class="btn btn-ghost btn-xs"
+              [disabled]="marcandoPaga() === c.id"
+              (click)="iniciarConfirmacao(c); $event.stopPropagation()">
+        {{ marcandoPaga() === c.id ? '⏳' : '✔ Confirmar pagamento' }}
+      </button>
+      <span *ngIf="confirmandoPagamento() === c.id" class="cc-confirmacao" (click)="$event.stopPropagation()">
+        <label>Pago em</label>
+        <input type="date" [max]="hoje" [ngModel]="dataPagamento()" (ngModelChange)="dataPagamento.set($event)">
+        <button class="btn btn-success btn-xs" (click)="marcarPaga(c)">Confirmar</button>
+        <button class="btn btn-ghost btn-xs" (click)="cancelarConfirmacao()">Cancelar</button>
+      </span>
+    </ng-container>
+    <button *ngIf="confirmandoInativacao() !== c.id" class="btn btn-ghost btn-xs"
+            title="Tira a cobrança da tela e dos avisos, sem apagar"
+            [disabled]="alterandoAtivo() === c.id"
+            (click)="confirmandoInativacao.set(c.id); $event.stopPropagation()">
+      {{ alterandoAtivo() === c.id ? '⏳' : '🗄 Inativar' }}
+    </button>
+    <span *ngIf="confirmandoInativacao() === c.id" class="cc-confirmacao" (click)="$event.stopPropagation()">
+      <label>{{ emAberto(c) && c.temPix ? 'Inativar e cancelar o Pix desta cobrança?' : 'Inativar esta cobrança?' }}</label>
+      <button class="btn btn-success btn-xs" (click)="alterarAtivo(c, false)">Inativar</button>
+      <button class="btn btn-ghost btn-xs" (click)="confirmandoInativacao.set(null)">Voltar</button>
+    </span>
+  </ng-container>
+  <button *ngIf="mostrandoInativas()" class="btn btn-primary btn-xs"
+          [disabled]="alterandoAtivo() === c.id"
+          (click)="alterarAtivo(c, true); $event.stopPropagation()">
+    {{ alterandoAtivo() === c.id ? '⏳' : 'Reativar' }}
+  </button>
+</ng-template>
+
+<ng-template #andamentoDaCobranca let-c>
+  <ol class="cc-andamento">
+    <li *ngFor="let e of etapas(c)" [ngClass]="'cc-etapa-' + e.estado">
+      <span class="cc-etapa-ponto"></span>
+      <span>
+        <strong>{{ e.titulo }}</strong>
+        <span class="cc-etapa-detalhe" *ngIf="e.detalhe">{{ e.detalhe }}</span>
+      </span>
+    </li>
+  </ol>
+  <ng-container *ngIf="!mostrandoInativas()">
+    <div class="cc-andamento-acoes" *ngIf="c.linkPagamento && emAberto(c) && !pixExpirado(c)">
+      <a class="btn btn-ghost btn-xs" [href]="c.linkPagamento" target="_blank" rel="noopener">🔗 Página de pagamento</a>
+      <button class="btn btn-ghost btn-xs" (click)="copiarLink(c)">
+        {{ linkCopiado() === c.id ? '✅ Link copiado' : '📋 Copiar link' }}
+      </button>
+    </div>
+    <div class="cc-andamento-acoes" *ngIf="c.recorrenciaDisponivel && emAberto(c)">
+      <button *ngIf="confirmandoRecorrencia() !== c.id" class="btn btn-ghost btn-xs"
+              [disabled]="enviandoRecorrencia() === c.id"
+              (click)="confirmandoRecorrencia.set(c.id)">
+        {{ enviandoRecorrencia() === c.id ? '⏳ Enviando...' : '🔁 Enviar recorrência' }}
+      </button>
+      <span *ngIf="confirmandoRecorrencia() === c.id" class="cc-confirmacao">
+        <label>Enviar a mensagem de recorrência agora? A cobrança passa a constar como vencida.</label>
+        <button class="btn btn-success btn-xs" (click)="enviarRecorrencia(c)">Enviar</button>
+        <button class="btn btn-ghost btn-xs" (click)="confirmandoRecorrencia.set(null)">Cancelar</button>
+      </span>
+    </div>
+  </ng-container>
+</ng-template>
+
+<ng-template #linhasDeEstado let-colunas="colunas" let-semResultado="semResultado" let-mensagemSemResultado="mensagemSemResultado">
+  <tr *ngIf="!carregando() && !erro() && cobrancas().length === 0">
+    <td [attr.colspan]="colunas" class="crud-empty" style="text-align: center; padding: 28px;">
+      {{ mostrandoInativas() ? 'Nenhuma cobrança inativa' : 'Nenhuma cobrança enviada' }} {{ descricaoPeriodo() }}.
+    </td>
+  </tr>
+  <!-- Falha de carga nao pode virar "nenhuma cobranca": daria a entender que nada foi cobrado. -->
+  <tr *ngIf="!carregando() && erro()">
+    <td [attr.colspan]="colunas" class="crud-empty" style="text-align: center; padding: 28px;">
+      Não foi possível carregar as cobranças — o que aparece acima pode estar desatualizado.
+    </td>
+  </tr>
+  <tr *ngIf="!carregando() && cobrancas().length > 0 && semResultado">
+    <td [attr.colspan]="colunas" class="crud-empty" style="text-align: center; padding: 24px;">
+      {{ mensagemSemResultado }}
+    </td>
+  </tr>
+  <tr *ngIf="carregando()">
+    <td [attr.colspan]="colunas" class="crud-empty" style="text-align: center; padding: 24px;">Carregando...</td>
+  </tr>
+</ng-template>
 
 <div class="card">
-  <div class="card-head">
+  <div class="card-head cc-filtro">
     <div>
-      <div class="card-title">Clientes cobrados</div>
-      <div class="card-sub">{{ clientes().length }} cliente(s) — clique para ver cada cobrança</div>
+      <div class="card-title">
+        {{ mostrandoInativas() ? '🗄 Cobranças inativas' : (visualizacao() === 'cliente' ? 'Clientes cobrados' : 'Todas as cobranças') }}
+      </div>
+      <div class="card-sub" *ngIf="visualizacao() === 'cliente'">{{ clientes().length }} cliente(s) — clique para ver cada cobrança</div>
+      <div class="card-sub" *ngIf="visualizacao() === 'cobranca'">{{ cobrancasFiltradas().length }} cobrança(s) — clique para ver o andamento</div>
     </div>
-    <select class="cc-select" [ngModel]="situacao()" (ngModelChange)="situacao.set($event)">
-      <option value="">Todas as situações</option>
-      <option value="PENDENTE">Em aberto</option>
-      <option value="VENCIDA">Vencidas</option>
-      <option value="PAGA">Pagas</option>
-      <option value="CANCELADA">Canceladas</option>
-    </select>
+    <div class="cc-controles">
+      <button class="btn btn-xs" [ngClass]="visualizacao() === 'cliente' ? 'btn-primary' : 'btn-ghost'"
+              [attr.aria-pressed]="visualizacao() === 'cliente'" (click)="visualizacao.set('cliente')">👥 Por cliente</button>
+      <button class="btn btn-xs" [ngClass]="visualizacao() === 'cobranca' ? 'btn-primary' : 'btn-ghost'"
+              [attr.aria-pressed]="visualizacao() === 'cobranca'" (click)="visualizacao.set('cobranca')">📄 Por cobrança</button>
+      <button class="btn btn-ghost btn-xs" (click)="alternarInativas()" [disabled]="carregando()">
+        {{ mostrandoInativas() ? '← Voltar às ativas' : 'Ver inativas' }}
+      </button>
+      <select class="cc-select" [ngModel]="situacao()" (ngModelChange)="situacao.set($event)">
+        <option value="">Todas as situações</option>
+        <option value="PENDENTE">Em aberto</option>
+        <option value="VENCIDA">Vencidas</option>
+        <option value="PAGA">Pagas</option>
+        <option value="CANCELADA">Canceladas</option>
+      </select>
+    </div>
   </div>
 
   <div class="crud-search-bar">
@@ -116,7 +217,7 @@
 
   <div class="payload-display" *ngIf="erro()" style="margin: 0 18px 14px;">❌ {{ erro() }}</div>
 
-  <div class="tbl-wrap">
+  <div class="tbl-wrap" *ngIf="visualizacao() === 'cliente'">
     <table class="tbl">
       <thead>
         <tr>
@@ -174,50 +275,12 @@
                     </td>
                     <td class="cc-tab">{{ c.dataPagamento ? (c.dataPagamento | date:(c.pagoViaPix ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy')) : '—' }}</td>
                     <td class="cc-acao">
-                      <ng-container *ngIf="c.status === 'PENDENTE'">
-                        <button *ngIf="confirmandoPagamento() !== c.id" class="btn btn-ghost btn-xs"
-                                [disabled]="marcandoPaga() === c.id"
-                                (click)="iniciarConfirmacao(c); $event.stopPropagation()">
-                          {{ marcandoPaga() === c.id ? '⏳' : '✔ Confirmar pagamento' }}
-                        </button>
-                        <span *ngIf="confirmandoPagamento() === c.id" class="cc-confirmacao" (click)="$event.stopPropagation()">
-                          <label>Pago em</label>
-                          <input type="date" [max]="hoje" [ngModel]="dataPagamento()" (ngModelChange)="dataPagamento.set($event)">
-                          <button class="btn btn-success btn-xs" (click)="marcarPaga(c)">Confirmar</button>
-                          <button class="btn btn-ghost btn-xs" (click)="cancelarConfirmacao()">Cancelar</button>
-                        </span>
-                      </ng-container>
+                      <ng-container *ngTemplateOutlet="acoesDaCobranca; context: { $implicit: c }"></ng-container>
                     </td>
                   </tr>
                   <tr class="cc-linha-andamento" [class.cc-destacada]="destacada() === c.id">
                     <td colspan="6">
-                      <ol class="cc-andamento">
-                        <li *ngFor="let e of etapas(c)" [ngClass]="'cc-etapa-' + e.estado">
-                          <span class="cc-etapa-ponto"></span>
-                          <span>
-                            <strong>{{ e.titulo }}</strong>
-                            <span class="cc-etapa-detalhe" *ngIf="e.detalhe">{{ e.detalhe }}</span>
-                          </span>
-                        </li>
-                      </ol>
-                      <div class="cc-andamento-acoes" *ngIf="c.linkPagamento && c.status === 'PENDENTE' && !pixExpirado(c)">
-                        <a class="btn btn-ghost btn-xs" [href]="c.linkPagamento" target="_blank" rel="noopener">🔗 Página de pagamento</a>
-                        <button class="btn btn-ghost btn-xs" (click)="copiarLink(c)">
-                          {{ linkCopiado() === c.id ? '✅ Link copiado' : '📋 Copiar link' }}
-                        </button>
-                      </div>
-                      <div class="cc-andamento-acoes" *ngIf="c.recorrenciaDisponivel && c.status === 'PENDENTE'">
-                        <button *ngIf="confirmandoRecorrencia() !== c.id" class="btn btn-ghost btn-xs"
-                                [disabled]="enviandoRecorrencia() === c.id"
-                                (click)="confirmandoRecorrencia.set(c.id)">
-                          {{ enviandoRecorrencia() === c.id ? '⏳ Enviando...' : '🔁 Enviar recorrência' }}
-                        </button>
-                        <span *ngIf="confirmandoRecorrencia() === c.id" class="cc-confirmacao">
-                          <label>Enviar a mensagem de recorrência agora para o cliente?</label>
-                          <button class="btn btn-success btn-xs" (click)="enviarRecorrencia(c)">Enviar</button>
-                          <button class="btn btn-ghost btn-xs" (click)="confirmandoRecorrencia.set(null)">Cancelar</button>
-                        </span>
-                      </div>
+                      <ng-container *ngTemplateOutlet="andamentoDaCobranca; context: { $implicit: c }"></ng-container>
                     </td>
                   </tr>
                   </ng-container>
@@ -227,25 +290,57 @@
           </tr>
         </ng-container>
 
-        <tr *ngIf="!carregando() && !erro() && cobrancas().length === 0">
-          <td colspan="7" class="crud-empty" style="text-align: center; padding: 28px;">
-            Nenhuma cobrança enviada {{ descricaoPeriodo() }}.
-          </td>
+        <ng-container *ngTemplateOutlet="linhasDeEstado; context: { colunas: 7, semResultado: clientes().length === 0, mensagemSemResultado: 'Nenhum cliente encontrado com esse filtro.' }"></ng-container>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tbl-wrap" *ngIf="visualizacao() === 'cobranca'">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width: 28px;"></th>
+          <th>Cliente</th>
+          <th>Enviada em</th>
+          <th>Vencimento</th>
+          <th class="cc-num">Valor</th>
+          <th>Situação</th>
+          <th>Pago em</th>
+          <th></th>
         </tr>
-        <!-- Falha de carga nao pode virar "nenhuma cobranca": daria a entender que nada foi cobrado. -->
-        <tr *ngIf="!carregando() && erro()">
-          <td colspan="7" class="crud-empty" style="text-align: center; padding: 28px;">
-            Não foi possível carregar as cobranças — o que aparece acima pode estar desatualizado.
-          </td>
-        </tr>
-        <tr *ngIf="!carregando() && cobrancas().length > 0 && clientes().length === 0">
-          <td colspan="7" class="crud-empty" style="text-align: center; padding: 24px;">
-            Nenhum cliente encontrado com esse filtro.
-          </td>
-        </tr>
-        <tr *ngIf="carregando()">
-          <td colspan="7" class="crud-empty" style="text-align: center; padding: 24px;">Carregando...</td>
-        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let c of cobrancasFiltradas()">
+          <tr class="cc-linha-cliente" [class.cc-linha-extenso]="expandidos().has(c.id)" [class.cc-destacada]="destacada() === c.id" (click)="alternar(c.id)">
+            <td class="cc-seta">{{ expandidos().has(c.id) ? '▾' : '▸' }}</td>
+            <td>
+              <strong>{{ c.nomeCliente || c.nomeContato || c.telefone || 'Contato removido' }}</strong>
+              <div class="cc-sub" *ngIf="c.nomeCliente && c.nomeContato">{{ c.nomeContato }}</div>
+              <div class="cc-sub" *ngIf="c.telefone">{{ c.telefone }}</div>
+            </td>
+            <td class="cc-tab">{{ c.dataCriacao | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td class="cc-tab">{{ c.dataVencimento | date:'dd/MM/yyyy' }}</td>
+            <td class="cc-num">
+              {{ c.valor | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              <div class="cc-sub" *ngIf="c.valorCobrado && c.valorCobrado !== c.valor">
+                Pix: {{ c.valorCobrado | currency:'BRL':'symbol':'1.2-2':'pt-BR' }} com encargos
+              </div>
+            </td>
+            <td><span class="badge" [ngClass]="classeSituacao(c)">{{ rotuloSituacao(c) }}</span></td>
+            <td class="cc-tab">{{ c.dataPagamento ? (c.dataPagamento | date:(c.pagoViaPix ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy')) : '—' }}</td>
+            <td class="cc-acao">
+              <ng-container *ngTemplateOutlet="acoesDaCobranca; context: { $implicit: c }"></ng-container>
+            </td>
+          </tr>
+          <tr *ngIf="expandidos().has(c.id)" class="cc-linha-andamento" [class.cc-destacada]="destacada() === c.id">
+            <td></td>
+            <td colspan="7">
+              <ng-container *ngTemplateOutlet="andamentoDaCobranca; context: { $implicit: c }"></ng-container>
+            </td>
+          </tr>
+        </ng-container>
+
+        <ng-container *ngTemplateOutlet="linhasDeEstado; context: { colunas: 8, semResultado: cobrancasFiltradas().length === 0, mensagemSemResultado: 'Nenhuma cobrança encontrada com esse filtro.' }"></ng-container>
       </tbody>
     </table>
   </div>

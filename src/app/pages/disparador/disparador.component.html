@@ -151,6 +151,7 @@
                 <th>Cliente</th>
                 <th class="col-venc">Vencimento</th>
                 <th class="col-valor">Valor da fatura</th>
+                <th class="col-ultimo">Último disparo</th>
                 <th>E-mail</th>
               </tr>
             </thead>
@@ -167,10 +168,20 @@
                 <td>{{ c.nomeCliente || '—' }}</td>
                 <td class="col-venc mono">{{ c.diaVencimento ? 'Dia ' + c.diaVencimento : '—' }}</td>
                 <td class="col-valor mono">{{ c.valorFatura ? (c.valorFatura | currency:'BRL':'symbol':'1.2-2':'pt-BR') : '—' }}</td>
+                <td class="col-ultimo">
+                  <ng-container *ngIf="ultimoDisparo(c) as ultimo; else semDisparo">
+                    <span [class.disparo-recente]="disparoRecente(c)"
+                          [title]="disparoRecente(c) ? 'Recebeu um disparo há menos de 5 dias' : ''">
+                      {{ disparoRecente(c) ? '⚠️ ' : '' }}{{ ultimo | date:'dd/MM/yyyy' }}
+                    </span>
+                    <div class="dest-telefone" [class.disparo-recente]="disparoRecente(c)">{{ rotuloDiasDesdeDisparo(c) }}</div>
+                  </ng-container>
+                  <ng-template #semDisparo>—</ng-template>
+                </td>
                 <td class="dest-email" [title]="c.email || ''">{{ c.email || '—' }}</td>
               </tr>
               <tr *ngIf="contatosFiltrados().length === 0">
-                <td colspan="6" class="crud-empty" style="text-align: center; padding: 20px;">
+                <td colspan="7" class="crud-empty" style="text-align: center; padding: 20px;">
                   Nenhum contato encontrado.
                 </td>
               </tr>
@@ -194,8 +205,8 @@
       <ng-container *ngIf="passo() === 4">
         <div class="disp-titulo">Confira antes de enviar</div>
         <div class="disp-ajuda">
-          Ao confirmar, as mensagens saem na hora e <b>não há como cancelar</b>. Cada mensagem enviada
-          é cobrada pela Meta na sua conta.
+          Ao confirmar, as mensagens entram na fila e começam a sair em seguida, e <b>não há como
+          cancelar</b>. Cada mensagem enviada é cobrada pela Meta na sua conta.
         </div>
 
         <div class="disp-resumo">
@@ -222,12 +233,41 @@
         {{ response() }}
       </div>
 
-      <div class="disparo-erros" *ngIf="errosLote().length > 0">
-        <div class="disparo-erros-titulo">❌ {{ errosLote().length }} contato(s) não receberam</div>
-        <div class="disparo-erro-item" *ngFor="let e of errosLote()">
-          <span class="mono">{{ e.telefone }}</span>
-          <span class="disparo-erro-msg">{{ e.erro }}</span>
+      <div class="disp-lote" *ngIf="loteAtual() as lote">
+        <div class="disp-lote-topo">
+          <b>{{ lote.concluido ? 'Envio concluído' : 'Enviando...' }} · {{ lote.nomeTemplate }}</b>
+          <button class="btn btn-ghost btn-xs" (click)="fecharLote()" aria-label="Fechar acompanhamento">✕</button>
         </div>
+        <div class="disp-lote-barra" role="progressbar" [attr.aria-valuenow]="percentualLote()" aria-valuemin="0" aria-valuemax="100">
+          <div class="disp-lote-barra-fill" [style.width.%]="percentualLote()"></div>
+        </div>
+        <div class="disp-lote-numeros">
+          <span>✅ {{ lote.enviados }} enviada(s)</span>
+          <span *ngIf="lote.aguardando > 0">⏳ {{ lote.aguardando }} na fila</span>
+          <span *ngIf="lote.falhas > 0">❌ {{ lote.falhas }} não enviada(s)</span>
+          <span *ngIf="lote.incertos > 0">❓ {{ lote.incertos }} sem confirmação</span>
+          <span class="disp-lote-total">de {{ lote.total }}</span>
+        </div>
+
+        <div class="disparo-erros" *ngIf="lote.pendencias.length > 0">
+          <div class="disparo-erros-titulo">{{ lote.pendencias.length }} contato(s) precisam da sua atenção</div>
+          <div class="disparo-erro-item" *ngFor="let p of lote.pendencias">
+            <span>
+              {{ p.status === 'INCERTO' ? '❓' : (p.status === 'FALHOU' ? '❌' : '⚠️') }} {{ p.nome }}
+              <span class="mono" *ngIf="p.telefone">{{ p.telefone }}</span>
+            </span>
+            <span class="disparo-erro-msg">{{ p.erro }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="disp-recentes" *ngIf="lotesRecentes().length > 0">
+        <div class="disp-recentes-titulo">Envios recentes</div>
+        <button type="button" class="disp-recente" *ngFor="let l of lotesRecentes()"
+                [class.ativo]="loteAtual()?.id === l.id" (click)="acompanharLote(l.id)">
+          <span>{{ l.dataCriacao | date:'dd/MM HH:mm' }} · {{ l.nomeTemplate }}</span>
+          <span class="mono">{{ l.enviados }}/{{ l.total }}{{ l.falhas + l.incertos > 0 ? ' ⚠️' : '' }}{{ l.concluido ? '' : ' ⏳' }}</span>
+        </button>
       </div>
     </div>
   </div>

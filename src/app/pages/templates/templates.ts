@@ -106,6 +106,7 @@ export class TemplatesComponent implements OnInit {
 
   response = signal('');
   templates = signal<Template[]>([]);
+  mostrandoInativos = signal(false);
   sincronizando = signal(false);
   salvando = signal(false);
   search = signal('');
@@ -343,7 +344,7 @@ export class TemplatesComponent implements OnInit {
     const empId = this.empresaId();
     if (!empId) return;
 
-    this.templateService.listar(empId).subscribe({
+    this.templateService.listar(empId, this.mostrandoInativos()).subscribe({
       next: (res) => this.templates.set(res),
       error: (err) => this.response.set(`❌ ${extrairMensagemErro(err, 'Erro ao buscar templates locais.')}`)
     });
@@ -572,8 +573,39 @@ export class TemplatesComponent implements OnInit {
     });
   }
 
+  alternarInativos() {
+    this.mostrandoInativos.update(v => !v);
+    this.gatilhosAbertos.set(null);
+    this.search.set('');
+    this.response.set('');
+    this.buscar();
+  }
+
+  inativar(t: Template) {
+    if (!confirm(`Inativar "${nomeDoTemplate(t)}"? Ele some das telas e para de ser enviado, inclusive nos agendamentos e momentos de disparo que o usam. Nada é apagado, nem na Meta: dá para reativar em "Ver inativos".`)) {
+      return;
+    }
+    this.alterarAtivo(t, false);
+  }
+
+  reativar(t: Template) {
+    if (!confirm(`Reativar "${nomeDoTemplate(t)}"? Os agendamentos e momentos de disparo que o usam voltam a enviar.`)) return;
+    this.alterarAtivo(t, true);
+  }
+
+  private alterarAtivo(t: Template, ativo: boolean) {
+    this.templateService.alterarAtivo(t.id, ativo).subscribe({
+      next: () => {
+        this.templates.update(list => list.filter(x => x.id !== t.id));
+        if (this.gatilhosAbertos() === t.id) this.gatilhosAbertos.set(null);
+        this.response.set(ativo ? `✅ "${nomeDoTemplate(t)}" reativado.` : `✅ "${nomeDoTemplate(t)}" inativado.`);
+      },
+      error: (err) => this.response.set(`❌ ${extrairMensagemErro(err, 'Não foi possível alterar o modelo.')}`)
+    });
+  }
+
   excluir(id: string) {
-    if (!confirm('Tem certeza que deseja excluir este modelo? Ele sai da Meta (todas as versões de idioma com esse nome) e do seu cadastro. Disparos e flows que usam esse modelo param de funcionar.')) {
+    if (!confirm('Excluir de vez? Ele sai da Meta (todas as versões de idioma com esse nome) e do seu cadastro, e não dá para desfazer. Modelo que já foi enviado não pode ser excluído: mantenha inativo.')) {
       return;
     }
 
