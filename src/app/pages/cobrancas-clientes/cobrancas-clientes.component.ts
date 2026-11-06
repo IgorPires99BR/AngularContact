@@ -73,6 +73,10 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private readonly API = `${environment.apiUrl}/cobranca-cliente`;
 
+  // Os cards de total da carteira sao so do admin da empresa; atendente ve apenas a lista.
+  // E so exibicao: os valores de cada cobranca continuam vindo na lista para todos.
+  readonly podeVerTotais = computed(() => this.authService.ehAdminSignal() || this.authService.ehAdminDaPlataforma());
+
   // Tempo real: o webhook do Asaas da baixa e o servidor avisa pelo SignalR (mesmo hub do
   // Chats, autenticado; o grupo vem do token). O aviso so traz o id; os dados vem pela API.
   private hubConnection?: signalR.HubConnection;
