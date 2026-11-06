@@ -71,7 +71,7 @@
           <th>Conteúdo</th>
           <th style="width: 140px;">Origem</th>
           <th style="width: 150px;">Data/Hora</th>
-          <th style="width: 100px;">Status</th>
+          <th style="width: 220px;">Status</th>
         </tr>
       </thead>
       <tbody>
@@ -91,6 +91,7 @@
           <td class="mono">{{ m.dataHora | date:'dd/MM/yy HH:mm' }}</td>
           <td>
             <span class="badge" [ngClass]="statusBadgeClass(m.status)">{{ statusLabel(m.status) }}</span>
+            <div class="rel-motivo" *ngIf="m.motivoFalha">{{ m.motivoFalha }}</div>
           </td>
         </tr>
       </tbody>

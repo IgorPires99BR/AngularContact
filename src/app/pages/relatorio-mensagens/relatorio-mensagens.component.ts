@@ -15,6 +15,8 @@ interface RelatorioMensagem {
   status: string | null;
   // De onde saiu o disparo (Disparador, Agendador, Flow, Chat). Nulo pra mensagem recebida.
   origem: string | null;
+  // Codigo + descricao do erro da Meta (ex: 131049), quando a entrega falhou depois de aceita.
+  motivoFalha: string | null;
 }
 
 @Component({

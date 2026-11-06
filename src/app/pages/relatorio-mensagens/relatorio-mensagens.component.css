@@ -4,3 +4,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.rel-motivo {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--danger);
+  word-break: break-word;
+}
