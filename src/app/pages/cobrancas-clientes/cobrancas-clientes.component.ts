@@ -147,18 +147,30 @@ export class CobrancasClientesComponent implements OnInit, OnDestroy {
     for (const cl of lista) {
       cl.cobrancas.sort((a, b) => b.dataCriacao.localeCompare(a.dataCriacao));
     }
-    // Quem deve mais (vencido, depois em aberto) aparece primeiro: e o que o cliente quer ver.
-    return lista.sort((a, b) => (b.vencido - a.vencido) || (b.emAberto - a.emAberto) || a.nome.localeCompare(b.nome));
+    // Quem ja quitou vem primeiro; depois os em aberto, quem deve mais (vencido, depois a vencer) no topo.
+    return lista.sort((a, b) =>
+      (this.ordemCliente(a) - this.ordemCliente(b))
+      || (b.vencido - a.vencido) || (b.emAberto - a.emAberto) || a.nome.localeCompare(b.nome));
   });
 
-  // Visualização por extenso: cada cobrança numa linha, da mais recente para a mais antiga.
+  // 0 = pagou tudo, 1 = tem algo em aberto/vencido, 2 = so canceladas.
+  private ordemCliente(cl: ClienteComCobrancas): number {
+    if (cl.vencido > 0 || cl.emAberto > 0) return 1;
+    return cl.recebido > 0 ? 0 : 2;
+  }
+
+  // Visualização por extenso: pagas primeiro, depois as em aberto; em cada grupo, da mais recente para a mais antiga.
   cobrancasFiltradas = computed<CobrancaCliente[]>(() => {
     const termo = this.busca().toLowerCase().trim();
     const situacao = this.situacao();
+    const ordem = (c: CobrancaCliente) => {
+      const s = this.situacaoDe(c);
+      return s === 'PAGA' ? 0 : s === 'CANCELADA' ? 2 : 1;
+    };
     return this.cobrancas()
       .filter(c => !situacao || this.situacaoDe(c) === situacao)
       .filter(c => !termo || [c.nomeCliente, c.nomeContato, c.telefone].some(v => v?.toLowerCase().includes(termo)))
-      .sort((a, b) => b.dataCriacao.localeCompare(a.dataCriacao));
+      .sort((a, b) => (ordem(a) - ordem(b)) || b.dataCriacao.localeCompare(a.dataCriacao));
   });
 
   resumo = computed(() => {
